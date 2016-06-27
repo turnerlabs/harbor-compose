@@ -47,3 +47,9 @@ To stop your application and remove all running containers...
 ```
 $ harbor-compose down --user foo
 ```
+
+harbor-compose has commands for managing the whole lifecycle of your application:
+
+- Start and stop services
+- View the status of running services
+- Stream the log output of running services
