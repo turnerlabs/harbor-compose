@@ -4,16 +4,23 @@ A tool for defining and running multi-container Docker applications on Harbor.  
 
 Using Harbor Compose is basically a four-step process.
 
-1. Define your app’s environment with a Dockerfile so it can be reproduced anywhere.
+1. Define your app’s environment with a `Dockerfile` so it can be reproduced anywhere.
 
-2. Define the services that make up your app in docker-compose.yml so they can be run together in an isolated environment.
+2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.
 
-3. Define the Harbor-specifc parametrs in a harbor-compose.yml file.
+3. Define the Harbor-specifc parameters in a `harbor-compose.yml` file (or specify as command line args).
 
-4. Lastly, run harbor-compose up and Harbor Compose will start and run your entire app.
+4. Lastly, run `harbor-compose up` and Harbor Compose will start and run your entire app.
 
 
-A docker-compose.yml looks like this:
+`harbor-compose` has commands for managing the lifecycle of your application:
+
+- Start and stop services
+- View the status of running services
+- Stream the log output of running services
+
+
+A simple `docker-compose.yml` might look like this:
 
 ```yaml
 version: '2'
@@ -26,15 +33,15 @@ services:
       FOO: bar
 ```
 
-A harbor-compose.yml looks like this:
+A `harbor-compose.yml` might look like this:
 
 ```yaml
 my-app:
-  env: dev  
-  replicas: 3
+  env: staging
   barge: corp-sandbox
-  buildToken: T1hz84PYtol5VC5b9DKWxcj7lgct1V6Z  
+  replicas: 3    
 ```
+
 
 Then to start your application...
 
@@ -48,8 +55,3 @@ To stop your application and remove all running containers...
 $ harbor-compose down --user foo
 ```
 
-harbor-compose has commands for managing the whole lifecycle of your application:
-
-- Start and stop services
-- View the status of running services
-- Stream the log output of running services
