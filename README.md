@@ -37,9 +37,13 @@ A `harbor-compose.yml` might look like this:
 
 ```yaml
 my-app:
-  env: staging
+  customer_group: mss
+  env: staging  
+  property: turner
+  project: radius
+  product: mss-radius-app
   barge: corp-sandbox
-  replicas: 3    
+  replicas: 3
 ```
 
 
