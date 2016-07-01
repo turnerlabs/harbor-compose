@@ -6,14 +6,14 @@ Using Harbor Compose is basically a four-step process.
 
 1. Define your app’s environment with a `Dockerfile` so it can be reproduced anywhere.
 
-2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.
+2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.  You can use the standard Docker Compose commands (like `docker-compose build` and `docker-compose up`) to build/run/test your Docker app locally.
 
-3. Define the Harbor-specifc parameters in a `harbor-compose.yml` file (or specify as command line args).
+3. When you're ready to launch your Docker app on Harbor, you define the Harbor-specifc parameters in a `harbor-compose.yml` file.
 
-4. Lastly, run `harbor-compose up` and Harbor Compose will start and run your entire app.
+4. Run `harbor-compose up` and Harbor Compose will start and run your entire app on a managed barge.
 
 
-`harbor-compose` has commands for managing the lifecycle of your application:
+Just like `docker-compose`, `harbor-compose` has commands for managing the lifecycle of your application:
 
 - Start and stop services
 - View the status of running services
@@ -30,20 +30,25 @@ services:
     ports:
      - "80:5000"
     environment:
+      HEALTHCHECK: "/hc"
       FOO: bar
 ```
 
 A `harbor-compose.yml` might look like this:
 
 ```yaml
-my-app:
-  customer_group: mss
-  env: staging  
-  property: turner
-  project: radius
-  product: mss-radius-app
-  barge: corp-sandbox
-  replicas: 3
+shipments:
+  my-app:    
+    env: staging
+    replicas: 3
+    group: mss  
+    property: turner
+    project: radius
+    product: mss-radius-app    
+    environment:
+      BARGE: corp-sandbox
+    containers:
+      - web
 ```
 
 
