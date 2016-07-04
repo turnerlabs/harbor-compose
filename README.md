@@ -30,6 +30,7 @@ services:
     ports:
      - "80:5000"
     environment:
+      PORT: 5000
       HEALTHCHECK: "/hc"
       FOO: bar
 ```
