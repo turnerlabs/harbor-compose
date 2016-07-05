@@ -23,4 +23,11 @@ _testmain.go
 *.test
 *.prof
 
+.vscode
+
+debug
+
 harbor-compose
+harbor-compose.yml
+docker-compose.yml
+up.md

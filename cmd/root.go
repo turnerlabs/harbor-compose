@@ -17,8 +17,14 @@ var RootCmd = &cobra.Command{
 // Verbose determines whether or not verbose output is enabled
 var Verbose bool
 
-// File represents the
-var File string
+// DockerComposeFile represents the docker-compose.yml file
+var DockerComposeFile string
+
+// HarborComposeFile represents the harbor-compose.yml file
+var HarborComposeFile string
+
+// User is the current user
+var User string
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -32,7 +38,9 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Show more output")
-	RootCmd.PersistentFlags().StringVarP(&File, "file", "f", "docker-compose.yml", "Specify an alternate compose file")
+	RootCmd.PersistentFlags().StringVarP(&DockerComposeFile, "file", "f", "docker-compose.yml", "Specify an alternate docker compose file")
+	RootCmd.PersistentFlags().StringVarP(&HarborComposeFile, "harbor-file", "c", "harbor-compose.yml", "Specify an alternate harbor compose file")
+	RootCmd.PersistentFlags().StringVarP(&User, "user", "u", "", "Runs commands as this user")
 }
 
 // initConfig reads in config file and ENV variables if set.
