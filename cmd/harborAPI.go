@@ -12,6 +12,7 @@ import (
 var shipItURI = "http://shipit.services.dmtio.net"
 var triggerURI = "http://harbor-trigger.services.dmtio.net"
 var authAPI = "http://auth.services.dmtio.net"
+var helmitURI = "http://helmit.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
@@ -127,6 +128,25 @@ func update(token string, url string, data interface{}) {
 	if Verbose {
 		log.Println(body)
 	}
+}
+
+// GetLogs returns all logs for a shipment
+// TODO: add a tail flag feature (jkurz)
+func GetLogs(barge string, shipment string, env string) {
+    var url string = helmitURI + "/harbor/" + barge + "/" + shipment + "/" + env
+
+		log.Println(url)
+		_, body, err := gorequest.New().
+			Get(url).
+			End()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//if Verbose {
+		return log.Println(json.NewDecoder(body))
+		//}
 }
 
 // Trigger calls the trigger api
