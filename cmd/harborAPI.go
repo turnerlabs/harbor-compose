@@ -130,8 +130,7 @@ func update(token string, url string, data interface{}) {
 	}
 }
 
-// GetLogs returns all logs for a shipment
-// TODO: add a tail flag feature (jkurz)
+// GetLogs returns a string of all container logs for a shipment
 func GetLogs(barge string, shipment string, env string) string {
     var url string = helmitURI + "/harbor/" + barge + "/" + shipment + "/" + env
 
@@ -145,7 +144,7 @@ func GetLogs(barge string, shipment string, env string) string {
 		}
 
 		if Verbose {
-		  fmt.Println(body)
+		  fmt.Println("Fetching Harbor Logs")
 		}
 
 		return body

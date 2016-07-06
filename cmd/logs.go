@@ -21,6 +21,10 @@ func init() {
 		RootCmd.AddCommand(logsCmd)
 }
 
+// logs cli command
+// Usage: run inside folder with harbor-compose.yml file
+// Flags: -t: adds time to the logs
+// TODO: add the rest of the flags to match docker-compose
 func logs(cmd *cobra.Command, args []string) {
 		//read the harbor compose file
 		var harborCompose = DeserializeHarborCompose(HarborComposeFile)
