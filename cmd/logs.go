@@ -2,6 +2,7 @@ package cmd
 
 import (
 		"fmt"
+		"encoding/json"
 		"github.com/spf13/cobra"
 )
 
@@ -23,6 +24,24 @@ func logs(cmd *cobra.Command, args []string) {
 		//iterate shipments
 		for shipmentName, shipment := range harborCompose.Shipments {
 			fmt.Println("Logs For:  " + shipmentName + " " + shipment.Env)
-			GetLogs(shipment.Barge, shipmentName, shipment.Env)
+			helmitObject := HelmitResponse{}
+			var response = GetLogs(shipment.Barge, shipmentName, shipment.Env)
+			err := json.Unmarshal([]byte(response), &helmitObject)
+			if err != nil {
+			    fmt.Println(err)
+			}
+			for _, provider := range helmitObject.Replicas {
+					fmt.Println("--------------------------------------------------------------------------------------------------------------")
+					fmt.Println("--------------------------------------- Host " + provider.Host)
+					fmt.Println("--------------------------------------------------------------------------------------------------------------")
+					for _, container := range provider.Containers {
+					  	fmt.Println("--------------------------------------------------------------------------------------------------------------")
+						  fmt.Println("--------------------------------------------------------------------------------------------------------------")
+						  fmt.Println("--------------------------------------- Logs For " + container.Name)
+					    fmt.Println("--------------------------------------------------------------------------------------------------------------")
+							fmt.Println("--------------------------------------------------------------------------------------------------------------")
+              fmt.Println(container.Logs)
+					}
+			}
 		}
 }

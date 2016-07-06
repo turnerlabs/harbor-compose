@@ -132,7 +132,7 @@ func update(token string, url string, data interface{}) {
 
 // GetLogs returns all logs for a shipment
 // TODO: add a tail flag feature (jkurz)
-func GetLogs(barge string, shipment string, env string) {
+func GetLogs(barge string, shipment string, env string) string {
     var url string = helmitURI + "/harbor/" + barge + "/" + shipment + "/" + env
 
 		log.Println(url)
@@ -144,9 +144,11 @@ func GetLogs(barge string, shipment string, env string) {
 			log.Fatal(err)
 		}
 
-		//if Verbose {
-		return log.Println(json.NewDecoder(body))
-		//}
+		if Verbose {
+		  fmt.Println(body)
+		}
+
+		return body
 }
 
 // Trigger calls the trigger api
