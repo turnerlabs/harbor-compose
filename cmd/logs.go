@@ -2,10 +2,12 @@ package cmd
 
 import (
 		"fmt"
+		"strings"
 		"encoding/json"
 		"github.com/spf13/cobra"
 )
 
+var Time bool
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
 		Use:   "logs",
@@ -15,6 +17,7 @@ var logsCmd = &cobra.Command{
 }
 
 func init() {
+	  RootCmd.PersistentFlags().BoolVarP(&Time, "time", "t", false, "append time to logs")
 		RootCmd.AddCommand(logsCmd)
 }
 
@@ -31,18 +34,20 @@ func logs(cmd *cobra.Command, args []string) {
 			    fmt.Println(err)
 			}
 			for _, provider := range helmitObject.Replicas {
-					fmt.Println("--------------------------------------------------------------------------------------------------------------")
-					fmt.Println("--------------------------------------- Host " + provider.Host)
-					fmt.Println("--------------------------------------------------------------------------------------------------------------")
 					for _, container := range provider.Containers {
-					  	fmt.Println("--------------------------------------------------------------------------------------------------------------")
-						  fmt.Println("--------------------------------------------------------------------------------------------------------------")
-						  fmt.Println("--------------------------------------- Name: " + container.Name)
-							fmt.Println("--------------------------------------- Id: " + container.Id)
-							fmt.Println("--------------------------------------- Image " + container.Image)
-					    fmt.Println("--------------------------------------------------------------------------------------------------------------")
-							fmt.Println("--------------------------------------------------------------------------------------------------------------")
-              fmt.Println(container.Logs)
+						  fmt.Printf("--- Name: %s\n", container.Name)
+							fmt.Printf("--- Id: %s\n", container.Id)
+							fmt.Printf("--- Image %s\n", container.Image)
+							for _, log := range container.Logs {
+								  line := strings.Split(log, ",")
+									line = strings.Split(line[0], " ")
+
+									if Time == false {
+									  line = append(line[:0], line[1:]...)
+									}
+
+                  fmt.Println(strings.Join(line, " "))
+							}
 					}
 			}
 		}
