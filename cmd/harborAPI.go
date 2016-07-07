@@ -12,6 +12,7 @@ import (
 var shipItURI = "http://shipit.services.dmtio.net"
 var triggerURI = "http://harbor-trigger.services.dmtio.net"
 var authAPI = "http://auth.services.dmtio.net"
+var helmitURI = "http://helmit.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
@@ -127,6 +128,31 @@ func update(token string, url string, data interface{}) {
 	if Verbose {
 		log.Println(body)
 	}
+}
+
+// GetLogs returns a string of all container logs for a shipment
+func GetLogs(barge string, shipment string, env string) string {
+		values := make(map[string]interface{})
+		values["barge"] = barge
+		values["shipment"] = shipment
+		values["env"] = env
+    template, _ := uritemplates.Parse(helmitURI + "/harbor/{barge}/{shipment}/{env}")
+		uri, _ := template.Expand(values)
+
+		_, body, err := gorequest.New().
+			Get(uri).
+			End()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if Verbose {
+			fmt.Println(uri)
+		  fmt.Println("Fetching Harbor Logs")
+		}
+
+		return body
 }
 
 // Trigger calls the trigger api
