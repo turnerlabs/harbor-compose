@@ -132,11 +132,15 @@ func update(token string, url string, data interface{}) {
 
 // GetLogs returns a string of all container logs for a shipment
 func GetLogs(barge string, shipment string, env string) string {
-    var url string = helmitURI + "/harbor/" + barge + "/" + shipment + "/" + env
+		values := make(map[string]interface{})
+		values["barge"] = barge
+		values["shipment"] = shipment
+		values["env"] = env
+    template, _ := uritemplates.Parse(helmitURI + "/harbor/{barge}/{shipment}/{env}")
+		uri, _ := template.Expand(values)
 
-		log.Println(url)
 		_, body, err := gorequest.New().
-			Get(url).
+			Get(uri).
 			End()
 
 		if err != nil {
@@ -144,6 +148,7 @@ func GetLogs(barge string, shipment string, env string) string {
 		}
 
 		if Verbose {
+			fmt.Println(uri)
 		  fmt.Println("Fetching Harbor Logs")
 		}
 
