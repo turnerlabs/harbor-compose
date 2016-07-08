@@ -6,7 +6,7 @@ Using Harbor Compose is basically a four-step process.
 
 1. Define your app’s environment with a `Dockerfile` so it can be reproduced anywhere.
 
-2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.  You can use the standard docker compose commands (like `docker-compose build`, `docker-compose push`, `docker-compose up`, etc.) to build/run/test your Docker app locally.
+2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.  You can use the standard Docker Compose commands (like `docker-compose build`, `docker-compose push`, `docker-compose up`, etc.) to build/run/test your Docker app locally.
 
 3. When you're ready to launch your Docker app on Harbor, you define the Harbor-specifc parameters in a `harbor-compose.yml` file.
 
