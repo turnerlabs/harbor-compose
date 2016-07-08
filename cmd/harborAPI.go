@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/jtacoma/uritemplates"
 	"github.com/parnurzeal/gorequest"
@@ -92,8 +93,8 @@ func GetToken(user string, passwd string) string {
 //UpdateShipment updates shipment-level configuration
 func UpdateShipment(shipment string, composeShipment ComposeShipment, token string) {
 
-	//PUT /v1/shipment/:Shipment/environment/:Environment/provider/:name
 	//build URI
+	//PUT /v1/shipment/:Shipment/environment/:Environment/provider/:name
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
 	values["env"] = composeShipment.Env
@@ -112,9 +113,29 @@ func UpdateShipment(shipment string, composeShipment ComposeShipment, token stri
 	update(token, uri, providerPayload)
 }
 
-func update(token string, url string, data interface{}) {
+func create(token string, url string, data interface{}) (*http.Response, string, []error) {
 
-	_, body, err := gorequest.New().
+	res, body, err := gorequest.New().
+		Post(url).
+		Set("x-username", User).
+		Set("x-token", token).
+		Send(data).
+		End()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if Verbose {
+		log.Println(body)
+	}
+
+	return res, body, err
+}
+
+func update(token string, url string, data interface{}) (*http.Response, string, []error) {
+
+	res, body, err := gorequest.New().
 		Put(url).
 		Set("x-username", User).
 		Set("x-token", token).
@@ -128,35 +149,56 @@ func update(token string, url string, data interface{}) {
 	if Verbose {
 		log.Println(body)
 	}
+
+	return res, body, err
+}
+
+func delete(token string, url string) (*http.Response, string, []error) {
+
+	res, body, err := gorequest.New().
+		Delete(url).
+		Set("x-username", User).
+		Set("x-token", token).
+		End()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if Verbose {
+		log.Println(body)
+	}
+
+	return res, body, err
 }
 
 // GetLogs returns a string of all container logs for a shipment
 func GetLogs(barge string, shipment string, env string) string {
-		values := make(map[string]interface{})
-		values["barge"] = barge
-		values["shipment"] = shipment
-		values["env"] = env
-    template, _ := uritemplates.Parse(helmitURI + "/harbor/{barge}/{shipment}/{env}")
-		uri, _ := template.Expand(values)
+	values := make(map[string]interface{})
+	values["barge"] = barge
+	values["shipment"] = shipment
+	values["env"] = env
+	template, _ := uritemplates.Parse(helmitURI + "/harbor/{barge}/{shipment}/{env}")
+	uri, _ := template.Expand(values)
 
-		_, body, err := gorequest.New().
-			Get(uri).
-			End()
+	_, body, err := gorequest.New().
+		Get(uri).
+		End()
 
-		if err != nil {
-			log.Fatal(err)
-		}
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		if Verbose {
-			fmt.Println(uri)
-		  fmt.Println("Fetching Harbor Logs")
-		}
+	if Verbose {
+		fmt.Println(uri)
+		fmt.Println("Fetching Harbor Logs")
+	}
 
-		return body
+	return body
 }
 
 // Trigger calls the trigger api
-func Trigger(shipment string, env string) {
+func Trigger(shipment string, env string) TriggerResponse {
 
 	//build URI
 	values := make(map[string]interface{})
@@ -170,13 +212,89 @@ func Trigger(shipment string, env string) {
 
 	_, body, err := gorequest.New().
 		Post(uri).
-		End()
+		EndBytes()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if Verbose {
-		log.Println(body)
+	var response TriggerResponse
+	unmarshalErr := json.Unmarshal(body, &response)
+	if unmarshalErr != nil {
+		log.Fatal(unmarshalErr)
 	}
+
+	if Verbose {
+		log.Println(response)
+	}
+
+	return response
+}
+
+// SaveEnvVar saves envvars by doing a delete/add against the api
+func SaveEnvVar(token string, shipment string, composeShipment ComposeShipment, envVarPayload EnvVarPayload, container string) {
+
+	templateString := shipItURI + "/v1/shipment/{shipment}/environment/{env}/envvar/{envvar}"
+
+	//build url
+	//DELETE /v1/shipment/%s/environment/%s/envVar
+	values := make(map[string]interface{})
+	values["shipment"] = shipment
+	values["env"] = composeShipment.Env
+	values["envvar"] = envVarPayload.Name
+
+	if len(container) > 0 {
+		values["container"] = container
+		templateString = shipItURI + "/v1/shipment/{shipment}/environment/{env}/container/{container}/envvar/{envvar}"
+	}
+
+	template, _ := uritemplates.Parse(templateString)
+	url, _ := template.Expand(values)
+
+	//issue delete call
+	//api will return 422 if the envvar doesn't exist, which can be ignored
+	res, _, _ := delete(token, url)
+
+	//throw an error if we don't get our expected status code
+	if !(res.StatusCode == 200 || res.StatusCode == 422) {
+		log.Fatalf("DELETE %v returned %v", url, res.StatusCode)
+	}
+
+	//build url
+	//now POST a new envvar
+	templateString = shipItURI + "/v1/shipment/{shipment}/environment/{env}/envvars"
+	if len(container) > 0 {
+		values["container"] = container
+		templateString = shipItURI + "/v1/shipment/{shipment}/environment/{env}/container/{container}/envvars"
+	}
+	template, _ = uritemplates.Parse(templateString)
+	url, _ = template.Expand(values)
+
+	//call the api
+	create(token, url, envVarPayload)
+}
+
+// UpdateContainerImage updates a container version on a shipment
+func UpdateContainerImage(token string, shipment string, composeShipment ComposeShipment, container string, dockerService DockerComposeService) {
+
+	if Verbose {
+		log.Printf("updating container settings")
+	}
+
+	//build url
+	//PUT /v1/shipment/%s/environment/%s/container/%s
+	values := make(map[string]interface{})
+	values["shipment"] = shipment
+	values["env"] = composeShipment.Env
+	values["container"] = container
+	template, _ := uritemplates.Parse(shipItURI + "/v1/shipment/{shipment}/environment/{env}/container/{container}")
+	url, _ := template.Expand(values)
+
+	var payload = ContainerPayload{
+		Name:  container,
+		Image: dockerService.Image,
+	}
+
+	//call api
+	update(token, url, payload)
 }

@@ -14,14 +14,15 @@ type AuthResponse struct {
 
 // ComposeShipment represents a harbor shipment
 type ComposeShipment struct {
-	Group      string   `yaml:"group"`
-	Env        string   `yaml:"env"`
-	Property   string   `yaml:"property"`
-	Project    string   `yaml:"project"`
-	Product    string   `yaml:"product"`
-	Barge      string   `yaml:"barge"`
-	Replicas   int      `yaml:"replicas"`
-	Containers []string `yaml:"containers"`
+	Group       string            `yaml:"group"`
+	Env         string            `yaml:"env"`
+	Property    string            `yaml:"property"`
+	Project     string            `yaml:"project"`
+	Product     string            `yaml:"product"`
+	Barge       string            `yaml:"barge"`
+	Replicas    int               `yaml:"replicas"`
+	Environment map[string]string `yaml:"environment"`
+	Containers  []string          `yaml:"containers"`
 }
 
 // HarborCompose represents a harbor-compose.yml file
@@ -37,7 +38,9 @@ type DockerCompose struct {
 
 // DockerComposeService represents a container
 type DockerComposeService struct {
-	Image string `yaml:"image"`
+	Image       string            `yaml:"image"`
+	Ports       []string          `yaml:"ports"`
+	Environment map[string]string `yaml:"environment"`
 }
 
 // ShipmentEnvironment represents a shipment/environment combination
@@ -84,4 +87,9 @@ type ProviderPayload struct {
 	Name     string          `json:"name"`
 	Replicas int             `json:"replicas"`
 	EnvVars  []EnvVarPayload `json:"envVars,omitempty"`
+}
+
+// TriggerResponse is the payload returned from the trigger api
+type TriggerResponse struct {
+	Messages []string `json:"message"`
 }
