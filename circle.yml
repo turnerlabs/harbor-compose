@@ -10,6 +10,7 @@ deployment:
     commands:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
+      - go get github.com/inconshreveable/mousetrap
       - BUILD_DATE=$(date -u '+%Y/%m/%d %H:%M:%S')
       - BUILD_VERSION=$(git describe --tags)
       - 'gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
