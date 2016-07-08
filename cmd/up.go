@@ -27,9 +27,6 @@ func up(cmd *cobra.Command, args []string) {
 
 	//read the docker compose file
 	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
-	if dockerCompose.Version != "2" {
-		log.Fatal("only docker-compose format v2 is supported")
-	}
 
 	//validate user
 	if len(User) < 1 {

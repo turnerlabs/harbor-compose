@@ -23,5 +23,9 @@ func DeserializeDockerCompose(file string) *DockerCompose {
 		log.Fatalf("error: %v", err)
 	}
 
+	if dockerCompose.Version != "2" {
+		log.Fatal("only docker-compose format v2 is supported")
+	}
+
 	return &dockerCompose
 }

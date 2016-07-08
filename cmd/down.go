@@ -25,12 +25,6 @@ func down(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
 
-	//read the docker compose file
-	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
-	if dockerCompose.Version != "2" {
-		log.Fatal("only docker-compose format v2 is supported")
-	}
-
 	//validate user
 	if len(User) < 1 {
 		log.Fatal("--user is required for the up command")
