@@ -13,7 +13,7 @@ deployment:
       - go get github.com/inconshreveable/mousetrap
       - BUILD_DATE=$(date -u '+%Y/%m/%d %H:%M:%S')
       - BUILD_VERSION=$(git describe --tags)
-      - 'gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
+      - 'gox -ldflags "-X main.version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
       - 'ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
   prerelease:
     branch: [develop, circleci]
@@ -23,6 +23,5 @@ deployment:
       - go get github.com/inconshreveable/mousetrap
       - BUILD_DATE=$(date -u '+%Y/%m/%d %H:%M:%S')
       - BUILD_VERSION=$(git describe --tags)
-      - 'gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
+      - 'gox -ldflags "-X main.version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
       - 'ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'      
-      
