@@ -4,6 +4,12 @@ general:
       - master
       - develop
       - circleci
+checkout:
+  post:
+    # git tags are used to generate build info which is baked into the binary; 
+    # unfortunately, it is not possible to fetch all tags
+    # without also unshallowing the checkout, so we must do both.
+    - git fetch --unshallow --tags      
 deployment:
   release:
     branch: master
@@ -21,7 +27,4 @@ deployment:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
       - go get github.com/inconshreveable/mousetrap
-      - BUILD_DATE=$(date -u '+%Y/%m/%d %H:%M:%S')
-      - echo build date $BUILD_DATE
-      - 'BUILD_VERSION=$(git describe --tags) gox -ldflags "-X main.version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
-      - 'ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'      
+      - BUILD_VERSION=$(git describe --tags); echo $BUILD_VERSION  
