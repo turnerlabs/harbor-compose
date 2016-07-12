@@ -4,12 +4,6 @@ general:
       - master
       - develop
       - circleci
-checkout:
-  post:
-    # git tags are used to generate build info which is baked into the binary; 
-    # unfortunately, it is not possible to fetch all tags
-    # without also unshallowing the checkout, so we must do both.
-    - git fetch --unshallow --tags      
 deployment:
   release:
     branch: master
