@@ -14,6 +14,9 @@ var RootCmd = &cobra.Command{
 	Long:  ``,
 }
 
+// Version is the version of this app
+var Version string
+
 // Verbose determines whether or not verbose output is enabled
 var Verbose bool
 
@@ -28,7 +31,9 @@ var User string
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(version string) {
+	Version = version
+
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
