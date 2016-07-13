@@ -14,15 +14,15 @@ type AuthResponse struct {
 
 // ComposeShipment represents a harbor shipment
 type ComposeShipment struct {
-	Group       string            `yaml:"group"`
 	Env         string            `yaml:"env"`
+	Barge       string            `yaml:"barge"`
+	Containers  []string          `yaml:"containers"`
+	Replicas    int               `yaml:"replicas"`
+	Group       string            `yaml:"group"`
 	Property    string            `yaml:"property"`
 	Project     string            `yaml:"project"`
 	Product     string            `yaml:"product"`
-	Barge       string            `yaml:"barge"`
-	Replicas    int               `yaml:"replicas"`
 	Environment map[string]string `yaml:"environment"`
-	Containers  []string          `yaml:"containers"`
 }
 
 // HarborCompose represents a harbor-compose.yml file
@@ -53,6 +53,7 @@ type ShipmentEnvironment struct {
 	ParentShipment struct {
 		Name    string          `json:"name,omitempty"`
 		EnvVars []EnvVarPayload `json:"envVars,omitempty"`
+		Group   string          `json:"group,omitempty"`
 	}
 }
 
@@ -65,14 +66,17 @@ type EnvVarPayload struct {
 
 // PortPayload represents a port
 type PortPayload struct {
-	Name        string `json:"name,omitempty"`
-	Value       int    `json:"value,omitempty"`
-	Protocol    string `json:"protocol,omitempty"`
-	Healthcheck string `json:"healthcheck,omitempty"`
-	Primary     bool   `json:"primary,omitempty"`
-	External    bool   `json:"external,omitempty"`
-	PublicVip   bool   `json:"public_vip,omitempty"`
-	PublicPort  int    `json:"public_port,omitempty"`
+	Name                string `json:"name,omitempty"`
+	Value               int    `json:"value,omitempty"`
+	Protocol            string `json:"protocol,omitempty"`
+	Healthcheck         string `json:"healthcheck,omitempty"`
+	Primary             bool   `json:"primary,omitempty"`
+	External            bool   `json:"external,omitempty"`
+	PublicVip           bool   `json:"public_vip,omitempty"`
+	PublicPort          int    `json:"public_port,omitempty"`
+	EnableProxyProtocol bool   `json:"enable_proxy_protocol,omitempty"`
+	SslArn              string `json:"ssl_arn,omitempty"`
+	SslManagementType   string `json:"ssl_management_type,omitempty"`
 }
 
 // ContainerPayload represents a container payload
@@ -80,6 +84,7 @@ type ContainerPayload struct {
 	Name    string          `json:"name,omitempty"`
 	Image   string          `json:"image,omitempty"`
 	EnvVars []EnvVarPayload `json:"envVars,omitempty"`
+	Ports   []PortPayload   `json:"ports,omitempty"`
 }
 
 // ProviderPayload represents a provider payload
