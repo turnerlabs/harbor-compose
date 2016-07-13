@@ -21,5 +21,5 @@ deployment:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
       - go get github.com/inconshreveable/mousetrap
-      - ./build.sh
+      - 'chmod +x ./build.sh && ./build.sh'
       - 'ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
