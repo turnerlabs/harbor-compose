@@ -1,6 +1,10 @@
 # harbor-compose
 
-A tool for defining and running multi-container Docker applications on Harbor.  With Harbor Compose, you start with a standard [Docker Compose](https://docs.docker.com/compose/) file to configure your application’s services. You then add a Harbor Compose file to configure Harbor-specific settings.  Then, using a single command, you create and start all the services from your configuration.
+A tool for defining and running multi-container Docker applications on Harbor.
+
+[![CircleCI](https://circleci.com/gh/turnerlabs/harbor-compose/tree/master.svg?style=shield)](https://circleci.com/gh/turnerlabs/harbor-compose/tree/master)  
+
+With Harbor Compose, you start with a standard [Docker Compose](https://docs.docker.com/compose/) file to configure your application’s services. You then add a Harbor Compose file to configure Harbor-specific settings.  Then, using a single command, you create and start all the services from your configuration.
 
 Using Harbor Compose is basically a four-step process.
 
