@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Short: "Print version and exit",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("TODO")
+		fmt.Printf("%v built on %v\n", Version, BuildDate)
 	},
 }
 
