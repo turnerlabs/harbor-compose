@@ -21,5 +21,5 @@ deployment:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
       - go get github.com/inconshreveable/mousetrap
-      - BUILD_VERSION=$(git describe --tags); BUILD_DATE=$(date -u '+%Y/%m/%d %H:%M:%S'); 'gox -ldflags "-X main.version=$BUILD_VERSION -X main.buildDate=$BUILD_DATE" -output "dist/ncd_{{.OS}}_{{.Arch}}"'
+      - ./build.sh
       - 'ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
