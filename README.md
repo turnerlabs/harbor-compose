@@ -76,3 +76,31 @@ To stop your application and remove all running containers...
 $ harbor-compose down --user foo
 ```
 
+
+#### Getting Started
+
+To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and `harbor-compose.yml` files, by specifying the shipment name and environment as args.
+
+```
+$ harbor-compose generate my-shipment dev
+```
+
+This will output the files in the current directory.  You can then run a bunch of useful commands, for example...
+
+Run your shipment locally in Docker...
+
+```
+$ docker-compose up
+```
+
+Scale your shipment by changing the replicas in `harbor-compose.yml`...
+
+```
+$ harbor-compose up
+```
+
+Change your environment variables and re-deploy...
+
+```
+$ harbor-compose up
+```
