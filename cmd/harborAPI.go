@@ -16,7 +16,7 @@ var authAPI = "http://auth.services.dmtio.net"
 var helmitURI = "http://helmit.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
-func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
+func GetShipmentEnvironment(shipment string, env string, token string) *ShipmentEnvironment {
 
 	//build URI
 	values := make(map[string]interface{})
@@ -29,9 +29,16 @@ func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
 	}
 
 	//issue request
-	resp, body, err := gorequest.New().
-		Get(uri).
-		EndBytes()
+	request := gorequest.New().Get(uri)
+
+	//if token is specified, add it to the headers
+	if token != "" {
+		request = request.
+			Set("x-username", User).
+			Set("x-token", token)
+	}
+
+	resp, body, err := request.EndBytes()
 
 	if err != nil {
 		log.Fatal(err)
