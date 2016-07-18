@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -28,4 +29,29 @@ func DeserializeDockerCompose(file string) *DockerCompose {
 	}
 
 	return &dockerCompose
+}
+
+// SerializeDockerCompose serializes an object to a docker-compose.yml file
+func SerializeDockerCompose(dockerCompose DockerCompose, file string) {
+
+	//serialize object to yaml
+	data, err := yaml.Marshal(dockerCompose)
+	if err != nil {
+		log.Fatalf("error marshaling yaml: %v", err)
+	}
+
+	if Verbose {
+		log.Printf("writing docker-compose file to %v", file)
+	}
+
+	//write yaml to docker-compose.yml
+	err = ioutil.WriteFile(file, data, 0644)
+	if err != nil {
+		log.Fatalf("error writing %v: %v", DockerComposeFile, err)
+	}
+
+	if Verbose {
+		fmt.Println()
+		fmt.Printf(string(data))
+	}
 }
