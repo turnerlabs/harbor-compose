@@ -59,7 +59,7 @@ func generate(cmd *cobra.Command, args []string) {
 
 			//format = external:internal
 			if port.PublicPort == 0 {
-				port.PublicPort = 80
+				port.PublicPort = port.Value
 			}
 			dockerPort := fmt.Sprintf("%v:%v", port.PublicPort, port.Value)
 			service.Ports = append(service.Ports, dockerPort)
