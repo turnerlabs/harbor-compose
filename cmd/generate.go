@@ -124,16 +124,24 @@ func generate(cmd *cobra.Command, args []string) {
 	//environment
 	copyEnvVars(shipmentObject.EnvVars, composeShipment.Environment, special)
 
-	//todo: provider
+	//todo: provider envvars
+
+	//look for the ec2 provider (for now)
+	provider := ec2Provider(shipmentObject.Providers)
 
 	//now populate other harbor-compose metadata
-	composeShipment.Barge = special["BARGE"]
 	composeShipment.Product = special["PRODUCT"]
 	composeShipment.Project = special["PROJECT"]
 	composeShipment.Property = special["PROPERTY"]
 
-	//set replicas from the ec2 provider
-	composeShipment.Replicas = ec2Provider(shipmentObject.Providers).Replicas
+	//use the barge setting on the provider, otherwise use the envvar
+	composeShipment.Barge = provider.Barge
+	if composeShipment.Barge == "" {
+		composeShipment.Barge = special["BARGE"]
+	}
+
+	//set replicas from the provider
+	composeShipment.Replicas = provider.Replicas
 
 	//add containers
 	for container := range dockerCompose.Services {

@@ -92,6 +92,7 @@ type ProviderPayload struct {
 	Name     string          `json:"name"`
 	Replicas int             `json:"replicas"`
 	EnvVars  []EnvVarPayload `json:"envVars,omitempty"`
+	Barge    string          `json:"barge,omitempty"`
 }
 
 // TriggerResponse is the payload returned from the trigger api
