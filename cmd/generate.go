@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,7 @@ var generateCmd = &cobra.Command{
 	Long: `
 $ harbor-compose generate my-shipment dev
 or
-$ harbor-compose generate my-shipment qa
+$ harbor-compose generate my-shipment qa --user foo
 `,
 	Run: generate,
 }
@@ -26,8 +27,25 @@ func init() {
 }
 
 func generate(cmd *cobra.Command, args []string) {
+
 	if len(args) < 2 {
 		log.Fatal("2 arguments are required. ex: harbor-compose generate my-shipment dev")
+	}
+
+	// authenticate user and get a token if user is specified
+	token := ""
+	if User != "" {
+
+		//prompt for password
+		fmt.Printf("Password: ")
+		passwd, _ := gopass.GetPasswd()
+		pass := string(passwd)
+
+		//authenticate and get token
+		token = GetToken(User, pass)
+		if Verbose {
+			log.Printf("token obtained")
+		}
 	}
 
 	shipment := args[0]
@@ -36,7 +54,7 @@ func generate(cmd *cobra.Command, args []string) {
 	if Verbose {
 		log.Printf("fetching shipment...")
 	}
-	shipmentObject := GetShipmentEnvironment(shipment, env)
+	shipmentObject := GetShipmentEnvironment(shipment, env, token)
 
 	//convert a Shipment object into a DockerCompose object
 	dockerCompose := DockerCompose{
