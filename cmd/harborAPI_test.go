@@ -39,6 +39,16 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
+	// Since all functions need auth, this may be the best implmentation
+	client, err := harborauth.NewAuthClient(url)
+	tokenIn, successOut, err := client.Login(username, password)
+	if err != nil && successOut != true {
+		fmt.Println("Unable to Login.")
+		os.Exit(0)
+	} else {
+		token = tokenIn
+	}
+
 	os.Exit(m.Run())
 }
 
@@ -51,9 +61,7 @@ func TestGetShipmentEnvironment(t *testing.T) {
 	shipment = "ams-harbor-api-api"
 	env = "prod"
 
-	client, err := harborauth.NewAuthClient(url)
-	token, successOut, err := client.Login(username, password)
-	if err == nil && successOut == true {
+	if len(token) > 0 {
 		shipmentEnv := GetShipmentEnvironment(shipment, env, token)
 
 		assert.NotNil(t, shipmentEnv)
