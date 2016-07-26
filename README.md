@@ -104,5 +104,6 @@ Deploy a new image...
 $ harbor-compose up
 ```
 
+### Compose file reference
 
 See the [full harbor-compose.yml reference](compose-reference.md) along with which [docker-compose.yml](https://docs.docker.com/compose/) properties are supported by Harbor Compose.
