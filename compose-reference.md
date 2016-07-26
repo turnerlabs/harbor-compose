@@ -127,3 +127,41 @@ This value defines your shipment as a product.
 product: mss-my-app-web
 ```
 
+## Docker Compose configuration options
+
+The following options are currently supported by Harbor Compose.  Note that you are free to use all of the Docker Compose options when working with Docker Compose, however, only the following options are used by Harbor Compose.
+
+### [build](https://docs.docker.com/compose/compose-file/#build)
+
+Can be used to build images locally (`docker-compose build`) that can be pushed (`docker-compose push`) and run on Harbor.
+
+```yaml
+build: .
+```
+
+### [environment](https://docs.docker.com/compose/compose-file/#environment)
+
+These environment variables get injected into your container.  Any values here will override values that are also specified in `harbor-compose.yml`.
+
+```yaml
+environment:
+  RACK_ENV: development
+  SHOW: "true"
+```
+
+### [image](https://docs.docker.com/compose/compose-file/#image)
+
+The tagged Docker image that is deployed to Harbor.
+
+```yaml
+image: registry.services.dmtio.net/my-web-app:1.0.0
+```
+
+### [ports](https://docs.docker.com/compose/compose-file/#ports)
+
+The docker exposed ports (HOST:CONTAINER) will be mapped to the (FRONT-END:BACK-END) ports on the load balancer.  Note the currently only a single Harbor port is supported.
+
+```yaml
+ports:
+  - "80:5000"
+```
