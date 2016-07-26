@@ -1,22 +1,42 @@
-general:
-  branches:
-    only:
-      - master
-      - develop
+# repo = /home/ubuntu/harbor-compose
+# $GOPATH = /home/ubuntu/.go_workspace:/usr/local/go_workspace
+
+machine:
+  environment:
+    IMPORT_PATH: "/usr/local/go_workspace/src/github.com/turnerlabs/harbor-compose"
+
+dependencies:
+  pre:
+    - go get github.com/tools/godep
+
+  # copy the code to the canonical $GOPATH directory
+  override:
+    - sudo mkdir -p $IMPORT_PATH
+    - sudo rsync -az --delete ./ $IMPORT_PATH
+
+test:
+  pre:
+    - cd $IMPORT_PATH && go vet -x $(go list ./... | grep -v /vendor/)
+
+  override:
+    - cd $IMPORT_PATH && godep go test -v $(go list ./... | grep -v /vendor/)
+
 deployment:
+  
   release:
     branch: master
     commands:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
       - go get github.com/inconshreveable/mousetrap
-      - 'chmod +x ./build.sh && ./build.sh'
-      - 'ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
+      - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
+      - 'cd $IMPORT_PATH && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
+  
   prerelease:
     branch: develop
     commands:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
       - go get github.com/inconshreveable/mousetrap
-      - 'chmod +x ./build.sh && ./build.sh'
-      - 'ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
+      - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
+      - 'cd $IMPORT_PATH && ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
