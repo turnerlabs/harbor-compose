@@ -4,7 +4,7 @@ The Harbor Compose file is a YAML file defining shipments, containers, and envir
 
 ## Shipment configuration reference
 
-This section contains a list of all configuration options supported by a service definition.
+This section contains a list of all configuration options supported by Harbor Compose.
 
 
 ### version
@@ -22,10 +22,8 @@ This defines a list of one or more shipments that are part of your application.
 version: "1"
 shipments:
   shipment1:    
-    env: dev
     ...
   shipment2:    
-    env: dev
     ...    
 ```
 
@@ -55,7 +53,9 @@ environment:
 
 ### containers
 
-This is a list of containers that are part of the shipment.  It is an array of string values that must be a valid service that exists in the `docker-compose.yml` file.
+This is a list of containers that are part of the shipment.  It is an array of string values that must be a valid service that exists in the `docker-compose.yml` file.  
+
+This also means that you can have containers in your docker-compose.yml that get started when you dev locally, but are not referenced in your harbor-compose.yml, and therefore, not deployed to Harbor.
 
 For example if you have a `docker-compose.yml` like...
 
