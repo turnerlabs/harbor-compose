@@ -82,6 +82,8 @@ $ harbor-compose down --user foo
 
 To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.
 
+Note that Harbor Compose currently only works with existing shipments (shipment creation coming soon).  
+
 ```
 $ harbor-compose generate my-shipment dev
 ```
