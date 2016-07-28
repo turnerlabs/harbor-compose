@@ -12,7 +12,7 @@ Using Harbor Compose is basically a four-step process.
 
 2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.  You can use the standard Docker Compose commands (like `docker-compose build`, `docker-compose push`, `docker-compose up`, etc.) to build/run/test your Docker app locally.
 
-3. When you're ready to launch your Docker app on Harbor, you define the Harbor-specifc parameters in a `harbor-compose.yml` file.
+3. When you're ready to launch your Docker app on Harbor, you define the Harbor-specifc parameters in a [`harbor-compose.yml`](compose-reference.md) file.
 
 4. Run `harbor-compose up` and Harbor Compose will start and run your entire app on a managed barge.
 
@@ -27,7 +27,7 @@ Just like `docker-compose`, `harbor-compose` has similar commands for managing t
 A simple `docker-compose.yml` might look like this:
 
 ```yaml
-version: '2'
+version: "2"
 services:
   web-app:
     image: registry.services.dmtio.net/my-web-app:1.0.0
@@ -39,9 +39,10 @@ services:
       CONTAINER_LEVEL: foo
 ```
 
-A `harbor-compose.yml` might look like this:
+A [`harbor-compose.yml`](compose-reference.md) might look like this:
 
 ```yaml
+version: "1"
 shipments:
   my-web-app:    
     env: dev
@@ -79,7 +80,9 @@ $ harbor-compose down --user foo
 
 #### Getting Started
 
-To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and `harbor-compose.yml` files, by specifying the shipment name and environment as args.
+To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.
+
+Note that Harbor Compose currently only works with existing shipments (shipment creation coming soon).  
 
 ```
 $ harbor-compose generate my-shipment dev
@@ -95,12 +98,14 @@ $ docker-compose up
 
 Scale your shipment by changing the replicas in `harbor-compose.yml`...
 
-```
-$ harbor-compose up
-```
-
 Change your environment variables and re-deploy...
 
+Deploy a new image...
+
 ```
 $ harbor-compose up
 ```
+
+### Compose file reference
+
+See the [full harbor-compose.yml reference](compose-reference.md) along with which [docker-compose.yml](https://docs.docker.com/compose/) properties are supported by Harbor Compose.
