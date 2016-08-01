@@ -340,17 +340,28 @@ func SaveNewShipmentEnvironment(shipment NewShipmentEnvironment) bool {
 	//api returns an object with an errors property that is
 	//false when there are no errors and an object if there are
 	if !strings.Contains(body, "errors\": false") {
-
-		// var response NewShipmentResponse
-		// unmarshalErr := json.Unmarshal([]byte(body), &response)
-		// if unmarshalErr != nil {
-		// 	log.Fatal(unmarshalErr)
-		// }
-
-		//response.Errors.Containers
-
 		return false
 	}
 
 	return true
+}
+
+// DeleteShipmentEnvironment deletes a shipment/environment from harbor
+func DeleteShipmentEnvironment(shipment string, env string, token string) {
+
+	//build URI
+	values := make(map[string]interface{})
+	values["shipment"] = shipment
+	values["env"] = env
+	template, _ := uritemplates.Parse(shipItURI + "/v1/shipment/{shipment}/environment/{env}")
+	uri, _ := template.Expand(values)
+	if Verbose {
+		log.Printf("deleting: " + uri)
+	}
+
+	res, _, _ := delete(token, uri)
+
+	if res.StatusCode != 200 {
+		log.Fatalf("delete returned a status code of %v", res.StatusCode)
+	}
 }
