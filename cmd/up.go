@@ -30,17 +30,13 @@ func init() {
 	RootCmd.AddCommand(upCmd)
 }
 
-var dockerCompose DockerCompose
-var harborCompose HarborCompose
-var token string
-
 func up(cmd *cobra.Command, args []string) {
 
 	//read the harbor compose file
-	harborCompose = DeserializeHarborCompose(HarborComposeFile)
+	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 
 	//read the docker compose file
-	dockerCompose = DeserializeDockerCompose(DockerComposeFile)
+	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
 
 	//validate user
 	if len(User) < 1 {
@@ -54,7 +50,7 @@ func up(cmd *cobra.Command, args []string) {
 	fmt.Println()
 
 	//authenticate and get token
-	token = GetToken(User, pass)
+	token := GetToken(User, pass)
 	if Verbose {
 		log.Printf("token obtained")
 	}
@@ -76,11 +72,11 @@ func up(cmd *cobra.Command, args []string) {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(shipmentName, shipment, token)
+			createShipment(shipmentName, dockerCompose, shipment, token)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(shipmentObject, shipmentName, shipment, token)
+			updateShipment(shipmentObject, shipmentName, dockerCompose, shipment, token)
 
 			//TODO: desired state reconciliation
 		}
@@ -90,7 +86,7 @@ func up(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-func createShipment(shipmentName string, shipment ComposeShipment, token string) {
+func createShipment(shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, token string) {
 
 	//map a ComposeShipment object (based on compose files) into
 	//a new NewShipmentEnvironment object
@@ -221,7 +217,7 @@ func createShipment(shipmentName string, shipment ComposeShipment, token string)
 	newShipment.Providers = append(newShipment.Providers, provider)
 
 	//push the new shipment/environment up to harbor
-	SaveNewShipmentEnvironment(newShipment)
+	SaveNewShipmentEnvironment(newShipment, token)
 
 	//trigger shipment
 	success, messages := Trigger(shipmentName, shipment.Env)
@@ -235,7 +231,7 @@ func createShipment(shipmentName string, shipment ComposeShipment, token string)
 	}
 }
 
-func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, shipment ComposeShipment, token string) {
+func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, token string) {
 
 	//map a ComposeShipment object (based on compose files) into
 	//a series of API call to update a shipment

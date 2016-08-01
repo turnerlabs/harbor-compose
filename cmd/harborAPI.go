@@ -327,7 +327,7 @@ func UpdateContainerImage(token string, shipment string, composeShipment Compose
 }
 
 // SaveNewShipmentEnvironment bulk saves a new shipment/environment
-func SaveNewShipmentEnvironment(shipment NewShipmentEnvironment) bool {
+func SaveNewShipmentEnvironment(shipment NewShipmentEnvironment, token string) bool {
 
 	//POST /api/v1/shipments
 	res, body, err := create(token, harborURI+"/api/v1/shipments", shipment)
