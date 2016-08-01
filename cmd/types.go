@@ -95,7 +95,69 @@ type ProviderPayload struct {
 	Barge    string          `json:"barge,omitempty"`
 }
 
-// TriggerResponse is the payload returned from the trigger api
-type TriggerResponse struct {
-	Messages []string `json:"message"`
+// TriggerResponseSingle is the payload returned from the trigger api
+type TriggerResponseSingle struct {
+	Message string `json:"message,omitempty"`
 }
+
+// TriggerResponseMultiple is the payload returned from the trigger api
+type TriggerResponseMultiple struct {
+	Messages []string `json:"message,omitempty"`
+}
+
+// NewShipmentEnvironment is used for bulk-creating a new shipment
+type NewShipmentEnvironment struct {
+	Username    string          `json:"username"`
+	Token       string          `json:"token"`
+	Info        NewShipmentInfo `json:"main"`
+	Environment NewEnvironment  `json:"environment"`
+	Containers  []NewContainer  `json:"containers"`
+	Providers   []NewProvider   `json:"providers"`
+}
+
+// NewShipmentInfo represents new shipment info
+type NewShipmentInfo struct {
+	Name  string          `json:"name"`
+	Group string          `json:"group"`
+	Vars  []EnvVarPayload `json:"vars"`
+}
+
+// NewEnvironment representsa new environment
+type NewEnvironment struct {
+	Name string          `json:"name"`
+	Vars []EnvVarPayload `json:"vars"`
+}
+
+// NewContainer respresents a new container
+type NewContainer struct {
+	Name    string          `json:"name"`
+	Version string          `json:"version"`
+	Image   string          `json:"image"`
+	Vars    []EnvVarPayload `json:"vars"`
+	Ports   []PortPayload   `json:"ports"`
+}
+
+// NewProvider represents a new provider
+type NewProvider struct {
+	Name     string          `json:"name"`
+	Replicas int             `json:"replicas"`
+	Vars     []EnvVarPayload `json:"vars,omitempty"`
+	Barge    string          `json:"barge,omitempty"`
+}
+
+// // NewShipmentResponse represents response from creating a new shipment
+// type NewShipmentResponse struct {
+// 	Errors NewShipmentError `json:"errors,omitempty"`
+// }
+
+// // NewShipmentError errors returned from harbor create api
+// type NewShipmentError struct {
+// 	Containers []CreateError `json:"containers,omitempty"`
+// 	Providers  []CreateError `json:"providers,omitempty"`
+// }
+
+// // CreateError represents an error
+// type CreateError struct {
+// 	Error int      `json:"error,omitempty"`
+// 	Body  []string `json:"body,omitempty"`
+// }

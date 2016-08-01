@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/jtacoma/uritemplates"
 	"github.com/parnurzeal/gorequest"
@@ -14,6 +15,7 @@ var shipItURI = "http://shipit.services.dmtio.net"
 var triggerURI = "http://harbor-trigger.services.dmtio.net"
 var authAPI = "http://auth.services.dmtio.net"
 var helmitURI = "http://helmit.services.dmtio.net"
+var harborURI = "http://harbor.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(shipment string, env string, token string) *ShipmentEnvironment {
@@ -42,6 +44,11 @@ func GetShipmentEnvironment(shipment string, env string, token string) *Shipment
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	//return nil if the shipment/env isn't found
+	if resp.StatusCode == 404 {
+		return nil
 	}
 
 	if resp.StatusCode != 200 {
@@ -133,10 +140,6 @@ func create(token string, url string, data interface{}) (*http.Response, string,
 		log.Fatal(err)
 	}
 
-	if Verbose {
-		log.Println(body)
-	}
-
 	return res, body, err
 }
 
@@ -205,7 +208,7 @@ func GetLogs(barge string, shipment string, env string) string {
 }
 
 // Trigger calls the trigger api
-func Trigger(shipment string, env string) TriggerResponse {
+func Trigger(shipment string, env string) (bool, []string) {
 
 	//build URI
 	values := make(map[string]interface{})
@@ -217,7 +220,7 @@ func Trigger(shipment string, env string) TriggerResponse {
 		log.Printf("triggering shipment: " + uri)
 	}
 
-	_, body, err := gorequest.New().
+	resp, body, err := gorequest.New().
 		Post(uri).
 		EndBytes()
 
@@ -225,17 +228,34 @@ func Trigger(shipment string, env string) TriggerResponse {
 		log.Fatal(err)
 	}
 
-	var response TriggerResponse
+	//example responses...
+	//error: {"message":"Could not parse docker image data from http://registry.services.dmtio.net/v2/mss-poc-thingproxy/manifests/: 757: unexpected token at '404 page not found\n'\n"}
+	//success: {"message":["compose-test.dev.services.ec2.dmtio.net:5000"]}
+
+	//trigger api returns both single and multiple messages
+	if strings.Contains(string(body), "message\":\"") {
+
+		var response TriggerResponseSingle
+		unmarshalErr := json.Unmarshal(body, &response)
+		if unmarshalErr != nil {
+			log.Fatal(unmarshalErr)
+		}
+
+		//convert single message into an array for consistency
+		var temp []string
+		temp = append(temp, response.Message)
+
+		//return success
+		return resp.StatusCode == 200, temp
+	}
+
+	var response TriggerResponseMultiple
 	unmarshalErr := json.Unmarshal(body, &response)
 	if unmarshalErr != nil {
 		log.Fatal(unmarshalErr)
 	}
 
-	if Verbose {
-		log.Println(response)
-	}
-
-	return response
+	return resp.StatusCode == 200, response.Messages
 }
 
 // SaveEnvVar saves envvars by doing a delete/add against the api
@@ -304,4 +324,33 @@ func UpdateContainerImage(token string, shipment string, composeShipment Compose
 
 	//call api
 	update(token, url, payload)
+}
+
+// SaveNewShipmentEnvironment bulk saves a new shipment/environment
+func SaveNewShipmentEnvironment(shipment NewShipmentEnvironment) bool {
+
+	//POST /api/v1/shipments
+	res, body, err := create(token, harborURI+"/api/v1/shipments", shipment)
+
+	if err != nil || res.StatusCode != 200 {
+		fmt.Printf("creating shipment was not successful: %v \n", body)
+		return false
+	}
+
+	//api returns an object with an errors property that is
+	//false when there are no errors and an object if there are
+	if !strings.Contains(body, "errors\": false") {
+
+		// var response NewShipmentResponse
+		// unmarshalErr := json.Unmarshal([]byte(body), &response)
+		// if unmarshalErr != nil {
+		// 	log.Fatal(unmarshalErr)
+		// }
+
+		//response.Errors.Containers
+
+		return false
+	}
+
+	return true
 }
