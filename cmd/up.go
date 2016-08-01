@@ -123,12 +123,6 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 		newShipment.Environment.Vars = append(newShipment.Environment.Vars, envVar(name, value))
 	}
 
-	//add barge envvar (note that this is being moved to the provider level soon)
-	if shipment.Barge == "" {
-		log.Fatalln("barge is required for a shipment")
-	}
-	newShipment.Environment.Vars = append(newShipment.Environment.Vars, envVar("BARGE", shipment.Barge))
-
 	//containers
 	//iterate defined containers and apply container level updates
 	newShipment.Containers = make([]NewContainer, 0)
@@ -203,6 +197,10 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 
 		//add container to list
 		newShipment.Containers = append(newShipment.Containers, newContainer)
+	}
+
+	if shipment.Barge == "" {
+		log.Fatalln("barge is required for a shipment")
 	}
 
 	//add default ec2 provider
