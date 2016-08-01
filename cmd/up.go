@@ -83,7 +83,6 @@ func up(cmd *cobra.Command, args []string) {
 			updateShipment(shipmentObject, shipmentName, shipment, token)
 
 			//TODO: desired state reconciliation
-			//reconcileShipment(shipmentObject, shipment, token)
 		}
 
 		fmt.Println("done")
@@ -310,12 +309,6 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, s
 	if ec2Provider(currentShipment.Providers).Replicas == 0 {
 		fmt.Println("Please allow up to 5 minutes for DNS changes to take effect.")
 	}
-}
-
-func reconcileShipment(currentState ShipmentEnvironment, desiredState ComposeShipment, token string) {
-
-	//walk desired state, making changes to current state
-
 }
 
 func envVar(name string, value string) EnvVarPayload {

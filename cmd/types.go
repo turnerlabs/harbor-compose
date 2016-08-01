@@ -144,20 +144,3 @@ type NewProvider struct {
 	Vars     []EnvVarPayload `json:"vars,omitempty"`
 	Barge    string          `json:"barge,omitempty"`
 }
-
-// // NewShipmentResponse represents response from creating a new shipment
-// type NewShipmentResponse struct {
-// 	Errors NewShipmentError `json:"errors,omitempty"`
-// }
-
-// // NewShipmentError errors returned from harbor create api
-// type NewShipmentError struct {
-// 	Containers []CreateError `json:"containers,omitempty"`
-// 	Providers  []CreateError `json:"providers,omitempty"`
-// }
-
-// // CreateError represents an error
-// type CreateError struct {
-// 	Error int      `json:"error,omitempty"`
-// 	Body  []string `json:"body,omitempty"`
-// }
