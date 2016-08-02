@@ -44,13 +44,6 @@ func login(cmd *cobra.Command, args []string) {
 
 //WriteFile -
 func WriteFile(version string, username string, token string) {
-	auth := new(Auth)
-	auth.Version = version
-	auth.Username = username
-	auth.Token = token
-
-	b, _ := json.Marshal(auth)
-
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get current user info: " + err.Error())
@@ -65,12 +58,20 @@ func WriteFile(version string, username string, token string) {
 		if err != nil {
 			fmt.Println("Unable to create directory ~/.harbor: " + err.Error())
 			fmt.Println("Unable to write credentials file to ~/.harbor")
+			return
 		}
 	}
 
-	d1 := []byte(string(b))
+	auth := new(Auth)
+	auth.Version = version
+	auth.Username = username
+	auth.Token = token
+
+	b, _ := json.Marshal(auth)
+
+	authByte := []byte(string(b))
 	var credPath = path + "/credentials"
-	err = ioutil.WriteFile(credPath, d1, 0600)
+	err = ioutil.WriteFile(credPath, authByte, 0600)
 	if err != nil {
 		fmt.Println("Unable to write credentials file to ~/.harbor: " + err.Error())
 	}
@@ -144,7 +145,7 @@ func Login() (string, string) {
 func harborLogin(username string, password string) (string, error) {
 	client, err := harborauth.NewAuthClient(authURL)
 	tokenIn, successOut, err := client.Login(username, password)
-	if err != nil && successOut != true {
+	if err != nil || successOut != true {
 		return "", err
 	}
 	return tokenIn, nil
