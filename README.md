@@ -77,15 +77,18 @@ To stop your application and remove all running containers...
 $ harbor-compose down --user foo
 ```
 
-
 #### Getting Started
 
-To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.
-
-Note that Harbor Compose currently only works with existing shipments (shipment creation coming soon).  
+To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  For example:
 
 ```
 $ harbor-compose generate my-shipment dev
+```
+
+To create new shipments and environments, you can use the `init` command to generate [`harbor-compose.yml`](compose-reference.md) files.  `init` will ask you questions to build your compose file.  Note that you use the `--yes` flag to accept defaults and generate one quickly.
+
+```
+$ harbor-compose init
 ```
 
 This will output the files in the current directory.  You can then run a bunch of useful commands, for example...
@@ -96,15 +99,18 @@ Run your shipment locally in Docker (practically identically to how it runs in H
 $ docker-compose up
 ```
 
-Scale your shipment by changing the replicas in `harbor-compose.yml`...
-
-Change your environment variables and re-deploy...
-
-Deploy a new image...
+Scale your shipment by changing the replicas in `harbor-compose.yml`, or change your environment variables and re-deploy, or deploy a new image, etc....
 
 ```
 $ harbor-compose up
 ```
+
+To stop your application and delete the environment.
+
+```
+$ harbor-compose down --delete
+```
+
 
 ### Compose file reference
 
