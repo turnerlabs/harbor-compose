@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -25,21 +24,7 @@ func down(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
 
-	//validate user
-	if len(User) < 1 {
-		log.Fatal("--user is required for the up command")
-	}
-
-	//prompt for password
-	fmt.Printf("Password: ")
-	passwd, _ := gopass.GetPasswd()
-	pass := string(passwd)
-
-	//authenticate and get token
-	var token = GetToken(User, pass)
-	if Verbose {
-		log.Printf("token obtained")
-	}
+	_, token := Login()
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {

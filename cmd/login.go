@@ -18,8 +18,9 @@ import (
 
 //Auth struc
 type Auth struct {
-	Version string `json:"version"`
-	Token   string `json:"token"`
+	Version  string `json:"version"`
+	Username string `json:"username"`
+	Token    string `json:"token"`
 }
 
 // loginCmd represents the login command
@@ -37,40 +38,22 @@ func init() {
 }
 
 func login(cmd *cobra.Command, args []string) {
-	fmt.Println("Login with your Argonauts Login ID to run harbor compose commands. If you don't have a Argonauts Login ID, please reach out in slack to the cloud architecture team.")
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Print("Username: ")
-	harborUsername, _ := reader.ReadString('\n')
-
-	fmt.Print("Password: ")
-	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-	harborPassword := string(bytePassword)
-
-	harborToken, err := Login(strings.TrimSpace(harborUsername), strings.TrimSpace(harborPassword))
-	fmt.Println("")
-	if err == nil && len(harborToken) > 1 {
-		fmt.Println("Login Succeeded")
-		WriteFile("v1", harborToken)
-	} else {
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println("Login Failed")
-	}
+	_, _ = Login()
+	return
 }
 
 //WriteFile -
-func WriteFile(version string, token string) {
+func WriteFile(version string, username string, token string) {
 	auth := new(Auth)
 	auth.Version = version
+	auth.Username = username
 	auth.Token = token
 
 	b, _ := json.Marshal(auth)
 
 	usr, err := user.Current()
 	if err != nil {
-		fmt.Println("Unable to get Current: " + err.Error())
+		fmt.Println("Unable to get current user info: " + err.Error())
 		fmt.Println("Unable to write credentials file to ~/.harbor")
 		return
 	}
@@ -95,8 +78,70 @@ func WriteFile(version string, token string) {
 	return
 }
 
-// Login -
-func Login(username string, password string) (string, error) {
+//ReadFile -
+func ReadFile() *Auth {
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get Current User Info: " + err.Error())
+		fmt.Println("Unable to read credentials file in ~/.harbor")
+		return nil
+	}
+
+	var path = usr.HomeDir + "/.harbor"
+	err = os.Chdir(path)
+	if err != nil {
+		fmt.Println("Unable to read credentials file in ~/.harbor")
+		return nil
+	}
+
+	var credPath = path + "/credentials"
+	byteData, err := ioutil.ReadFile(credPath)
+	if err != nil {
+		fmt.Println("Unable to write credentials file to ~/.harbor: " + err.Error())
+		return nil
+	}
+
+	var serializedAuth Auth
+	err = json.Unmarshal(byteData, &serializedAuth)
+	if err != nil {
+		fmt.Println("Unable to write credentials file to ~/.harbor: " + err.Error())
+		return nil
+	}
+
+	return &serializedAuth
+}
+
+//Login -
+func Login() (string, string) {
+	serializedAuth := ReadFile()
+	if serializedAuth != nil {
+		return serializedAuth.Username, serializedAuth.Token
+	}
+
+	fmt.Println("Login with your Argonauts Login ID to run harbor compose commands. If you don't have a Argonauts Login ID, please reach out in slack to the cloud architecture team.")
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Username: ")
+	harborUsername, _ := reader.ReadString('\n')
+
+	fmt.Print("Password: ")
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	harborPassword := string(bytePassword)
+
+	harborToken, err := harborLogin(strings.TrimSpace(harborUsername), strings.TrimSpace(harborPassword))
+	fmt.Println("")
+	if err == nil && len(harborToken) > 1 {
+		fmt.Println("Login Succeeded")
+		WriteFile("v1", harborUsername, harborToken)
+		return harborUsername, harborToken
+	}
+	fmt.Println(err)
+	fmt.Println("Login Failed")
+	return "", ""
+}
+
+//harborLogin -
+func harborLogin(username string, password string) (string, error) {
 	client, err := harborauth.NewAuthClient(authURL)
 	tokenIn, successOut, err := client.Login(username, password)
 	if err != nil && successOut != true {
