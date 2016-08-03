@@ -1,11 +1,18 @@
 {
 	"ImportPath": "github.com/turnerlabs/harbor-compose",
 	"GoVersion": "go1.6",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/asaskevich/govalidator",
 			"Comment": "v4-12-g593d645",
 			"Rev": "593d64559f7600f29581a3ee42177f5dbded27a9"
+		},
+		{
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
 		{
 			"ImportPath": "github.com/howeyc/gopass",
@@ -30,12 +37,21 @@
 			"Rev": "045012d33ef41ea146c1b675df9296d0dc1a212d"
 		},
 		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
+		},
+		{
 			"ImportPath": "github.com/spf13/cobra",
 			"Rev": "9d9ce1213e32036f555185d5a7df854d6f801ef8"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
 			"Rev": "1560c1005499d61b80f865c04d39ca7505bf7f0b"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.1.3-6-g6fe211e",
+			"Rev": "6fe211e493929a8aac0469b93f28b1d0688a9a3a"
 		},
 		{
 			"ImportPath": "github.com/turnerlabs/harbor-auth-client",
