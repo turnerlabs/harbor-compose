@@ -41,7 +41,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if !yesUseDefaults {
 		name = promptAndGetResponse("shipment name: (e.g., mss-my-app) ")
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ")
-		barge = promptAndGetResponse("barge: (mss, cnn, nba, digital-sandbox, ent-prod, corp-sandbox, corp-prod) ")
+		barge = promptAndGetResponse("barge: (cnn, nba, digital-sandbox, ent-prod, corp-sandbox, corp-prod) ")
 		replicas = promptAndGetResponse("replicas (how many container instances): ")
 		group = promptAndGetResponse("group (mss, cnn, nba, ams, etc.): ")
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
