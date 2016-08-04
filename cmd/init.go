@@ -41,7 +41,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if !yesUseDefaults {
 		name = promptAndGetResponse("shipment name: (e.g., mss-my-app) ")
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ")
-		barge = promptAndGetResponse("barge: (mss, cnn, nba, digital-sandbox, ent-prod, corp-sandbox, corp-prod) ")
+		barge = promptAndGetResponse("barge: (cnn, nba, digital-sandbox, ent-prod, corp-sandbox, corp-prod) ")
 		replicas = promptAndGetResponse("replicas (how many container instances): ")
 		group = promptAndGetResponse("group (mss, cnn, nba, ams, etc.): ")
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
@@ -82,14 +82,20 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	//add single shipment to list
 	harborCompose.Shipments[name] = composeShipment
 
-	//look for existing harbor-compose.yml
+	//if harbor-compose.yml exists, ask to overwrite
+	write := false
 	if _, err := os.Stat(HarborComposeFile); err == nil {
 		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
-		if askForConfirmation() {
-			SerializeHarborCompose(harborCompose, HarborComposeFile)
-			fmt.Println("done")
-		}
+		write = askForConfirmation()
+	} else { //not exists
+		write = true
 	}
+
+	if write {
+		SerializeHarborCompose(harborCompose, HarborComposeFile)
+		fmt.Println("done")
+	}
+
 }
 
 func promptAndGetResponse(question string) string {
