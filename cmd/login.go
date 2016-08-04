@@ -116,7 +116,14 @@ func ReadFile() *Auth {
 func Login() (string, string) {
 	serializedAuth := ReadFile()
 	if serializedAuth != nil {
-		return serializedAuth.Username, serializedAuth.Token
+		isvalid, err := harborAuthenticated(serializedAuth.Username, serializedAuth.Token)
+		if err != nil {
+			// write it out, isvalid will be false and continue on to force login
+			fmt.Println("Unable to verify token: " + err.Error())
+		}
+		if isvalid {
+			return serializedAuth.Username, serializedAuth.Token
+		}
 	}
 
 	fmt.Println("Login with your Argonauts Login ID to run harbor compose commands. If you don't have a Argonauts Login ID, please reach out in slack to the cloud architecture team.")
@@ -149,4 +156,13 @@ func harborLogin(username string, password string) (string, error) {
 		return "", err
 	}
 	return tokenIn, nil
+}
+
+func harborAuthenticated(username string, token string) (bool, error) {
+	client, err := harborauth.NewAuthClient(authURL)
+	isauthd, err := client.IsAuthenticated(username, token)
+	if err != nil || isauthd != true {
+		return false, err
+	}
+	return isauthd, nil
 }
