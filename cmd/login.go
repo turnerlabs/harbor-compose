@@ -42,8 +42,7 @@ func login(cmd *cobra.Command, args []string) {
 	return
 }
 
-//WriteFile -
-func WriteFile(version string, username string, token string) {
+func writeFile(version string, username string, token string) {
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get current user info: " + err.Error())
@@ -79,8 +78,7 @@ func WriteFile(version string, username string, token string) {
 	return
 }
 
-//ReadFile -
-func ReadFile() *Auth {
+func readFile() *Auth {
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get Current User Info: " + err.Error())
@@ -114,7 +112,7 @@ func ReadFile() *Auth {
 
 //Login -
 func Login() (string, string) {
-	serializedAuth := ReadFile()
+	serializedAuth := readFile()
 	if serializedAuth != nil {
 		isvalid, err := harborAuthenticated(serializedAuth.Username, serializedAuth.Token)
 		if err != nil {
@@ -140,7 +138,7 @@ func Login() (string, string) {
 	fmt.Println("")
 	if err == nil && len(harborToken) > 1 {
 		fmt.Println("Login Succeeded")
-		WriteFile("v1", harborUsername, harborToken)
+		writeFile("v1", harborUsername, harborToken)
 		return harborUsername, harborToken
 	}
 	fmt.Println(err)
@@ -160,9 +158,9 @@ func harborLogin(username string, password string) (string, error) {
 
 func harborAuthenticated(username string, token string) (bool, error) {
 	client, err := harborauth.NewAuthClient(authURL)
-	isauthd, err := client.IsAuthenticated(username, token)
-	if err != nil || isauthd != true {
+	isAuth, err := client.IsAuthenticated(username, token)
+	if err != nil || isAuth != true {
 		return false, err
 	}
-	return isauthd, nil
+	return isAuth, nil
 }
