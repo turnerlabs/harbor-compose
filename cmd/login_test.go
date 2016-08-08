@@ -24,6 +24,7 @@ func TestReadFileSuccess(t *testing.T) {
 }
 
 func TestHarborLoginFail(t *testing.T) {
+	t.SkipNow()
 	var username = "testtest"
 	var password = "huksdhjkashdj"
 	token, err := harborLogin(username, password)
@@ -32,6 +33,7 @@ func TestHarborLoginFail(t *testing.T) {
 }
 
 func TestHarborAuthenticatedFail(t *testing.T) {
+	t.SkipNow()
 	var username = "testtest"
 	var token = "huksdhjkashdj"
 	isTokenValid, err := harborAuthenticated(username, token)
