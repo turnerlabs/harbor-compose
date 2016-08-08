@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/user"
 	"strings"
@@ -23,54 +24,62 @@ func init() {
 }
 
 func logout(cmd *cobra.Command, args []string) {
-	Logout()
-	return
-}
-
-//Logout --
-func Logout() {
-	serializedAuth := readFile()
+	serializedAuth, err := readFile()
+	if err != nil {
+		log.Fatalf(err.Error())
+		return
+	}
 	if serializedAuth != nil {
 		_, err := harborLogout(strings.TrimSpace(serializedAuth.Username), strings.TrimSpace(serializedAuth.Token))
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalf(err.Error())
 			return
 		}
+		deleteFile()
+		fmt.Println("Logout Succeeded")
 	}
-	deleteFile()
-	fmt.Println("Logout Succeeded")
-	return
 }
 
-func deleteFile() {
+func deleteFile() (bool, error) {
 	usr, err := user.Current()
 	if err != nil {
-		fmt.Println("Unable to get current user info: " + err.Error())
-		return
+		return false, err
 	}
 
 	var path = usr.HomeDir + "/.harbor"
 	var credPath = path + "/credentials"
 
+	// removing file
 	err = os.Remove(credPath)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return false, err
 	}
 
+	// removing directory
 	err = os.Remove(path)
 	if err != nil {
-		fmt.Println(err)
+		return false, err
 	}
 
-	return
+	if Verbose {
+		log.Printf("Credentials file removed successfully.")
+	}
+
+	return true, nil
 }
 
 func harborLogout(username string, token string) (bool, error) {
 	client, err := harborauth.NewAuthClient(authURL)
-	isLoggedOut, err := client.Logout(username, token)
-	if err != nil || isLoggedOut != true {
+	if err != nil {
+		log.Fatalf(err.Error())
 		return false, err
 	}
+
+	isLoggedOut, err := client.Logout(username, token)
+	if err != nil {
+		log.Fatalf(err.Error())
+		return false, err
+	}
+
 	return isLoggedOut, nil
 }

@@ -31,7 +31,10 @@ func generate(cmd *cobra.Command, args []string) {
 		log.Fatal("2 arguments are required. ex: harbor-compose generate my-shipment dev")
 	}
 
-	_, token := Login()
+	_, token, err := Login()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 
 	shipment := args[0]
 	env := args[1]

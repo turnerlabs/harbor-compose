@@ -37,7 +37,10 @@ func up(cmd *cobra.Command, args []string) {
 	//read the docker compose file
 	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
 
-	_, token := Login()
+	_, token, err := Login()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {

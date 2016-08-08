@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/user"
 	"strings"
@@ -38,16 +39,18 @@ func init() {
 }
 
 func login(cmd *cobra.Command, args []string) {
-	_, _ = Login()
+	_, _, err := Login()
+	if err != nil {
+		//log.Printf(err.Error())
+		fmt.Println("Login Failed")
+	}
 	return
 }
 
-func writeFile(version string, username string, token string) {
+func writeFile(version string, username string, token string) (bool, error) {
 	usr, err := user.Current()
 	if err != nil {
-		fmt.Println("Unable to get current user info: " + err.Error())
-		fmt.Println("Unable to write credentials file to ~/.harbor")
-		return
+		return false, err
 	}
 
 	var path = usr.HomeDir + "/.harbor"
@@ -55,9 +58,7 @@ func writeFile(version string, username string, token string) {
 	if err != nil {
 		err = os.Mkdir(path, 0700)
 		if err != nil {
-			fmt.Println("Unable to create directory ~/.harbor: " + err.Error())
-			fmt.Println("Unable to write credentials file to ~/.harbor")
-			return
+			return false, err
 		}
 	}
 
@@ -72,55 +73,54 @@ func writeFile(version string, username string, token string) {
 	var credPath = path + "/credentials"
 	err = ioutil.WriteFile(credPath, authByte, 0600)
 	if err != nil {
-		fmt.Println("Unable to write credentials file to ~/.harbor: " + err.Error())
+		return false, err
 	}
 
-	return
+	return true, nil
 }
 
-func readFile() *Auth {
+func readFile() (*Auth, error) {
 	usr, err := user.Current()
 	if err != nil {
-		fmt.Println("Unable to get Current User Info: " + err.Error())
-		fmt.Println("Unable to read credentials file in ~/.harbor")
-		return nil
+		return nil, err
 	}
 
 	var path = usr.HomeDir + "/.harbor"
 	err = os.Chdir(path)
 	if err != nil {
-		fmt.Println("Unable to read credentials file in ~/.harbor")
-		return nil
+		return nil, err
 	}
 
 	var credPath = path + "/credentials"
 	byteData, err := ioutil.ReadFile(credPath)
 	if err != nil {
-		fmt.Println("Unable to write credentials file to ~/.harbor: " + err.Error())
-		return nil
+		return nil, err
 	}
 
 	var serializedAuth Auth
 	err = json.Unmarshal(byteData, &serializedAuth)
 	if err != nil {
-		fmt.Println("Unable to write credentials file to ~/.harbor: " + err.Error())
-		return nil
+		return nil, err
 	}
 
-	return &serializedAuth
+	return &serializedAuth, nil
 }
 
 //Login -
-func Login() (string, string) {
-	serializedAuth := readFile()
+func Login() (string, string, error) {
+	serializedAuth, err := readFile()
+	if err != nil {
+		log.Printf(err.Error())
+	}
+
 	if serializedAuth != nil {
-		isvalid, err := harborAuthenticated(serializedAuth.Username, serializedAuth.Token)
-		if err != nil {
+		isvalid, errHarborAuth := harborAuthenticated(serializedAuth.Username, serializedAuth.Token)
+		if errHarborAuth != nil {
 			// write it out, isvalid will be false and continue on to force login
 			fmt.Println("Unable to verify token: " + err.Error())
 		}
 		if isvalid {
-			return serializedAuth.Username, serializedAuth.Token
+			return serializedAuth.Username, serializedAuth.Token, nil
 		}
 	}
 
@@ -138,29 +138,51 @@ func Login() (string, string) {
 	fmt.Println("")
 	if err == nil && len(harborToken) > 1 {
 		fmt.Println("Login Succeeded")
-		writeFile("v1", harborUsername, harborToken)
-		return harborUsername, harborToken
+		successfullyWritten, errWriteFile := writeFile("v1", harborUsername, harborToken)
+		if errWriteFile == nil && successfullyWritten == true {
+			return harborUsername, harborToken, nil
+		}
 	}
-	fmt.Println(err)
-	fmt.Println("Login Failed")
-	return "", ""
+	return "", "", err
 }
 
 //harborLogin -
 func harborLogin(username string, password string) (string, error) {
 	client, err := harborauth.NewAuthClient(authURL)
-	tokenIn, successOut, err := client.Login(username, password)
-	if err != nil || successOut != true {
+	if err != nil {
+		if Verbose {
+			fmt.Println(err)
+		}
+
 		return "", err
 	}
-	return tokenIn, nil
+
+	tokenIn, successOut, err := client.Login(username, password)
+	if err != nil {
+		if Verbose {
+			fmt.Println(err)
+		}
+
+		return "", err
+	}
+
+	if successOut {
+		return tokenIn, nil
+	}
+
+	return "", err
 }
 
 func harborAuthenticated(username string, token string) (bool, error) {
 	client, err := harborauth.NewAuthClient(authURL)
-	isAuth, err := client.IsAuthenticated(username, token)
-	if err != nil || isAuth != true {
+	if err != nil {
 		return false, err
 	}
+
+	isAuth, err := client.IsAuthenticated(username, token)
+	if err != nil {
+		return false, err
+	}
+
 	return isAuth, nil
 }
