@@ -9,7 +9,7 @@ import (
 )
 
 // DeserializeDockerCompose deserializes a docker-compose.yml file into an object
-func DeserializeDockerCompose(file string) *DockerCompose {
+func DeserializeDockerCompose(file string) DockerCompose {
 
 	//read the harbor compose file
 	dockerComposeData, err := ioutil.ReadFile(file)
@@ -28,7 +28,7 @@ func DeserializeDockerCompose(file string) *DockerCompose {
 		log.Fatal("only docker-compose format v2 is supported")
 	}
 
-	return &dockerCompose
+	return dockerCompose
 }
 
 // SerializeDockerCompose serializes an object to a docker-compose.yml file
