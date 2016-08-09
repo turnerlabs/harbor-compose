@@ -12,6 +12,7 @@ var shipment string
 var env string
 
 func TestGetShipmentEnvironment(t *testing.T) {
+	t.SkipNow()
 	var token = ""
 	shipment = "ams-harbor-api-api"
 	env = "prod"

@@ -27,7 +27,10 @@ func down(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
 
-	_, token := Login()
+	_, token, err := Login()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
