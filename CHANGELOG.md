@@ -1,3 +1,19 @@
+## 0.5.0 (2016-08-9)
+
+Features:
+
+  - Changed `logs` command to merge container logs by default and added `--separate` (or `-s`) flag to keep separate
+  - Added support for creating shipment environments to `up` command  
+  - Added `--delete` (or `-d`) flag to `down` command to delete a shipment environment after brining it down
+  - Implemented `init` command to facilitate creation of `harbor-compose.yml` files
+
+Other:
+
+- Start using [godep](https://github.com/tools/godep) to manage dependencies
+- Documented compose yaml formats
+- Added changelog
+
+
 ## 0.4.0 (2016-07-18)
 
 Features:
