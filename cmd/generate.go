@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -31,9 +32,20 @@ func generate(cmd *cobra.Command, args []string) {
 		log.Fatal("2 arguments are required. ex: harbor-compose generate my-shipment dev")
 	}
 
-	_, token, err := Login()
-	if err != nil {
-		log.Fatalf(err.Error())
+	// authenticate user and get a token if user is specified
+	token := ""
+	if User != "" {
+
+		//prompt for password
+		fmt.Printf("Password: ")
+		passwd, _ := gopass.GetPasswd()
+		pass := string(passwd)
+
+		//authenticate and get token
+		token = GetToken(User, pass)
+		if Verbose {
+			log.Printf("token obtained")
+		}
 	}
 
 	shipment := args[0]

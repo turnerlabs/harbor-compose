@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -37,9 +38,21 @@ func up(cmd *cobra.Command, args []string) {
 	//read the docker compose file
 	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
 
-	_, token, err := Login()
-	if err != nil {
-		log.Fatalf(err.Error())
+	//validate user
+	if len(User) < 1 {
+		log.Fatal("--user is required for the up command")
+	}
+
+	//prompt for password
+	fmt.Printf("Password: ")
+	passwd, _ := gopass.GetPasswd()
+	pass := string(passwd)
+	fmt.Println()
+
+	//authenticate and get token
+	token := GetToken(User, pass)
+	if Verbose {
+		log.Printf("token obtained")
 	}
 
 	//iterate shipments
