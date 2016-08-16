@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +15,7 @@ var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start your application",
 	Long: `The up command applies changes from your docker/harbor compose files and brings your application up on Harbor.  The up command:
-	
+
 - Create Harbor shipment(s) if needed
 - Update container and shipment/environment level environment variables in Harbor
 - Update container images in Harbor
@@ -43,16 +42,9 @@ func up(cmd *cobra.Command, args []string) {
 		log.Fatal("--user is required for the up command")
 	}
 
-	//prompt for password
-	fmt.Printf("Password: ")
-	passwd, _ := gopass.GetPasswd()
-	pass := string(passwd)
-	fmt.Println()
-
-	//authenticate and get token
-	token := GetToken(User, pass)
-	if Verbose {
-		log.Printf("token obtained")
+	_, token, err := Login()
+	if err != nil {
+		log.Fatalf(err.Error())
 	}
 
 	//iterate shipments

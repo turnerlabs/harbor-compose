@@ -54,6 +54,10 @@
 			"Rev": "6fe211e493929a8aac0469b93f28b1d0688a9a3a"
 		},
 		{
+			"ImportPath": "github.com/turnerlabs/harbor-auth-client",
+			"Rev": "7b7f3071423c5cffe223a9850b7ea67219438b8e"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
 			"Rev": "911fafb28f4ee7c7bd483539a6c96190bbbccc3f"
 		},
