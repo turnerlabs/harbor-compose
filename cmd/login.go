@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
 	"strings"
@@ -53,6 +51,8 @@ func writeFile(version string, username string, token string) (bool, error) {
 		return false, err
 	}
 
+	curpath, _ := os.Getwd()
+
 	var path = usr.HomeDir + "/.harbor"
 	err = os.Chdir(path)
 	if err != nil {
@@ -76,6 +76,8 @@ func writeFile(version string, username string, token string) (bool, error) {
 		return false, err
 	}
 
+	_ = os.Chdir(curpath)
+
 	return true, nil
 }
 
@@ -84,6 +86,8 @@ func readFile() (*Auth, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	curpath, _ := os.Getwd()
 
 	var path = usr.HomeDir + "/.harbor"
 	err = os.Chdir(path)
@@ -103,21 +107,20 @@ func readFile() (*Auth, error) {
 		return nil, err
 	}
 
+	_ = os.Chdir(curpath)
+
 	return &serializedAuth, nil
 }
 
 //Login -
 func Login() (string, string, error) {
-	serializedAuth, err := readFile()
-	if err != nil {
-		log.Printf(err.Error())
-	}
+	serializedAuth, _ := readFile()
 
 	if serializedAuth != nil {
 		isvalid, errHarborAuth := harborAuthenticated(serializedAuth.Username, serializedAuth.Token)
 		if errHarborAuth != nil {
 			// write it out, isvalid will be false and continue on to force login
-			fmt.Println("Unable to verify token: " + err.Error())
+			fmt.Println("Unable to verify token: " + errHarborAuth.Error())
 		}
 		if isvalid {
 			return serializedAuth.Username, serializedAuth.Token, nil
@@ -125,10 +128,10 @@ func Login() (string, string, error) {
 	}
 
 	fmt.Println("Login with your Argonauts Login ID to run harbor compose commands. If you don't have a Argonauts Login ID, please reach out in slack to the cloud architecture team.")
-	reader := bufio.NewReader(os.Stdin)
-
 	fmt.Print("Username: ")
-	harborUsername, _ := reader.ReadString('\n')
+	var harborUsername string
+	fmt.Scanln(&harborUsername)
+	//harborUsername, _ := reader.ReadString()
 
 	fmt.Print("Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))

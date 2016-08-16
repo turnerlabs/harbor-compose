@@ -31,7 +31,7 @@ func generate(cmd *cobra.Command, args []string) {
 		log.Fatal("2 arguments are required. ex: harbor-compose generate my-shipment dev")
 	}
 
-	_, token, err := Login()
+	_, _, err := Login()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -42,7 +42,7 @@ func generate(cmd *cobra.Command, args []string) {
 	if Verbose {
 		log.Printf("fetching shipment...")
 	}
-	shipmentObject := GetShipmentEnvironment(shipment, env, token)
+	shipmentObject := GetShipmentEnvironment(shipment, env)
 
 	//convert a Shipment object into a DockerCompose object
 	dockerCompose := DockerCompose{

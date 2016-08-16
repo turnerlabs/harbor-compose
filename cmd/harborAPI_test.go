@@ -18,7 +18,7 @@ func TestGetShipmentEnvironment(t *testing.T) {
 	env = "prod"
 
 	if len(token) > 0 {
-		shipmentEnv := GetShipmentEnvironment(shipment, env, token)
+		shipmentEnv := GetShipmentEnvironment(shipment, env)
 
 		assert.Nil(t, shipmentEnv)
 		// assert.NotNil(t, shipmentEnv)
