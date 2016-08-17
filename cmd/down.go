@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -28,21 +27,9 @@ func down(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
 
-	//validate user
-	if len(User) < 1 {
-		log.Fatal("--user is required for the up command")
-	}
-
-	//prompt for password
-	fmt.Printf("Password: ")
-	passwd, _ := gopass.GetPasswd()
-	pass := string(passwd)
-	fmt.Println()
-
-	//authenticate and get token
-	var token = GetToken(User, pass)
-	if Verbose {
-		log.Printf("token obtained")
+	_, _, err := Login()
+	if err != nil {
+		log.Fatalf(err.Error())
 	}
 
 	//iterate shipments
@@ -58,14 +45,14 @@ func down(cmd *cobra.Command, args []string) {
 		shipment.Replicas = 0
 
 		//update shipment level configuration
-		UpdateShipment(shipmentName, shipment, token)
+		UpdateShipment(shipmentName, shipment)
 
 		//trigger shipment
 		Trigger(shipmentName, shipment.Env)
 
 		if deleteShipmentEnvironment {
 			fmt.Printf("Deleting %v %v ...\n", shipmentName, shipment.Env)
-			DeleteShipmentEnvironment(shipmentName, shipment.Env, token)
+			DeleteShipmentEnvironment(shipmentName, shipment.Env)
 		}
 
 		fmt.Println("done")
