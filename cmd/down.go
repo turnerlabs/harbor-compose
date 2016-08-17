@@ -27,11 +27,6 @@ func down(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
 
-	_, _, err := Login()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
 		fmt.Printf("Stopping %v ...\n", shipmentName)
