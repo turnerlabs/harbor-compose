@@ -30,6 +30,7 @@ func init() {
 }
 
 func up(cmd *cobra.Command, args []string) {
+	username, token, _ := Login()
 
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
@@ -46,7 +47,7 @@ func up(cmd *cobra.Command, args []string) {
 		}
 
 		//fetch the current state
-		shipmentObject := GetShipmentEnvironment(shipmentName, shipment.Env)
+		shipmentObject := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
 
 		//creating a shipment is a different workflow than updating
 		//bulk create a shipment if it doesn't exist
@@ -54,11 +55,11 @@ func up(cmd *cobra.Command, args []string) {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(shipmentName, dockerCompose, shipment)
+			createShipment(username, token, shipmentName, dockerCompose, shipment)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(shipmentObject, shipmentName, dockerCompose, shipment)
+			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment)
 
 			//TODO: desired state reconciliation
 		}
@@ -68,7 +69,7 @@ func up(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-func createShipment(shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
+func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
 	userName, token, _ := Login()
 
 	//map a ComposeShipment object (based on compose files) into
@@ -198,7 +199,7 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 	newShipment.Providers = append(newShipment.Providers, provider)
 
 	//push the new shipment/environment up to harbor
-	SaveNewShipmentEnvironment(newShipment)
+	SaveNewShipmentEnvironment(username, token, newShipment)
 
 	//trigger shipment
 	success, messages := Trigger(shipmentName, shipment.Env)
@@ -212,7 +213,7 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 	}
 }
 
-func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
+func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
 
 	//map a ComposeShipment object (based on compose files) into
 	//a series of API call to update a shipment
@@ -227,7 +228,7 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, d
 		dockerService := dockerCompose.Services[container]
 
 		//update the shipment/container with the new image
-		UpdateContainerImage(shipmentName, shipment, container, dockerService)
+		UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
 
 		//update container-level envvars
 		for evName, evValue := range dockerService.Environment {
@@ -240,7 +241,7 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, d
 			envVarPayload := envVar(evName, evValue)
 
 			//save the envvar
-			SaveEnvVar(shipmentName, shipment, envVarPayload, container)
+			SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, container)
 
 		} //envvars
 	}
@@ -268,12 +269,12 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, d
 		envVarPayload := envVar(evName, evValue)
 
 		//save the envvar
-		SaveEnvVar(shipmentName, shipment, envVarPayload, "")
+		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
 
 	} //envvars
 
 	//update shipment level configuration
-	UpdateShipment(shipmentName, shipment)
+	UpdateShipment(username, token, shipmentName, shipment)
 
 	//trigger shipment
 	_, messages := Trigger(shipmentName, shipment.Env)
