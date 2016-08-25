@@ -25,39 +25,39 @@ func TestReadFileSuccess(t *testing.T) {
 
 func TestHarborLoginFail(t *testing.T) {
 	t.SkipNow()
-	var username = "testtest"
+	var usernameTest = "testtest"
 	var password = "huksdhjkashdj"
-	token, err := harborLogin(username, password)
+	token, err := harborLogin(usernameTest, password)
 	assert.Empty(t, token)
 	assert.Equal(t, err.Error(), "Invalid Status Code: 401 Unauthorized")
 }
 
 func TestHarborAuthenticatedFail(t *testing.T) {
 	t.SkipNow()
-	var username = "testtest"
+	var usernameTest = "testtest"
 	var token = "huksdhjkashdj"
-	isTokenValid, err := harborAuthenticated(username, token)
+	isTokenValid, err := harborAuthenticated(usernameTest, token)
 	assert.Equal(t, isTokenValid, false)
 	assert.Equal(t, err.Error(), "Invalid Status Code: 401 Unauthorized")
 }
 
 func TestHarborLoginSuccess(t *testing.T) {
-	if username == "" || password == "" {
+	if usernameTest == "" || passwordTest == "" {
 		t.SkipNow()
 	}
-	token, err := harborLogin(username, password)
+	token, err := harborLogin(usernameTest, passwordTest)
 	assert.NotEmpty(t, token)
 	assert.Nil(t, err)
 }
 
 func TestHarborAuthenticatedSuccess(t *testing.T) {
-	if username == "" || password == "" {
+	if usernameTest == "" || passwordTest == "" {
 		t.SkipNow()
 	}
-	token, err := harborLogin(username, password)
+	token, err := harborLogin(usernameTest, passwordTest)
 	assert.NotEmpty(t, token)
 	assert.Nil(t, err)
-	isTokenValid, err := harborAuthenticated(username, token)
+	isTokenValid, err := harborAuthenticated(usernameTest, token)
 	assert.Equal(t, isTokenValid, true)
 	assert.Nil(t, err)
 }

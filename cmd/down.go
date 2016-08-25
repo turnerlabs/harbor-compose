@@ -23,14 +23,10 @@ func init() {
 }
 
 func down(cmd *cobra.Command, args []string) {
+	username, token, _ := Login()
 
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
-
-	_, _, err := Login()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
@@ -45,14 +41,14 @@ func down(cmd *cobra.Command, args []string) {
 		shipment.Replicas = 0
 
 		//update shipment level configuration
-		UpdateShipment(shipmentName, shipment)
+		UpdateShipment(username, token, shipmentName, shipment)
 
 		//trigger shipment
 		Trigger(shipmentName, shipment.Env)
 
 		if deleteShipmentEnvironment {
 			fmt.Printf("Deleting %v %v ...\n", shipmentName, shipment.Env)
-			DeleteShipmentEnvironment(shipmentName, shipment.Env)
+			DeleteShipmentEnvironment(username, token, shipmentName, shipment.Env)
 		}
 
 		fmt.Println("done")

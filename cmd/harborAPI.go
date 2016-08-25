@@ -18,9 +18,7 @@ var helmitURI = "http://helmit.services.dmtio.net"
 var harborURI = "http://harbor.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
-func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
-	userName, token, _ := Login()
-
+func GetShipmentEnvironment(username string, token string, shipment string, env string) *ShipmentEnvironment {
 	//build URI
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
@@ -37,7 +35,7 @@ func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
 	//if token is specified, add it to the headers
 	if token != "" {
 		request = request.
-			Set("x-username", userName).
+			Set("x-username", username).
 			Set("x-token", token)
 	}
 
@@ -67,7 +65,7 @@ func GetShipmentEnvironment(shipment string, env string) *ShipmentEnvironment {
 }
 
 //UpdateShipment updates shipment-level configuration
-func UpdateShipment(shipment string, composeShipment ComposeShipment) {
+func UpdateShipment(username string, token string, shipment string, composeShipment ComposeShipment) {
 	//build URI
 	//PUT /v1/shipment/:Shipment/environment/:Environment/provider/:name
 	values := make(map[string]interface{})
@@ -85,14 +83,13 @@ func UpdateShipment(shipment string, composeShipment ComposeShipment) {
 	}
 
 	//call the API
-	update(uri, providerPayload)
+	update(username, token, uri, providerPayload)
 }
 
-func create(url string, data interface{}) (*http.Response, string, []error) {
-	userName, token, _ := Login()
+func create(username string, token string, url string, data interface{}) (*http.Response, string, []error) {
 	res, body, err := gorequest.New().
 		Post(url).
-		Set("x-username", userName).
+		Set("x-username", username).
 		Set("x-token", token).
 		Send(data).
 		End()
@@ -104,12 +101,10 @@ func create(url string, data interface{}) (*http.Response, string, []error) {
 	return res, body, err
 }
 
-func update(url string, data interface{}) (*http.Response, string, []error) {
-	userName, token, _ := Login()
-
+func update(username string, token string, url string, data interface{}) (*http.Response, string, []error) {
 	res, body, err := gorequest.New().
 		Put(url).
-		Set("x-username", userName).
+		Set("x-username", username).
 		Set("x-token", token).
 		Send(data).
 		End()
@@ -125,12 +120,10 @@ func update(url string, data interface{}) (*http.Response, string, []error) {
 	return res, body, err
 }
 
-func delete(url string) (*http.Response, string, []error) {
-	userName, token, _ := Login()
-
+func delete(username string, token string, url string) (*http.Response, string, []error) {
 	res, body, err := gorequest.New().
 		Delete(url).
-		Set("x-username", userName).
+		Set("x-username", username).
 		Set("x-token", token).
 		End()
 
@@ -222,7 +215,7 @@ func Trigger(shipment string, env string) (bool, []string) {
 }
 
 // SaveEnvVar saves envvars by doing a delete/add against the api
-func SaveEnvVar(shipment string, composeShipment ComposeShipment, envVarPayload EnvVarPayload, container string) {
+func SaveEnvVar(username string, token string, shipment string, composeShipment ComposeShipment, envVarPayload EnvVarPayload, container string) {
 
 	templateString := shipItURI + "/v1/shipment/{shipment}/environment/{env}/envvar/{envvar}"
 
@@ -243,7 +236,7 @@ func SaveEnvVar(shipment string, composeShipment ComposeShipment, envVarPayload 
 
 	//issue delete call
 	//api will return 422 if the envvar doesn't exist, which can be ignored
-	res, _, _ := delete(url)
+	res, _, _ := delete(username, token, url)
 
 	//throw an error if we don't get our expected status code
 	if !(res.StatusCode == 200 || res.StatusCode == 422) {
@@ -261,11 +254,11 @@ func SaveEnvVar(shipment string, composeShipment ComposeShipment, envVarPayload 
 	url, _ = template.Expand(values)
 
 	//call the api
-	create(url, envVarPayload)
+	create(username, token, url, envVarPayload)
 }
 
 // UpdateContainerImage updates a container version on a shipment
-func UpdateContainerImage(shipment string, composeShipment ComposeShipment, container string, dockerService DockerComposeService) {
+func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, dockerService DockerComposeService) {
 	if Verbose {
 		log.Printf("updating container settings")
 	}
@@ -285,13 +278,13 @@ func UpdateContainerImage(shipment string, composeShipment ComposeShipment, cont
 	}
 
 	//call api
-	update(url, payload)
+	update(username, token, url, payload)
 }
 
 // SaveNewShipmentEnvironment bulk saves a new shipment/environment
-func SaveNewShipmentEnvironment(shipment NewShipmentEnvironment) bool {
+func SaveNewShipmentEnvironment(username string, token string, shipment NewShipmentEnvironment) bool {
 	//POST /api/v1/shipments
-	res, body, err := create(harborURI+"/api/v1/shipments", shipment)
+	res, body, err := create(username, token, harborURI+"/api/v1/shipments", shipment)
 
 	if err != nil || res.StatusCode != 200 {
 		fmt.Printf("creating shipment was not successful: %v \n", body)
@@ -308,7 +301,7 @@ func SaveNewShipmentEnvironment(shipment NewShipmentEnvironment) bool {
 }
 
 // DeleteShipmentEnvironment deletes a shipment/environment from harbor
-func DeleteShipmentEnvironment(shipment string, env string) {
+func DeleteShipmentEnvironment(username string, token string, shipment string, env string) {
 	//build URI
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
@@ -319,7 +312,7 @@ func DeleteShipmentEnvironment(shipment string, env string) {
 		log.Printf("deleting: " + uri)
 	}
 
-	res, _, _ := delete(uri)
+	res, _, _ := delete(username, token, uri)
 
 	if res.StatusCode != 200 {
 		log.Fatalf("delete returned a status code of %v", res.StatusCode)
