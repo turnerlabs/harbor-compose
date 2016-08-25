@@ -1,9 +1,11 @@
 # How to contribute
 
+Thanks for your interest in the project!  We want to welcome contributors so we put together the following set of guidelines to help participate.
+
 
 ## Getting Started
 
-* Open a Github issue, assuming one does not already exist.
+* If you have an idea for a new feature or would like to report a bug, please first check if your issue already exists, and if not, then open an issue.
   * Clearly describe the issue including steps to reproduce when it is a bug.
   * Make sure you fill in the earliest version that you know has the issue.
 * Fork the repository on GitHub
