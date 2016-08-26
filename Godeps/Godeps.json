@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/turnerlabs/harbor-compose",
 	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
 	"Packages": [
 		"./..."
 	],
@@ -26,6 +27,10 @@
 			"ImportPath": "github.com/jtacoma/uritemplates",
 			"Comment": "v1.0.0",
 			"Rev": "307ae868f90f4ee1b73ebe4596e0394237dacce8"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "756f7b183b7ab78acdbbee5c7f392838ed459dda"
 		},
 		{
 			"ImportPath": "github.com/moul/http2curl",

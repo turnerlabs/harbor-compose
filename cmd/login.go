@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"strings"
 	"syscall"
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/turnerlabs/harbor-auth-client"
 )
@@ -39,21 +39,20 @@ func init() {
 func login(cmd *cobra.Command, args []string) {
 	_, _, err := Login()
 	if err != nil {
-		//log.Printf(err.Error())
 		fmt.Println("Login Failed")
 	}
 	return
 }
 
 func writeFile(version string, username string, token string) (bool, error) {
-	usr, err := user.Current()
+	home, err := homedir.Dir()
 	if err != nil {
 		return false, err
 	}
 
 	curpath, _ := os.Getwd()
 
-	var path = usr.HomeDir + "/.harbor"
+	var path = home + "/.harbor"
 	err = os.Chdir(path)
 	if err != nil {
 		err = os.Mkdir(path, 0700)
@@ -82,14 +81,14 @@ func writeFile(version string, username string, token string) (bool, error) {
 }
 
 func readFile() (*Auth, error) {
-	usr, err := user.Current()
+	home, err := homedir.Dir()
 	if err != nil {
 		return nil, err
 	}
 
 	curpath, _ := os.Getwd()
 
-	var path = usr.HomeDir + "/.harbor"
+	var path = home + "/.harbor"
 	err = os.Chdir(path)
 	if err != nil {
 		return nil, err
