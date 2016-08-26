@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 	"strings"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/turnerlabs/harbor-auth-client"
 )
@@ -41,12 +41,12 @@ func logout(cmd *cobra.Command, args []string) {
 }
 
 func deleteFile() (bool, error) {
-	usr, err := user.Current()
+	home, err := homedir.Dir()
 	if err != nil {
 		return false, err
 	}
 
-	var path = usr.HomeDir + "/.harbor"
+	var path = home + "/.harbor"
 	var credPath = path + "/credentials"
 
 	// removing file
