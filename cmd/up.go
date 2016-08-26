@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +15,7 @@ var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start your application",
 	Long: `The up command applies changes from your docker/harbor compose files and brings your application up on Harbor.  The up command:
-	
+
 - Create Harbor shipment(s) if needed
 - Update container and shipment/environment level environment variables in Harbor
 - Update container images in Harbor
@@ -31,29 +30,13 @@ func init() {
 }
 
 func up(cmd *cobra.Command, args []string) {
+	username, token, _ := Login()
 
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 
 	//read the docker compose file
 	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
-
-	//validate user
-	if len(User) < 1 {
-		log.Fatal("--user is required for the up command")
-	}
-
-	//prompt for password
-	fmt.Printf("Password: ")
-	passwd, _ := gopass.GetPasswd()
-	pass := string(passwd)
-	fmt.Println()
-
-	//authenticate and get token
-	token := GetToken(User, pass)
-	if Verbose {
-		log.Printf("token obtained")
-	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
@@ -64,7 +47,7 @@ func up(cmd *cobra.Command, args []string) {
 		}
 
 		//fetch the current state
-		shipmentObject := GetShipmentEnvironment(shipmentName, shipment.Env, token)
+		shipmentObject := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
 
 		//creating a shipment is a different workflow than updating
 		//bulk create a shipment if it doesn't exist
@@ -72,11 +55,11 @@ func up(cmd *cobra.Command, args []string) {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(shipmentName, dockerCompose, shipment, token)
+			createShipment(username, token, shipmentName, dockerCompose, shipment)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(shipmentObject, shipmentName, dockerCompose, shipment, token)
+			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment)
 
 			//TODO: desired state reconciliation
 		}
@@ -86,7 +69,8 @@ func up(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-func createShipment(shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, token string) {
+func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
+	userName, token, _ := Login()
 
 	//map a ComposeShipment object (based on compose files) into
 	//a new NewShipmentEnvironment object
@@ -97,7 +81,7 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 
 	//create object used to create a new shipment environment from scratch
 	newShipment := NewShipmentEnvironment{
-		Username: User,
+		Username: userName,
 		Token:    token,
 		Info: NewShipmentInfo{
 			Name:  shipmentName,
@@ -215,7 +199,7 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 	newShipment.Providers = append(newShipment.Providers, provider)
 
 	//push the new shipment/environment up to harbor
-	SaveNewShipmentEnvironment(newShipment, token)
+	SaveNewShipmentEnvironment(username, token, newShipment)
 
 	//trigger shipment
 	success, messages := Trigger(shipmentName, shipment.Env)
@@ -229,7 +213,7 @@ func createShipment(shipmentName string, dockerCompose DockerCompose, shipment C
 	}
 }
 
-func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, token string) {
+func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
 
 	//map a ComposeShipment object (based on compose files) into
 	//a series of API call to update a shipment
@@ -244,7 +228,7 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, d
 		dockerService := dockerCompose.Services[container]
 
 		//update the shipment/container with the new image
-		UpdateContainerImage(token, shipmentName, shipment, container, dockerService)
+		UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
 
 		//update container-level envvars
 		for evName, evValue := range dockerService.Environment {
@@ -257,7 +241,7 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, d
 			envVarPayload := envVar(evName, evValue)
 
 			//save the envvar
-			SaveEnvVar(token, shipmentName, shipment, envVarPayload, container)
+			SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, container)
 
 		} //envvars
 	}
@@ -285,12 +269,12 @@ func updateShipment(currentShipment *ShipmentEnvironment, shipmentName string, d
 		envVarPayload := envVar(evName, evValue)
 
 		//save the envvar
-		SaveEnvVar(token, shipmentName, shipment, envVarPayload, "")
+		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
 
 	} //envvars
 
 	//update shipment level configuration
-	UpdateShipment(shipmentName, shipment, token)
+	UpdateShipment(username, token, shipmentName, shipment)
 
 	//trigger shipment
 	_, messages := Trigger(shipmentName, shipment.Env)

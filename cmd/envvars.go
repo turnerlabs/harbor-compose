@@ -16,7 +16,9 @@ func copyEnvVars(source []EnvVarPayload, destination map[string]string, special 
 	//filter out special metadata envvars and return them
 	for _, envvar := range source {
 		if specialEnvVars()[strings.ToUpper(envvar.Name)] == "" {
-			destination[envvar.Name] = envvar.Value
+			if destination != nil {
+				destination[envvar.Name] = envvar.Value
+			}
 		} else if special != nil {
 			special[envvar.Name] = envvar.Value
 		}

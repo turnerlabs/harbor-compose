@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 )
 
@@ -27,25 +26,10 @@ func init() {
 }
 
 func generate(cmd *cobra.Command, args []string) {
+	username, token, _ := Login()
 
 	if len(args) < 2 {
 		log.Fatal("2 arguments are required. ex: harbor-compose generate my-shipment dev")
-	}
-
-	// authenticate user and get a token if user is specified
-	token := ""
-	if User != "" {
-
-		//prompt for password
-		fmt.Printf("Password: ")
-		passwd, _ := gopass.GetPasswd()
-		pass := string(passwd)
-
-		//authenticate and get token
-		token = GetToken(User, pass)
-		if Verbose {
-			log.Printf("token obtained")
-		}
 	}
 
 	shipment := args[0]
@@ -54,7 +38,7 @@ func generate(cmd *cobra.Command, args []string) {
 	if Verbose {
 		log.Printf("fetching shipment...")
 	}
-	shipmentObject := GetShipmentEnvironment(shipment, env, token)
+	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
 
 	//convert a Shipment object into a DockerCompose object
 	dockerCompose := DockerCompose{
@@ -131,18 +115,14 @@ func generate(cmd *cobra.Command, args []string) {
 		Environment: make(map[string]string),
 	}
 
-	//populate env vars
-
 	//track special envvars
 	special := map[string]string{}
 
 	//shipment
-	copyEnvVars(shipmentObject.ParentShipment.EnvVars, composeShipment.Environment, special)
+	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special)
 
 	//environment
-	copyEnvVars(shipmentObject.EnvVars, composeShipment.Environment, special)
-
-	//todo: provider envvars
+	copyEnvVars(shipmentObject.EnvVars, nil, special)
 
 	//look for the ec2 provider (for now)
 	provider := ec2Provider(shipmentObject.Providers)

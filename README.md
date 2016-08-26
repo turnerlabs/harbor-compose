@@ -62,7 +62,7 @@ shipments:
 Then to start your application...
 
 ```
-$ harbor-compose up --user foo
+$ harbor-compose up
 ```
 
 Access your app logs...
@@ -74,12 +74,12 @@ $ harbor-compose logs
 To stop your application and remove all running containers...
 
 ```
-$ harbor-compose down --user foo
+$ harbor-compose down
 ```
 
 #### Getting Started
 
-To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  For example:
+To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  Note that you will be prompted to login if you don't already have a token or if your token has expired.  For example:
 
 ```
 $ harbor-compose generate my-shipment dev
@@ -110,6 +110,10 @@ To stop your application and delete the environment.
 ```
 $ harbor-compose down --delete
 ```
+
+#### Authentication
+
+Some commands (`up`, `down`, `generate`) require authentication and will automatically prompt you for your credentials.  A temporary (6 hours) authentication token is stored on your machine so that you don't have to login when running each command.  If you want to logout and remove the authentication token, you can run the `logout` command.  You can also explicitly login by running the `login` command.
 
 
 ### Compose file reference
