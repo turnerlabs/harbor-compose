@@ -1,3 +1,15 @@
+## 0.6.0 (2016-08-26)
+
+Features:
+
+  - Removed `--user` flag
+  - Added [`login` and `logout` commands](https://github.com/turnerlabs/harbor-compose/issues/10) for managing temporary authentication token
+
+Bug fixes:
+
+  - The `generate` command no longer outputs environment variables to harbor-compose.yml which addresses [bug #38](https://github.com/turnerlabs/harbor-compose/issues/38) 
+
+
 ## 0.5.0 (2016-08-9)
 
 Features:
