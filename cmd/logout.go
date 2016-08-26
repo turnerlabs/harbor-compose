@@ -15,7 +15,7 @@ import (
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Logout of harbor",
-	Long:  ``,
+	Long:  `The logout command expires a temporary authentication token and removes it from your machine.`,
 	Run:   logout,
 }
 
