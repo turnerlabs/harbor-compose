@@ -1,3 +1,11 @@
+## 0.6.1 (2016-09-06)
+
+Bug fixes:
+
+  - Error creating shipment with multiple containers [#47](https://github.com/turnerlabs/harbor-compose/issues/47)
+  - Added additional logging when in verbose (-v) mode 
+
+
 ## 0.6.0 (2016-08-26)
 
 Features:
