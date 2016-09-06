@@ -110,7 +110,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 	//containers
 	//iterate defined containers and apply container level updates
 	newShipment.Containers = make([]NewContainer, 0)
-	for _, container := range shipment.Containers {
+	for containerIndex, container := range shipment.Containers {
 
 		if Verbose {
 			log.Printf("processing container: %v", container)
@@ -126,7 +126,6 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 		//parse image:tag and map to name/version
 		parsedImage := strings.Split(dockerService.Image, ":")
 
-		//newContainer := NewContainer{
 		newContainer := NewContainer{
 			Name:    container,
 			Image:   dockerService.Image,
@@ -168,7 +167,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 			Name:        "PORT",
 			Value:       internal,
 			PublicPort:  external,
-			Primary:     true,
+			Primary:     (containerIndex == 0),
 			Protocol:    "http",
 			External:    false,
 			Healthcheck: healthCheck,

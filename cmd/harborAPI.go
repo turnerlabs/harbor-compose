@@ -87,6 +87,11 @@ func UpdateShipment(username string, token string, shipment string, composeShipm
 }
 
 func create(username string, token string, url string, data interface{}) (*http.Response, string, []error) {
+
+	if Verbose {
+		log.Printf("POST %v", url)
+	}
+
 	res, body, err := gorequest.New().
 		Post(url).
 		Set("x-username", username).
@@ -98,10 +103,20 @@ func create(username string, token string, url string, data interface{}) (*http.
 		log.Fatal(err)
 	}
 
+	if Verbose {
+		log.Printf("status code = %v", res.StatusCode)
+		log.Println(body)
+	}
+
 	return res, body, err
 }
 
 func update(username string, token string, url string, data interface{}) (*http.Response, string, []error) {
+
+	if Verbose {
+		log.Printf("PUT %v", url)
+	}
+
 	res, body, err := gorequest.New().
 		Put(url).
 		Set("x-username", username).
@@ -114,6 +129,7 @@ func update(username string, token string, url string, data interface{}) (*http.
 	}
 
 	if Verbose {
+		log.Printf("status code = %v", res.StatusCode)
 		log.Println(body)
 	}
 
@@ -121,6 +137,11 @@ func update(username string, token string, url string, data interface{}) (*http.
 }
 
 func delete(username string, token string, url string) (*http.Response, string, []error) {
+
+	if Verbose {
+		log.Printf("DELETE %v", url)
+	}
+
 	res, body, err := gorequest.New().
 		Delete(url).
 		Set("x-username", username).
@@ -132,6 +153,7 @@ func delete(username string, token string, url string) (*http.Response, string, 
 	}
 
 	if Verbose {
+		log.Printf("status code = %v", res.StatusCode)
 		log.Println(body)
 	}
 
@@ -182,6 +204,11 @@ func Trigger(shipment string, env string) (bool, []string) {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if Verbose {
+		log.Printf("status code = %v", resp.StatusCode)
+		log.Println(string(body))
 	}
 
 	//example responses...
