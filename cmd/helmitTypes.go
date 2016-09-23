@@ -1,5 +1,7 @@
 package cmd
 
+import "time"
+
 // HelmitContainer represents a single contianer instance in harbor
 type HelmitContainer struct {
 	Name      string   `json:"name"`
@@ -20,4 +22,27 @@ type HelmitReplica struct {
 type HelmitResponse struct {
 	Error    bool            `json:"error"`
 	Replicas []HelmitReplica `json:"replicas"`
+}
+
+//ShipmentStatus represents the deployed status of a shipment
+type ShipmentStatus struct {
+	Namespace string `json:"namespace"`
+	Version   string `json:"version"`
+	Status    struct {
+		Phase      string `json:"phase"`
+		Containers []struct {
+			Image    string `json:"image"`
+			Ready    bool   `json:"ready"`
+			Restarts int    `json:"restarts"`
+			State    struct {
+				Running struct {
+					StartedAt time.Time `json:"startedAt"`
+				} `json:"running"`
+			} `json:"state"`
+			Status    string `json:"status"`
+			LastState struct {
+			} `json:"lastState"`
+		} `json:"containers"`
+	} `json:"status"`
+	AverageRestarts float32 `json:"averageRestarts"`
 }

@@ -144,3 +144,20 @@ type NewProvider struct {
 	Vars     []EnvVarPayload `json:"vars,omitempty"`
 	Barge    string          `json:"barge,omitempty"`
 }
+
+// ContainerStatusOutput represents an object that can be written to stdout and formatted
+type ContainerStatusOutput struct {
+	Image    string
+	Started  string
+	Status   string
+	Restarts string
+}
+
+//ShipmentStatusOutput represents an object that can be written to stdout and formatted
+type ShipmentStatusOutput struct {
+	Shipment    string
+	Environment string
+	Status      string
+	Containers  string
+	Replicas    string
+}
