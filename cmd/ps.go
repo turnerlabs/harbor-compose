@@ -45,7 +45,7 @@ func printShipmentStatus(name string, shipment ComposeShipment) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.DiscardEmptyColumns)
 
 	//create a formatted template
-	tmpl, err := template.New("shipment").Parse("SHIPMENT\t{{.Shipment}}\t\nENVIRONMENT\t{{.Environment}}\t\nSTATUS\t{{.Status}}\t\nCONTAINERS\t{{.Containers}}\t\nREPLICAS\t{{.Replicas}}\t")
+	tmpl, err := template.New("shipment").Parse("SHIPMENT:\t{{.Shipment}}\t\nENVIRONMENT:\t{{.Environment}}\t\nSTATUS:\t{{.Status}}\t\nCONTAINERS:\t{{.Containers}}\t\nREPLICAS:\t{{.Replicas}}\t")
 
 	fmt.Fprintln(w)
 
@@ -73,25 +73,39 @@ func printShipmentStatus(name string, shipment ComposeShipment) {
 	fmt.Println("")
 	fmt.Println("")
 
-	fmt.Fprintln(w, "IMAGE\tSTARTED\tSTATUS\tRESTARTS\t")
+	fmt.Fprintln(w, "IMAGE\tSTATUS\tSTARTED\tRESTARTS\tLAST STATE\t")
 
 	for _, container := range shipmentStatus.Status.Containers {
 
-		started := container.State.Running.StartedAt.String()
-		if started != "" {
-			started = humanize.Time(container.State.Running.StartedAt)
+		//get the container state info
+		state := container.State[container.Status]
+
+		//started at
+		started := ""
+		if container.Status == "running" {
+			started = humanize.Time(state.StartedAt)
+		}
+		if container.Status == "waiting" {
+			started = state.Reason
+		}
+
+		//last state
+		lastState := ""
+		if container.LastState["terminated"] != (ContainerLastState{}) {
+			lastState = "terminated " + humanize.Time(container.LastState["terminated"].FinishedAt)
 		}
 
 		//create an object representing data
 		output := ContainerStatusOutput{
-			Image:    container.Image,
-			Started:  started,
-			Status:   container.Status,
-			Restarts: strconv.Itoa(container.Restarts),
+			Image:     container.Image,
+			Status:    container.Status,
+			Started:   started,
+			Restarts:  strconv.Itoa(container.Restarts),
+			LastState: lastState,
 		}
 
 		//create a formatted template
-		tmpl, err := template.New("test").Parse("{{.Image}}\t{{.Started}}\t{{.Status}}\t{{.Restarts}}\t")
+		tmpl, err := template.New("test").Parse("{{.Image}}\t{{.Status}}\t{{.Started}}\t{{.Restarts}}\t{{.LastState}}\t")
 
 		if err != nil {
 			log.Fatal(err)

@@ -147,10 +147,11 @@ type NewProvider struct {
 
 // ContainerStatusOutput represents an object that can be written to stdout and formatted
 type ContainerStatusOutput struct {
-	Image    string
-	Started  string
-	Status   string
-	Restarts string
+	Image     string
+	Started   string
+	Status    string
+	Restarts  string
+	LastState string
 }
 
 //ShipmentStatusOutput represents an object that can be written to stdout and formatted

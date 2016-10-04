@@ -31,18 +31,29 @@ type ShipmentStatus struct {
 	Status    struct {
 		Phase      string `json:"phase"`
 		Containers []struct {
-			Image    string `json:"image"`
-			Ready    bool   `json:"ready"`
-			Restarts int    `json:"restarts"`
-			State    struct {
-				Running struct {
-					StartedAt time.Time `json:"startedAt"`
-				} `json:"running"`
-			} `json:"state"`
-			Status    string `json:"status"`
-			LastState struct {
-			} `json:"lastState"`
+			Image     string                        `json:"image"`
+			Ready     bool                          `json:"ready"`
+			Restarts  int                           `json:"restarts"`
+			State     map[string]ContainerState     `json:"state"`
+			Status    string                        `json:"status"`
+			LastState map[string]ContainerLastState `json:"lastState"`
 		} `json:"containers"`
 	} `json:"status"`
 	AverageRestarts float32 `json:"averageRestarts"`
+}
+
+// ContainerState represents a particular state of a container
+type ContainerState struct {
+	StartedAt time.Time `json:"startedAt"`
+	Reason    string    `json:"reason"`
+	Message   string    `json:"message"`
+}
+
+// ContainerLastState represents the last state of a container
+type ContainerLastState struct {
+	ExitCode    int       `json:"exitCode"`
+	Reason      string    `json:"reason"`
+	StartedAt   time.Time `json:"startedAt"`
+	FinishedAt  time.Time `json:"finishedAt"`
+	ContainerID string    `json:"containerID"`
 }
