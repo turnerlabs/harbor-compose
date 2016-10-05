@@ -73,7 +73,7 @@ func printShipmentStatus(name string, shipment ComposeShipment) {
 	fmt.Println("")
 	fmt.Println("")
 
-	fmt.Fprintln(w, "IMAGE\tSTATUS\tSTARTED\tRESTARTS\tLAST STATE\t")
+	fmt.Fprintln(w, "ID\tIMAGE\tSTATUS\tSTARTED\tRESTARTS\tLAST STATE\t")
 
 	for _, container := range shipmentStatus.Status.Containers {
 
@@ -97,6 +97,7 @@ func printShipmentStatus(name string, shipment ComposeShipment) {
 
 		//create an object representing data
 		output := ContainerStatusOutput{
+			ID:        container.ID[0:7],
 			Image:     container.Image,
 			Status:    container.Status,
 			Started:   started,
@@ -105,7 +106,7 @@ func printShipmentStatus(name string, shipment ComposeShipment) {
 		}
 
 		//create a formatted template
-		tmpl, err := template.New("test").Parse("{{.Image}}\t{{.Status}}\t{{.Started}}\t{{.Restarts}}\t{{.LastState}}\t")
+		tmpl, err := template.New("replicas").Parse("{{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Started}}\t{{.Restarts}}\t{{.LastState}}\t")
 
 		if err != nil {
 			log.Fatal(err)

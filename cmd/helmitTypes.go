@@ -31,6 +31,7 @@ type ShipmentStatus struct {
 	Status    struct {
 		Phase      string `json:"phase"`
 		Containers []struct {
+			ID        string                        `json:"id"`
 			Image     string                        `json:"image"`
 			Ready     bool                          `json:"ready"`
 			Restarts  int                           `json:"restarts"`
