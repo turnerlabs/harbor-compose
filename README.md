@@ -51,13 +51,10 @@ shipments:
       - web-app    
     replicas: 2
     group: mss
-    property: turner
+    property: turner.com
     project: my-web-app
-    product: mss-my-web-app    
-    environment:
-      SHIPMENT_LEVEL: foo
+    product: my-web-app    
 ```
-
 
 Then to start your application...
 
@@ -71,7 +68,13 @@ Access your app logs...
 $ harbor-compose logs
 ```
 
-To stop your application and remove all running containers...
+Get the status of your shipment...
+
+```
+$ harbor-compose ps
+```
+
+To stop your application, remove all running containers and delete your load balancer...
 
 ```
 $ harbor-compose down
@@ -105,11 +108,32 @@ Scale your shipment by changing the replicas in `harbor-compose.yml`, or change 
 $ harbor-compose up
 ```
 
-To stop your application and delete the environment.
+Get the status of your shipment(s) using the `ps` command.  With this command you can see the status of each container replica, when it started and the last known state.  For example:
+
+```
+$ harbor-compose ps
+
+SHIPMENT:      mss-poc-multi-container   
+ENVIRONMENT:   dev                       
+STATUS:        Running                   
+CONTAINERS:    2                         
+REPLICAS:      2
+
+ID        IMAGE                                                        STATUS    STARTED      RESTARTS   LAST STATE              
+ab97cef   registry.services.dmtio.net/mss-poc-multi-container:1.0.0    running   1 week ago   1          terminated 1 week ago   
+873a390   registry.services.dmtio.net/mss-poc-multi-container2:1.0.0   running   1 week ago   1          terminated 1 week ago   
+73fad42   registry.services.dmtio.net/mss-poc-multi-container:1.0.0    running   5 days ago   2          terminated 5 days ago   
+db93650   registry.services.dmtio.net/mss-poc-multi-container2:1.0.0   running   5 days ago   2          terminated 5 days ago   
+```
+
+
+To stop your application, delete your load balancer, and delete the environment.  Note that this is equivalent to setting replicas = 0 and triggering.
 
 ```
 $ harbor-compose down --delete
 ```
+
+You can also manage multiple shipments using Harbor Compose by listing them in your harbor-compose.yml file.  This is particularly useful if you have a web/worker, or microservices type application where each shipment can be scaled independently.
 
 #### Authentication
 

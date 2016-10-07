@@ -82,27 +82,30 @@ func (slice Logs) Swap(i, j int) {
 }
 
 func printMergedLogs(shipment HelmitResponse) {
-	layout := "2006-01-02T15:04:05.999999999Z"
+	layout := time.RFC3339
 	shipmentLogs := make([]logsObject, len(shipment.Replicas))
 	for _, provider := range shipment.Replicas {
 		for _, container := range provider.Containers {
 			var containerLogs = Logs{}
 			for _, log := range container.Logs {
 				line := strings.Fields(log)
-				timeValue, err := time.Parse(layout, line[0])
-				if err != nil {
-					timeValue, err = time.Parse(layout, line[0][:1])
+				if len(line) > 2 {
+					timeValue, err := time.Parse(layout, line[0])
 					if err != nil {
-						continue
+						timeValue, err = time.Parse(layout, line[0][:1])
+						if err != nil {
+							continue
+						}
 					}
+
+					var logObject = logObject{}
+
+					logObject.Time = timeValue
+					line = append(line[:0], line[1:]...)
+					logObject.Log = strings.Join(line, " ")
+
+					containerLogs = append(containerLogs, logObject)
 				}
-
-				var logObject = logObject{}
-
-				logObject.Time = timeValue
-				logObject.Log = strings.Join(line, " ")
-
-				containerLogs = append(containerLogs, logObject)
 			}
 			var logsObject = logsObject{}
 			logsObject.Name = container.Name
@@ -144,7 +147,7 @@ func printSeparateLogs(shipment HelmitResponse) {
 			for _, log := range container.Logs {
 				line := strings.Fields(log)
 
-				if logTime == false {
+				if len(line) > 2 && logTime == false {
 					line = append(line[:0], line[1:]...)
 				}
 

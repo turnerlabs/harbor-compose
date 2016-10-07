@@ -16,6 +16,10 @@
 			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
 		{
+			"ImportPath": "github.com/dustin/go-humanize",
+			"Rev": "2fcb5204cdc65b4bec9fd0a87606bb0d0e3c54e8"
+		},
+		{
 			"ImportPath": "github.com/howeyc/gopass",
 			"Rev": "66487b23f2880ba32e185121d2cd51a338ea069a"
 		},

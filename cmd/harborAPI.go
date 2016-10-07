@@ -185,6 +185,42 @@ func GetLogs(barge string, shipment string, env string) string {
 	return body
 }
 
+// GetShipmentStatus returns the running status of a shipment
+func GetShipmentStatus(barge string, shipment string, env string) *ShipmentStatus {
+
+	//build URI
+	values := make(map[string]interface{})
+	values["barge"] = barge
+	values["shipment"] = shipment
+	values["env"] = env
+	template, _ := uritemplates.Parse(helmitURI + "/shipment/status/{barge}/{shipment}/{env}")
+	uri, _ := template.Expand(values)
+	if Verbose {
+		fmt.Println("fetching: " + uri)
+	}
+
+	res, body, err := gorequest.New().
+		Get(uri).
+		EndBytes()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if res.StatusCode != 200 {
+		log.Fatal("GetShipmentStatus returned ", res.StatusCode)
+	}
+
+	//deserialize json into object
+	var result ShipmentStatus
+	unmarshalErr := json.Unmarshal(body, &result)
+	if unmarshalErr != nil {
+		log.Fatal(unmarshalErr)
+	}
+
+	return &result
+}
+
 // Trigger calls the trigger api
 func Trigger(shipment string, env string) (bool, []string) {
 
