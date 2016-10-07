@@ -1,3 +1,14 @@
+## 0.7.0 (2016-10-07)
+
+Features:
+
+  - Added [`ps` command](https://github.com/turnerlabs/harbor-compose/issues/14) for getting shipment status
+
+Bug fixes:
+
+  - Fixed `logs` command which addresses [bug #40](https://github.com/turnerlabs/harbor-compose/issues/40)
+
+
 ## 0.6.1 (2016-09-06)
 
 Bug fixes:
