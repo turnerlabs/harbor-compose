@@ -149,6 +149,23 @@ environment:
   SHOW: "true"
 ```
 
+### [env_file](https://docs.docker.com/compose/compose-file/#environment#envfile)
+
+Add environment variables from a file. Can be a single value or a list.
+
+```yaml
+env_file: .env
+
+env_file:
+  - ./common.env
+  - ./apps/web.env
+  - /opt/secrets.env
+```
+
+*** Note that Harbor Compose supports [all of Docker Compose's methods for specifying environment variables](https://docs.docker.com/compose/environment-variables/).
+
+
+
 ### [image](https://docs.docker.com/compose/compose-file/#image)
 
 The tagged Docker image that is deployed to Harbor.
