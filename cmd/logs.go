@@ -17,10 +17,17 @@ var tail bool
 
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
-	Use:   "logs",
+	Use:   "logs [logid ...]",
 	Short: "View output from containers",
-	Long:  ``,
-	Run:   logs,
+	Long: `
+    View output of contianers. There are few options available to make this easier to view.
+
+    You can also pass in arguments to the function, to allow for n number of specific queries.
+    eg. logs $id $id1 $id2
+					
+    This will query for only those 3 containers. You can pass in any number of container IDs
+	`,
+	Run: logs,
 }
 
 func init() {
@@ -39,7 +46,15 @@ func logs(cmd *cobra.Command, args []string) {
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
-		fmt.Println("Logs For:  " + shipmentName + " " + shipment.Env)
+		fmt.Printf("Logs For:  %s %s\n", shipmentName, shipment.Env)
+
+		if len(args) > 0 && Verbose == true {
+			fmt.Println("Make sure the ID is either the 7 char shortstring of the contianer or the entire ID")
+			for _, arg := range args {
+				fmt.Printf("Getting Logs for Container:  %s\n", arg)
+			}
+
+		}
 		helmitObject := HelmitResponse{}
 		var response = GetLogs(shipment.Barge, shipmentName, shipment.Env)
 		err := json.Unmarshal([]byte(response), &helmitObject)
@@ -47,10 +62,12 @@ func logs(cmd *cobra.Command, args []string) {
 			fmt.Println(err)
 		}
 
+		fmt.Println(args)
+
 		if separate == true {
-			printSeparateLogs(helmitObject)
+			printSeparateLogs(helmitObject, args)
 		} else {
-			printMergedLogs(helmitObject)
+			printMergedLogs(helmitObject, args)
 		}
 	}
 }
@@ -85,6 +102,17 @@ func (slice Logs) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+// check to see if string is in the array
+// http://stackoverflow.com/questions/15323767/does-golang-have-if-x-in-construct-similar-to-python
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 // parseContainerLog will parse a log from docker and create an object containing needed information
 func parseContainerLog(log string) (logObj logObject, errstring string) {
 	layout := time.RFC3339
@@ -106,10 +134,15 @@ func parseContainerLog(log string) (logObj logObject, errstring string) {
 	return
 }
 
-func printMergedLogs(shipment HelmitResponse) {
+func printMergedLogs(shipment HelmitResponse, ids []string) {
 	shipmentLogs := []logsObject{}
 	for _, provider := range shipment.Replicas {
 		for _, container := range provider.Containers {
+
+			if !stringInSlice(container.ID, ids) && !stringInSlice(container.ID[0:7], ids) {
+				continue
+			}
+
 			var containerLogs = Logs{}
 			for _, logstring := range container.Logs {
 				parsedLog, err := parseContainerLog(logstring)
@@ -134,7 +167,7 @@ func printMergedLogs(shipment HelmitResponse) {
 	var mergedLogs Logs
 	for _, logObject := range shipmentLogs {
 		for _, logObj := range logObject.Logs {
-			newLog := logObject.Name + ":" + logObject.ID[0:5] + "  | "
+			newLog := logObject.Name + ":" + logObject.ID[0:7] + "  | "
 			if logTime == true {
 				newLog = newLog + logObj.Time.String() + ", "
 			}
@@ -183,7 +216,7 @@ func followStream(streamObj logsObject) {
 			continue
 		}
 
-		newLog := streamObj.Name + ":" + streamObj.ID[0:5] + "  | "
+		newLog := streamObj.Name + ":" + streamObj.ID[0:7] + "  | "
 		if logTime == true {
 			newLog = newLog + logObj.Time.String() + ", "
 		}
@@ -195,9 +228,14 @@ func followStream(streamObj logsObject) {
 
 // printShipmentLogs
 // prints the logs separatly for each shipment
-func printSeparateLogs(shipment HelmitResponse) {
+func printSeparateLogs(shipment HelmitResponse, ids []string) {
 	for _, provider := range shipment.Replicas {
 		for _, container := range provider.Containers {
+
+			if !stringInSlice(container.ID, ids) && !stringInSlice(container.ID[0:7], ids) {
+				continue
+			}
+
 			fmt.Printf("--- Name: %s\n", container.Name)
 			fmt.Printf("--- Id: %s\n", container.ID)
 			fmt.Printf("--- Image %s\n", container.Image)
