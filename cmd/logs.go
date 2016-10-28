@@ -139,7 +139,7 @@ func printMergedLogs(shipment HelmitResponse, ids []string) {
 	for _, provider := range shipment.Replicas {
 		for _, container := range provider.Containers {
 
-			if !stringInSlice(container.ID, ids) && !stringInSlice(container.ID[0:7], ids) {
+			if len(ids) > 0 && !stringInSlice(container.ID, ids) && !stringInSlice(container.ID[0:7], ids) {
 				continue
 			}
 
@@ -232,7 +232,7 @@ func printSeparateLogs(shipment HelmitResponse, ids []string) {
 	for _, provider := range shipment.Replicas {
 		for _, container := range provider.Containers {
 
-			if !stringInSlice(container.ID, ids) && !stringInSlice(container.ID[0:7], ids) {
+			if len(ids) > 0 && !stringInSlice(container.ID, ids) && !stringInSlice(container.ID[0:7], ids) {
 				continue
 			}
 
