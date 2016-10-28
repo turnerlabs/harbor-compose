@@ -43,7 +43,7 @@ Note that you must run `harbor-compose down` when changing this value.
 
 Add environment variables at the shipment/environment level. This must be a dictionary. Any boolean values; true, false, yes no, need to be enclosed in quotes to ensure they are not converted to True or False by the YML parser.
 
-Note that these environment variables get injected into all containers that are associated with the shipment.
+Note that these environment variables get injected into all containers that are associated with the shipment.  Also note that values duplicated in the docker compose file will be overwritten.  
 
 ```yaml
 environment:
@@ -55,7 +55,7 @@ environment:
 
 This is a list of containers that are part of the shipment.  It is an array of string values that must be a valid service that exists in the `docker-compose.yml` file.  
 
-This also means that you can have containers in your docker-compose.yml that get started when you dev locally, but are not referenced in your harbor-compose.yml, and therefore, not deployed to Harbor.
+This also means that you can have containers in your docker-compose.yml that get started when you dev locally, but are not referenced in your harbor-compose.yml, and therefore, not deployed to Harbor.  For example, stateful containers like redis, or mongo.
 
 For example if you have a `docker-compose.yml` like...
 
@@ -103,6 +103,16 @@ This value defines which customer group your shipment belongs to.  The group det
 group: mss
 ```
 
+### ignoreImageVersion
+
+This value tells `harbor-comopse up` to not deploy the `image:tag` specified in the docker compose file.  The behavior applies to all containers in the shipment.  This setting may be useful if you'd like to use `harbor-compose up` to do things like update env vars and scale replicas but you don't want to update the image since maybe a continuous delivery/deployment process is controlling that.  The default value is false.
+
+```yaml
+shipments:
+  my-shipment:
+    ignoreImageVersion: true
+```
+
 ### property
 
 This value defines which property your shipment serves.
@@ -147,6 +157,7 @@ These environment variables get injected into your container.  Any values here w
 environment:
   RACK_ENV: development
   SHOW: "true"
+  DB_PASSWORD: ${DB_PASSWORD}
 ```
 
 ### [env_file](https://docs.docker.com/compose/compose-file/#environment#envfile)

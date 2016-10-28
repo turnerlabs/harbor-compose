@@ -257,9 +257,9 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		dockerService := dockerCompose.Services[container]
 
 		//update the shipment/container with the new image
-		UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
-
-		//update container-level envvars
+		if !shipment.IgnoreImageVersion {
+			UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
+		}
 
 		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
 		if !success {
