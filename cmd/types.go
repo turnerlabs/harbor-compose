@@ -14,15 +14,16 @@ type AuthResponse struct {
 
 // ComposeShipment represents a harbor shipment
 type ComposeShipment struct {
-	Env         string            `yaml:"env"`
-	Barge       string            `yaml:"barge"`
-	Containers  []string          `yaml:"containers"`
-	Replicas    int               `yaml:"replicas"`
-	Group       string            `yaml:"group"`
-	Property    string            `yaml:"property"`
-	Project     string            `yaml:"project"`
-	Product     string            `yaml:"product"`
-	Environment map[string]string `yaml:"environment"`
+	Env                string            `yaml:"env"`
+	Barge              string            `yaml:"barge"`
+	Containers         []string          `yaml:"containers"`
+	Replicas           int               `yaml:"replicas"`
+	Group              string            `yaml:"group"`
+	Property           string            `yaml:"property"`
+	Project            string            `yaml:"project"`
+	Product            string            `yaml:"product"`
+	Environment        map[string]string `yaml:"environment,omitempty"`
+	IgnoreImageVersion bool              `yaml:"ignoreImageVersion,omitempty"`
 }
 
 // HarborCompose represents a harbor-compose.yml file
