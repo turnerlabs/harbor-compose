@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -183,6 +184,18 @@ func GetLogs(barge string, shipment string, env string) string {
 	}
 
 	return body
+}
+
+// GetLogStreamer return reader object to parse docker container logs
+func GetLogStreamer(streamer string) (reader *bufio.Reader, err error) {
+	resp, err := http.Get(streamer)
+
+	if err != nil {
+		return
+	}
+
+	reader = bufio.NewReader(resp.Body)
+	return
 }
 
 // GetShipmentStatus returns the running status of a shipment

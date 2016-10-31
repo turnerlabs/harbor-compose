@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/docker/libcompose/docker"
+	"github.com/docker/libcompose/docker/ctx"
+	"github.com/docker/libcompose/project"
+	"github.com/spf13/cobra"
+
 	"strconv"
 	"strings"
-
-	"github.com/spf13/cobra"
 )
 
 // upCmd represents the up command
@@ -30,6 +33,8 @@ func init() {
 }
 
 func up(cmd *cobra.Command, args []string) {
+
+	//make sure user is authenticated
 	username, token, _ := Login()
 
 	//read the harbor compose file
@@ -37,6 +42,17 @@ func up(cmd *cobra.Command, args []string) {
 
 	//read the docker compose file
 	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
+
+	//use libcompose to parse compose yml file as well (since it supports the full spec)
+	dockerComposeProject, err := docker.NewProject(&ctx.Context{
+		Context: project.Context{
+			ComposeFiles: []string{DockerComposeFile},
+		},
+	}, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
@@ -55,11 +71,11 @@ func up(cmd *cobra.Command, args []string) {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(username, token, shipmentName, dockerCompose, shipment)
+			createShipment(username, token, shipmentName, dockerCompose, shipment, dockerComposeProject)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment)
+			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment, dockerComposeProject)
 
 			//TODO: desired state reconciliation
 		}
@@ -69,7 +85,7 @@ func up(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
+func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) {
 	userName, token, _ := Login()
 
 	//map a ComposeShipment object (based on compose files) into
@@ -108,6 +124,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 	}
 
 	//containers
+
 	//iterate defined containers and apply container level updates
 	newShipment.Containers = make([]NewContainer, 0)
 	for containerIndex, container := range shipment.Containers {
@@ -135,8 +152,21 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 		}
 
 		//container-level env vars
-		for name, value := range dockerService.Environment {
-			newContainer.Vars = append(newContainer.Vars, envVar(name, value))
+
+		serviceConfig, success := dockerComposeProject.GetServiceConfig(newContainer.Name)
+		if !success {
+			log.Fatal("error getting service config")
+		}
+
+		envVarMap := serviceConfig.Environment.ToMap()
+
+		for name, value := range envVarMap {
+			if name != "" {
+				if Verbose {
+					log.Println("processing " + name)
+				}
+				newContainer.Vars = append(newContainer.Vars, envVar(name, value))
+			}
 		}
 
 		//map the docker compose service ports to harbor ports
@@ -212,7 +242,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 	}
 }
 
-func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment) {
+func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) {
 
 	//map a ComposeShipment object (based on compose files) into
 	//a series of API call to update a shipment
@@ -227,22 +257,31 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		dockerService := dockerCompose.Services[container]
 
 		//update the shipment/container with the new image
-		UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
+		if !shipment.IgnoreImageVersion {
+			UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
+		}
 
-		//update container-level envvars
-		for evName, evValue := range dockerService.Environment {
+		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
+		if !success {
+			log.Fatal("error getting service config")
+		}
 
-			if Verbose {
-				log.Println("processing " + evName)
+		envVarMap := serviceConfig.Environment.ToMap()
+
+		for evName, evValue := range envVarMap {
+			if evName != "" {
+				if Verbose {
+					log.Println("processing " + evName)
+				}
+
+				//create an envvar object
+				envVarPayload := envVar(evName, evValue)
+
+				//save the envvar
+				SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, container)
 			}
+		}
 
-			//create an envvar object
-			envVarPayload := envVar(evName, evValue)
-
-			//save the envvar
-			SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, container)
-
-		} //envvars
 	}
 
 	//convert the specified barge into an env var

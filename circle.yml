@@ -4,14 +4,18 @@
 machine:
   environment:
     IMPORT_PATH: "/usr/local/go_workspace/src/github.com/turnerlabs/harbor-compose"
+    GHR_VERSION: v0.5.2
 
 dependencies:
   pre:
+    - sudo mkdir -p $IMPORT_PATH
     - go get github.com/tools/godep
+    - go get github.com/mitchellh/gox
+    - go get github.com/inconshreveable/mousetrap
+    - wget https://github.com/tcnksm/ghr/releases/download/${GHR_VERSION}/ghr_${GHR_VERSION}_linux_amd64.zip && sudo unzip ghr_${GHR_VERSION}_linux_amd64.zip -d /usr/local/bin
 
   # copy the code to the canonical $GOPATH directory
-  override:
-    - sudo mkdir -p $IMPORT_PATH
+  override:    
     - sudo rsync -az --delete ./ $IMPORT_PATH
 
 test:
@@ -26,17 +30,11 @@ deployment:
   release:
     branch: master
     commands:
-      - go get github.com/mitchellh/gox
-      - go get github.com/tcnksm/ghr
-      - go get github.com/inconshreveable/mousetrap
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
       - 'cd $IMPORT_PATH && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
   
   prerelease:
     branch: develop
     commands:
-      - go get github.com/mitchellh/gox
-      - go get github.com/tcnksm/ghr
-      - go get github.com/inconshreveable/mousetrap
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
       - 'cd $IMPORT_PATH && ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
