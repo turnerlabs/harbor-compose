@@ -237,7 +237,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 		fmt.Println(msg)
 	}
 
-	if success {
+	if success && shipment.Replicas > 0 {
 		fmt.Println("Please allow up to 5 minutes for DNS changes to take effect.")
 	}
 }
