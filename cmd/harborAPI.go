@@ -247,47 +247,55 @@ func Trigger(shipment string, env string) (bool, []string) {
 		log.Printf("triggering shipment: " + uri)
 	}
 
+	//make network request
 	resp, body, err := gorequest.New().
 		Post(uri).
 		EndBytes()
 
+	//handle errors
 	if err != nil {
+		log.Println("an error occurred calling trigger api")
 		log.Fatal(err)
 	}
 
-	if Verbose {
-		log.Printf("status code = %v", resp.StatusCode)
+	//if verbose or non-200, log status code and message body
+	if Verbose || resp.StatusCode != 200 {
+		log.Printf("trigger api returned a %v", resp.StatusCode)
 		log.Println(string(body))
 	}
 
-	//example responses...
-	//error: {"message":"Could not parse docker image data from http://registry.services.dmtio.net/v2/mss-poc-thingproxy/manifests/: 757: unexpected token at '404 page not found\n'\n"}
-	//success: {"message":["compose-test.dev.services.ec2.dmtio.net:5000"]}
+	var result []string
 
-	//trigger api returns both single and multiple messages
-	if strings.Contains(string(body), "message\":\"") {
+	//parse http 200 responses as JSON
+	if resp.StatusCode == 200 {
+		//trigger api returns both single and multiple messages:
 
-		var response TriggerResponseSingle
-		unmarshalErr := json.Unmarshal(body, &response)
-		if unmarshalErr != nil {
-			log.Fatal(unmarshalErr)
+		//example responses...
+		//error: {"message":"Could not parse docker image data from http://registry.services.dmtio.net/v2/mss-poc-thingproxy/manifests/: 757: unexpected token at '404 page not found\n'\n"}
+		//success: {"message":["compose-test.dev.services.ec2.dmtio.net:5000"]}
+
+		//single message
+		if strings.Contains(string(body), "message\":\"") {
+			//convert single message into an array for consistency
+			var response TriggerResponseSingle
+			unmarshalErr := json.Unmarshal(body, &response)
+			if unmarshalErr != nil {
+				log.Fatal(unmarshalErr)
+			}
+			result = append(result, response.Message)
+		} else if strings.Contains(string(body), "message\":[") {
+			//multiple messages
+			var response TriggerResponseMultiple
+			unmarshalErr := json.Unmarshal(body, &response)
+			if unmarshalErr != nil {
+				log.Fatal(unmarshalErr)
+			}
+			result = response.Messages
 		}
-
-		//convert single message into an array for consistency
-		var temp []string
-		temp = append(temp, response.Message)
-
-		//return success
-		return resp.StatusCode == 200, temp
 	}
 
-	var response TriggerResponseMultiple
-	unmarshalErr := json.Unmarshal(body, &response)
-	if unmarshalErr != nil {
-		log.Fatal(unmarshalErr)
-	}
-
-	return resp.StatusCode == 200, response.Messages
+	//return whether trigger call was successful along with messages
+	return resp.StatusCode == 200, result
 }
 
 // SaveEnvVar saves envvars by doing a delete/add against the api
