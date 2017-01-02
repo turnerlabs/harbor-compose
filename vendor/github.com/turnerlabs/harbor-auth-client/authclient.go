@@ -159,10 +159,6 @@ type isAuthenticatedOut struct {
 
 // IsAuthenticated -
 func (s *harborAuthClient) IsAuthenticated(username string, token string) (bool, error) {
-	if !govalidator.IsAlpha(username) {
-		return false, errors.New("Usernames must be alphabetical")
-	}
-
 	if len(token) == 0 {
 		return false, errors.New("Empty token")
 	}
