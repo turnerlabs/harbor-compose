@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/turnerlabs/harbor-compose",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v74",
+	"GodepVersion": "v75",
 	"Packages": [
 		"./..."
 	],
@@ -581,7 +581,8 @@
 		},
 		{
 			"ImportPath": "github.com/turnerlabs/harbor-auth-client",
-			"Rev": "7b7f3071423c5cffe223a9850b7ea67219438b8e"
+			"Comment": "v1.0",
+			"Rev": "85ed775035e8ca1baa0a5b4140e2c9b6c8ed2707"
 		},
 		{
 			"ImportPath": "github.com/vbatts/tar-split/archive/tar",
