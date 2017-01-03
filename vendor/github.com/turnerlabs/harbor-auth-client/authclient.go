@@ -44,12 +44,8 @@ type loginOut struct {
 
 // Login -
 func (s *harborAuthClient) Login(username string, password string) (string, bool, error) {
-	if !govalidator.IsByteLength(password, 8, 20) {
-		return "", false, errors.New("Password is either less than the minimum of 8 or over the maximum number of 20 characters")
-	}
-
-	if !govalidator.IsAlpha(username) {
-		return "", false, errors.New("Usernames must be alphabetical")
+	if !govalidator.IsByteLength(password, 8, 128) {
+		return "", false, errors.New("Password is either less than the minimum of 8 or over the maximum number of 128 characters")
 	}
 
 	in := loginIn{}
@@ -163,10 +159,6 @@ type isAuthenticatedOut struct {
 
 // IsAuthenticated -
 func (s *harborAuthClient) IsAuthenticated(username string, token string) (bool, error) {
-	if !govalidator.IsAlpha(username) {
-		return false, errors.New("Usernames must be alphabetical")
-	}
-
 	if len(token) == 0 {
 		return false, errors.New("Empty token")
 	}
