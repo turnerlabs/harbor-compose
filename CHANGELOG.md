@@ -1,3 +1,10 @@
+## 0.8.2 (2017-1-3)
+
+Bug fixes:
+
+- Fixes overly restrictive authentication validation issues ([#58](https://github.com/turnerlabs/harbor-compose/issues/58) and [#60](https://github.com/turnerlabs/harbor-compose/issues/60)).
+
+
 ## 0.8.1 (2016-12-20)
 
 Features:
