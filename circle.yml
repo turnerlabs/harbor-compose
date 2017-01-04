@@ -5,6 +5,11 @@ machine:
   environment:
     IMPORT_PATH: "/usr/local/go_workspace/src/github.com/turnerlabs/harbor-compose"
     GHR_VERSION: v0.5.2
+  pre:
+    # install newer docker
+    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0    
+  services:
+    - docker    
 
 dependencies:
   pre:
