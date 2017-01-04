@@ -38,6 +38,7 @@ deployment:
     branch: master
     commands:
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
+      - ls -al $IMPORT_PATH && ls -al $IMPORT_PATH/dist
       - source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} $IMPORT_PATH
       - 'cd $IMPORT_PATH && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
       - source .env; docker push quay.io/turner/harbor-compose:${VERSION}
