@@ -19,7 +19,7 @@ dependencies:
     - go get github.com/inconshreveable/mousetrap
     - wget https://github.com/tcnksm/ghr/releases/download/${GHR_VERSION}/ghr_${GHR_VERSION}_linux_amd64.zip && sudo unzip ghr_${GHR_VERSION}_linux_amd64.zip -d /usr/local/bin
     - docker login -e="." -u="${DOCKER_USER}" -p="${DOCKER_PASS}" quay.io
-    - echo "VERSION=$(git describe --tags)" > .env
+    - echo "VERSION=$(git describe --tags)" > $IMPORT_PATH/.env
 
   # copy the code to the canonical $GOPATH directory
   override:    
@@ -38,7 +38,7 @@ deployment:
     branch: master
     commands:      
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
-      - source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
+      - cd $IMPORT_PATH && source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
       - 'cd $IMPORT_PATH && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
       - source .env; docker push quay.io/turner/harbor-compose:${VERSION}
       - docker push quay.io/turner/harbor-compose:latest
@@ -47,6 +47,6 @@ deployment:
     branch: [ develop, docker]
     commands:
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
-      - source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
+      - cd $IMPORT_PATH && source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
       - 'cd $IMPORT_PATH && ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
       - source .env; docker push quay.io/turner/harbor-compose:${VERSION}
