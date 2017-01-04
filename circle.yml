@@ -44,7 +44,7 @@ deployment:
       - docker push quay.io/turner/harbor-compose:latest
   
   prerelease:
-    branch: develop
+    branch: [ develop, docker]
     commands:
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'
       - source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
