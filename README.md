@@ -82,6 +82,29 @@ $ harbor-compose down
 
 #### Getting Started
 
+There are currently two installation options for Harbor Compose.
+
+1) Download the binary from the [Github releases section](https://github.com/turnerlabs/harbor-compose/releases).
+
+- You can use the following script to download and install (update the URL for your desired platform and version).
+
+```
+$ sudo wget -O /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.8.2/ncd_darwin_amd64 && sudo chmod +x /usr/local/bin/harbor-compose
+```
+
+2) Run as a docker container
+
+```
+$ docker run -it --rm -v `pwd`:/work quay.io/turner/harbor-compose up
+```
+
+- or if you want to reuse your session (and use a specific version):
+
+```
+$ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose:0.8.2 up
+```
+
+
 To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  Note that you will be prompted to login if you don't already have a token or if your token has expired.  For example:
 
 ```
