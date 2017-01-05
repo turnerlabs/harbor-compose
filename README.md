@@ -84,7 +84,7 @@ $ harbor-compose down
 
 There are currently two installation options for Harbor Compose.
 
-1. Download the binary from the [Github releases section](https://github.com/turnerlabs/harbor-compose/releases).
+1) Download the binary from the [Github releases section](https://github.com/turnerlabs/harbor-compose/releases).
 
 - You can use the following script to download and install (update the URL for your desired platform and version).
 
@@ -92,7 +92,7 @@ There are currently two installation options for Harbor Compose.
 $ sudo wget -O /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.8.2/ncd_darwin_amd64 && sudo chmod +x /usr/local/bin/harbor-compose
 ```
 
-2. Run as a docker container.
+2) Run as a docker container
 
 ```
 $ docker run -it --rm -v `pwd`:/work quay.io/turner/harbor-compose up
