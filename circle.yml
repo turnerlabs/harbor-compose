@@ -35,12 +35,13 @@ test:
 deployment:
   
   release:
-    branch: master
+    branch: [master, docker]
     commands:
       - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'      
       - source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} $IMPORT_PATH
       - 'cd $IMPORT_PATH && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
       - source .env; docker push quay.io/turner/harbor-compose:${VERSION}
+      - source .env; docker tag quay.io/turner/harbor-compose:${VERSION} quay.io/turner/harbor-compose:latest
       - docker push quay.io/turner/harbor-compose:latest
   
   prerelease:

@@ -5,5 +5,5 @@ RUN chmod +x /usr/local/bin/harbor-compose
 
 WORKDIR /work
 
-ENTRYPOINT ["/usr/local/bin/harbor-compose"]
+ENTRYPOINT ["harbor-compose"]
 CMD ["--help"]
