@@ -29,7 +29,10 @@ debug
 
 harbor-compose
 harbor-compose.yml
+harbor-compose.yml.bak
 docker-compose.yml
+docker-compose.yml.bak
 up.md
 create.json
 *.env
+/dist
