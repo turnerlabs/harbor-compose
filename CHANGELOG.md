@@ -1,3 +1,10 @@
+## 0.8.3 (2017-1-9)
+
+Features:
+
+- Now publishing a docker image to quay.io as part of the CI build.
+
+
 ## 0.8.2 (2017-1-3)
 
 Bug fixes:
