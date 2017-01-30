@@ -54,6 +54,9 @@ func up(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	// catalog containers
+	CatalogContainers(dockerCompose, dockerComposeProject)
+
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
 		fmt.Printf("Starting %v ...\n", shipmentName)
