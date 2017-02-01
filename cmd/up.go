@@ -140,6 +140,9 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 			log.Fatalln("'image' is required in docker compose file")
 		}
 
+		// catalog containers
+		CatalogContainer(container, dockerService.Image)
+
 		//parse image:tag and map to name/version
 		parsedImage := strings.Split(dockerService.Image, ":")
 
@@ -255,6 +258,9 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 		//lookup the container in the list of services in the docker-compose file
 		dockerService := dockerCompose.Services[container]
+
+		// catalog containers
+		CatalogContainer(container, dockerService.Image)
 
 		//update the shipment/container with the new image
 		if !shipment.IgnoreImageVersion {

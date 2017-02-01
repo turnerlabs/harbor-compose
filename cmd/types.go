@@ -164,3 +164,10 @@ type ShipmentStatusOutput struct {
 	Containers  string
 	Replicas    string
 }
+
+// CatalogitContainer is what gets sent to catalog to post a new image
+type CatalogitContainer struct {
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	Version string `json:"version"`
+}
