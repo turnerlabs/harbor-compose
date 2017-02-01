@@ -20,11 +20,11 @@ var logsCmd = &cobra.Command{
 	Use:   "logs [logid ...]",
 	Short: "View output from containers",
 	Long: `
-    View output of contianers. There are few options available to make this easier to view.
+    View output of containers. There are few options available to make this easier to view.
 
     You can also pass in arguments to the function, to allow for n number of specific queries.
     eg. logs $id $id1 $id2
-					
+
     This will query for only those 3 containers. You can pass in any number of container IDs
 	`,
 	Run: logs,
@@ -49,7 +49,7 @@ func logs(cmd *cobra.Command, args []string) {
 		fmt.Printf("Logs For:  %s %s\n", shipmentName, shipment.Env)
 
 		if len(args) > 0 && Verbose == true {
-			fmt.Println("Make sure the ID is either the 7 char shortstring of the contianer or the entire ID")
+			fmt.Println("Make sure the ID is either the 7 char shortstring of the container or the entire ID")
 			for _, arg := range args {
 				fmt.Printf("Getting Logs for Container:  %s\n", arg)
 			}

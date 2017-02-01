@@ -17,6 +17,7 @@ var triggerURI = "http://harbor-trigger.services.dmtio.net"
 var authAPI = "http://auth.services.dmtio.net"
 var helmitURI = "http://helmit.services.dmtio.net"
 var harborURI = "http://harbor.services.dmtio.net"
+var catalogitURI = "http://catalogit.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(username string, token string, shipment string, env string) *ShipmentEnvironment {
@@ -401,4 +402,36 @@ func DeleteShipmentEnvironment(username string, token string, shipment string, e
 	if res.StatusCode != 200 {
 		log.Fatalf("delete returned a status code of %v", res.StatusCode)
 	}
+}
+
+// Catalogit sends a POST to the catalogit api
+func Catalogit(container CatalogitContainer) (response string, err []error) {
+
+	if Verbose {
+		log.Printf("Sending POST to: %v /v1/containers\n", catalogitURI)
+	}
+
+	//make network request
+	resp, body, err := gorequest.New().
+		Post(catalogitURI + "/v1/containers").
+		Send(container).
+		EndBytes()
+
+	// handle errors
+	if err != nil && resp.StatusCode != 422 {
+		log.Println("an error occurred calling catalogit api")
+		log.Fatal(err)
+	}
+
+	if Verbose && resp.StatusCode == 422 {
+		log.Println("container has already been cataloged.")
+	}
+
+	// if verbose or non-200, log status code and message body
+	if Verbose || (resp.StatusCode != 200 && resp.StatusCode != 422) {
+		log.Printf("catalogit api returned a %v", resp.StatusCode)
+		log.Println(string(body))
+	}
+
+	return "Successfully Cataloged Container " + container.Name, nil
 }

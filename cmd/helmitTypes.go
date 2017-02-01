@@ -2,7 +2,7 @@ package cmd
 
 import "time"
 
-// HelmitContainer represents a single contianer instance in harbor
+// HelmitContainer represents a single container instance in harbor
 type HelmitContainer struct {
 	Name      string   `json:"name"`
 	ID        string   `json:"id"`
