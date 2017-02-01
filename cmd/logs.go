@@ -20,11 +20,11 @@ var logsCmd = &cobra.Command{
 	Use:   "logs [logid ...]",
 	Short: "View output from containers",
 	Long: `
-    View output of contianers. There are few options available to make this easier to view.
+    View output of containers. There are few options available to make this easier to view.
 
     You can also pass in arguments to the function, to allow for n number of specific queries.
     eg. logs $id $id1 $id2
-					
+
     This will query for only those 3 containers. You can pass in any number of container IDs
 	`,
 	Run: logs,

@@ -19,6 +19,9 @@ func init() {
 	RootCmd.AddCommand(catalogCmd)
 }
 
+// catalog is called by CLI catalog function. Reads from
+// dockerCompose and harborCompose and loops over containers to
+// catalog images
 func catalog(cmd *cobra.Command, args []string) {
 
 	// read the harbor compose file
@@ -46,7 +49,7 @@ func catalog(cmd *cobra.Command, args []string) {
 			container, isset := dockerCompose.Services[containerName]
 
 			if isset == true {
-				// catalog the contianers in the shipment
+				// catalog the containers in the shipment
 				CatalogContainer(containerName, container.Image)
 			}
 		}
@@ -56,7 +59,8 @@ func catalog(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-// CatalogContainer will take a dockerCompose object and catalog all contianers it gets
+// CatalogContainer will create a container object from name and image params
+// Will send POST to catalogit api
 func CatalogContainer(name string, image string) {
 
 	if Verbose {
