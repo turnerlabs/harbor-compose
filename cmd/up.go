@@ -54,9 +54,6 @@ func up(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	// catalog containers
-	CatalogContainers(dockerCompose, dockerComposeProject)
-
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
 		fmt.Printf("Starting %v ...\n", shipmentName)
@@ -142,6 +139,9 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 		if dockerService.Image == "" {
 			log.Fatalln("'image' is required in docker compose file")
 		}
+
+		// catalog containers
+		CatalogContainer(container, dockerService.Image)
 
 		//parse image:tag and map to name/version
 		parsedImage := strings.Split(dockerService.Image, ":")
@@ -258,6 +258,9 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 		//lookup the container in the list of services in the docker-compose file
 		dockerService := dockerCompose.Services[container]
+
+		// catalog containers
+		CatalogContainer(container, dockerService.Image)
 
 		//update the shipment/container with the new image
 		if !shipment.IgnoreImageVersion {

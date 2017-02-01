@@ -407,18 +407,13 @@ func DeleteShipmentEnvironment(username string, token string, shipment string, e
 // Catalogit sends a POST to the catalogit api
 func Catalogit(container CatalogitContainer) (response string, err []error) {
 
-	//build URI
-	values := make(map[string]interface{})
-	template, _ := uritemplates.Parse(catalogitURI + "/v1/containers")
-	uri, _ := template.Expand(values)
-
 	if Verbose {
-		log.Printf("Sending POST to: " + uri)
+		log.Printf("Sending POST to: %v /v1/containers\n", catalogitURI)
 	}
 
 	//make network request
 	resp, body, err := gorequest.New().
-		Post(uri).
+		Post(catalogitURI + "/v1/containers").
 		Send(container).
 		EndBytes()
 
@@ -429,7 +424,7 @@ func Catalogit(container CatalogitContainer) (response string, err []error) {
 	}
 
 	if Verbose && resp.StatusCode == 422 {
-		log.Println("contianer has already been cataloged. Do not fail, just pass gracefully.")
+		log.Println("contianer has already been cataloged.")
 	}
 
 	// if verbose or non-200, log status code and message body
