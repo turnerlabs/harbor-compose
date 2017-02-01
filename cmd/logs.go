@@ -49,7 +49,7 @@ func logs(cmd *cobra.Command, args []string) {
 		fmt.Printf("Logs For:  %s %s\n", shipmentName, shipment.Env)
 
 		if len(args) > 0 && Verbose == true {
-			fmt.Println("Make sure the ID is either the 7 char shortstring of the contianer or the entire ID")
+			fmt.Println("Make sure the ID is either the 7 char shortstring of the container or the entire ID")
 			for _, arg := range args {
 				fmt.Printf("Getting Logs for Container:  %s\n", arg)
 			}

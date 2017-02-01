@@ -424,7 +424,7 @@ func Catalogit(container CatalogitContainer) (response string, err []error) {
 	}
 
 	if Verbose && resp.StatusCode == 422 {
-		log.Println("contianer has already been cataloged.")
+		log.Println("container has already been cataloged.")
 	}
 
 	// if verbose or non-200, log status code and message body
@@ -433,5 +433,5 @@ func Catalogit(container CatalogitContainer) (response string, err []error) {
 		log.Println(string(body))
 	}
 
-	return "Successfully Cataloged Contianer " + container.Name, nil
+	return "Successfully Cataloged Container " + container.Name, nil
 }
