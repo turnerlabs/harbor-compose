@@ -1,3 +1,8 @@
+## 0.9.1 (2017-2-1)
+
+- bump new version because build failed to use correct tag
+
+
 ## 0.9.0 (2017-2-1)
 
 Features:
