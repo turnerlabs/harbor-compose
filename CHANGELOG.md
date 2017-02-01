@@ -1,3 +1,10 @@
+## 0.9.0 (2017-2-1)
+
+Features:
+
+- catalog command has been added ([#67](https://github.com/turnerlabs/harbor-compose/issues/67)).
+- all up commands catalog images
+
 ## 0.8.3 (2017-1-9)
 
 Features:
