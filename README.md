@@ -20,8 +20,10 @@ Using Harbor Compose is basically a four-step process.
 Just like `docker-compose`, `harbor-compose` has similar commands for managing the lifecycle of your app on Harbor:
 
 - Start and stop services
+- Upload environment variables and scale replicas
 - View the status of running services
 - Stream the log output of running services
+- Trigger an image deployment from a public build system (like Circle CI, Travis CI, etc.)
 
 
 A simple `docker-compose.yml` might look like this:
@@ -98,10 +100,10 @@ $ sudo wget -O /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbo
 $ docker run -it --rm -v `pwd`:/work quay.io/turner/harbor-compose up
 ```
 
-- or if you want to reuse your session (and use a specific version):
+- or if you want to reuse your session:
 
 ```
-$ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose:0.8.2 up
+$ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose up
 ```
 
 
@@ -123,6 +125,12 @@ Run your shipment locally in Docker (practically identically to how it runs in H
 
 ```
 $ docker-compose up
+```
+
+Push your images to a registry.
+
+```
+$ docker-compose push
 ```
 
 Scale your shipment by changing the replicas in `harbor-compose.yml`, or change your environment variables and re-deploy, or deploy a new image, etc....
@@ -157,6 +165,12 @@ $ harbor-compose down --delete
 ```
 
 You can also manage multiple shipments using Harbor Compose by listing them in your harbor-compose.yml file.  This is particularly useful if you have a web/worker, or microservices type application where each shipment can be scaled independently.
+
+
+### CI/CD
+
+The `deploy` command can be used to trigger a deployment of a new version of a Dqocker image.  This works from public build services (e.g.; Circle CI, Travis CI, etc.) by using the shipment build token specified using either the `BUILD_TOKEN` environment variable or the --token flag.
+
 
 #### Authentication
 
