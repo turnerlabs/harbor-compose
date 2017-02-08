@@ -169,7 +169,7 @@ You can also manage multiple shipments using Harbor Compose by listing them in y
 
 ### CI/CD
 
-The `deploy` command can be used to trigger a deployment of a new version of a Dqocker image.  This works from public build services (e.g.; Circle CI, Travis CI, etc.) by using the shipment build token specified using either the `BUILD_TOKEN` environment variable or the --token flag.
+The `deploy` command can be used to trigger a deployment of a new version of a Docker image.  This works from public build services (e.g.; Circle CI, Travis CI, etc.) by using the shipment build token specified using either the `BUILD_TOKEN` environment variable or the --token flag.
 
 
 #### Authentication
