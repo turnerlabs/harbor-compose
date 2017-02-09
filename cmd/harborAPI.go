@@ -471,13 +471,14 @@ func IsContainerVersionCataloged(name string, version string) bool {
 }
 
 // Deploy deploys (and catalogs) a shipment container to an environment
-func Deploy(shipment string, env string, buildToken string, deployRequest DeployRequest) {
+func Deploy(shipment string, env string, buildToken string, deployRequest DeployRequest, provider string) {
 
 	//build URI
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
 	values["env"] = env
-	template, _ := uritemplates.Parse(customsURI + "/deploy/{shipment}/{env}/ec2")
+	values["provider"] = provider
+	template, _ := uritemplates.Parse(customsURI + "/deploy/{shipment}/{env}/{provider}")
 	uri, _ := template.Expand(values)
 	request := gorequest.New().Get(uri)
 

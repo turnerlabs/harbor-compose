@@ -95,8 +95,7 @@ func deploy(cmd *cobra.Command, args []string) {
 				Catalog: catalog,
 			}
 
-			Deploy(shipmentName, shipment.Env, shipmentBuildToken, deployRequest)
-
+			Deploy(shipmentName, shipment.Env, shipmentBuildToken, deployRequest, "ec2")
 		}
 
 		fmt.Println("done")
