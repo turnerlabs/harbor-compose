@@ -20,33 +20,20 @@ var deployCmd = &cobra.Command{
 	Run:   deploy,
 }
 
-var shipmentBuildToken string
+var environmentOverride string
 
 func init() {
-	deployCmd.PersistentFlags().StringVarP(&shipmentBuildToken, "token", "t", "", "the shipment build token to use")
+	deployCmd.PersistentFlags().StringVarP(&environmentOverride, "env", "e", "", "override the shipment environment specified in the harbor compose file.")
 	RootCmd.AddCommand(deployCmd)
 }
 
 //deploy iterates shipments and containers and uses the Customs API to trigger deployments.
 func deploy(cmd *cobra.Command, args []string) {
 
-	//obtain build token
-	buildTokenEnvVar := os.Getenv("BUILD_TOKEN")
-
-	//cli flag overrides env var
-	if len(shipmentBuildToken) == 0 {
-		shipmentBuildToken = buildTokenEnvVar
-	}
-
-	//validate build token
-	if len(shipmentBuildToken) == 0 {
-		log.Fatal("A shipment build token is required. Please specify an environment variable named, \"BUILD_TOKEN\" or the --token flag.")
-	}
-
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 
-	//use libcompose to parse compose yml file
+	//use libcompose to parse yml file
 	dockerComposeProject, err := docker.NewProject(&ctx.Context{
 		Context: project.Context{
 			ComposeFiles: []string{DockerComposeFile},
@@ -95,7 +82,25 @@ func deploy(cmd *cobra.Command, args []string) {
 				Catalog: catalog,
 			}
 
-			Deploy(shipmentName, shipment.Env, shipmentBuildToken, deployRequest, "ec2")
+			//allow --env flag to override environment specified in compose file
+			shipmentEnv := shipment.Env
+			if len(environmentOverride) > 0 {
+				shipmentEnv = environmentOverride
+			}
+
+			//look for envvar for this shipment/environment that matches naming convention: SHIPMENT_ENV_TOKEN
+			envvar := fmt.Sprintf("%v_%v_TOKEN", strings.Replace(strings.ToUpper(shipmentName), "-", "_", -1), strings.ToUpper(shipmentEnv))
+			if Verbose {
+				log.Printf("looking for environment variable named: %v\n", envvar)
+			}
+			buildTokenEnvVar := os.Getenv(envvar)
+
+			//validate build token
+			if len(buildTokenEnvVar) == 0 {
+				log.Fatalf("A shipment/environment build token is required. Please specify an environment variable named, %v", envvar)
+			}
+
+			Deploy(shipmentName, shipment.Env, buildTokenEnvVar, deployRequest, "ec2")
 		}
 
 		fmt.Println("done")
