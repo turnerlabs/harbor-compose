@@ -11,7 +11,7 @@ import (
 // catalogCmd represents the up command
 var catalogCmd = &cobra.Command{
 	Use:   "catalog",
-	Short: "Add containers in docker-compose to Harbor Catalog",
+	Short: "Add containers defined in a docker compose file to the harbor catalog",
 	Run:   catalog,
 }
 

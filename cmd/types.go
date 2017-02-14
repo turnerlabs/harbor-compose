@@ -171,3 +171,11 @@ type CatalogitContainer struct {
 	Image   string `json:"image"`
 	Version string `json:"version"`
 }
+
+// DeployRequest represents a request to deploy a shipment/container to an environment
+type DeployRequest struct {
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	Version string `json:"version"`
+	Catalog bool   `json:"catalog"`
+}

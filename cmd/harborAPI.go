@@ -18,6 +18,7 @@ var authAPI = "http://auth.services.dmtio.net"
 var helmitURI = "http://helmit.services.dmtio.net"
 var harborURI = "http://harbor.services.dmtio.net"
 var catalogitURI = "http://catalogit.services.dmtio.net"
+var customsURI = "https://customs.services.dmtio.net"
 
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(username string, token string, shipment string, env string) *ShipmentEnvironment {
@@ -434,4 +435,77 @@ func Catalogit(container CatalogitContainer) (response string, err []error) {
 	}
 
 	return "Successfully Cataloged Container " + container.Name, nil
+}
+
+//IsContainerVersionCataloged determines whether or not a container/version exists in the catalog
+func IsContainerVersionCataloged(name string, version string) bool {
+
+	//build URI
+	values := make(map[string]interface{})
+	values["name"] = name
+	values["version"] = version
+	template, _ := uritemplates.Parse(customsURI + "/catalog/{name}/{version}/")
+	uri, _ := template.Expand(values)
+	if Verbose {
+		log.Println("fetching: " + uri)
+	}
+
+	//issue request
+	res, _, err := gorequest.New().Get(uri).EndBytes()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//not found
+	if res.StatusCode == 404 {
+		return false
+	}
+
+	//throw error if not 200
+	if res.StatusCode != 200 {
+		log.Fatalf("GET %v returned %v", uri, res.StatusCode)
+	}
+
+	return true
+}
+
+// Deploy deploys (and catalogs) a shipment container to an environment
+func Deploy(shipment string, env string, buildToken string, deployRequest DeployRequest, provider string) {
+
+	//build URI
+	values := make(map[string]interface{})
+	values["shipment"] = shipment
+	values["env"] = env
+	values["provider"] = provider
+	template, _ := uritemplates.Parse(customsURI + "/deploy/{shipment}/{env}/{provider}")
+	uri, _ := template.Expand(values)
+	request := gorequest.New().Get(uri)
+
+	if Verbose {
+		log.Printf("POST " + uri)
+	}
+
+	//make network request
+	res, body, err := request.
+		Post(uri).
+		Set("x-build-token", buildToken).
+		Send(deployRequest).
+		EndBytes()
+
+	//handle errors
+	if err != nil {
+		log.Println("an error occurred calling customs api")
+		log.Fatal(err)
+	}
+
+	//logging
+	if Verbose || res.StatusCode != 200 {
+		log.Printf("customs api returned a %v", res.StatusCode)
+		log.Println(string(body))
+	}
+
+	if res.StatusCode != 200 {
+		log.Fatal("customs/deploy failed")
+	}
 }
