@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/docker/libcompose/docker"
@@ -16,8 +15,17 @@ import (
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Trigger an image deployment for all shipments and containers defined in compose files",
-	Long:  "Note that the deploy command is a subset of the up command without updates for environment variables, replicas, barge info, etc.",
-	Run:   deploy,
+	Long: `Trigger an image deployment for all shipments and containers defined in compose files.
+	
+Note that the deploy command is a subset of the up command without updates for environment variables, replicas, barge info, etc.
+
+Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.
+
+Example (shipment = mss-app-web):
+
+MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose deploy
+`,
+	Run: deploy,
 }
 
 var environmentOverride string
@@ -52,7 +60,7 @@ func deploy(cmd *cobra.Command, args []string) {
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
-		fmt.Printf("deploying images for Shipment: %v %v ...\n", shipmentName, shipment.Env)
+		fmt.Printf("deploying images for shipment: %v %v ...\n", shipmentName, shipment.Env)
 
 		// loop over containers in docker-compose file
 		for _, containerName := range shipment.Containers {
@@ -88,17 +96,8 @@ func deploy(cmd *cobra.Command, args []string) {
 				shipmentEnv = environmentOverride
 			}
 
-			//look for envvar for this shipment/environment that matches naming convention: SHIPMENT_ENV_TOKEN
-			envvar := fmt.Sprintf("%v_%v_TOKEN", strings.Replace(strings.ToUpper(shipmentName), "-", "_", -1), strings.ToUpper(shipmentEnv))
-			if Verbose {
-				log.Printf("looking for environment variable named: %v\n", envvar)
-			}
-			buildTokenEnvVar := os.Getenv(envvar)
-
-			//validate build token
-			if len(buildTokenEnvVar) == 0 {
-				log.Fatalf("A shipment/environment build token is required. Please specify an environment variable named, %v", envvar)
-			}
+			//get for envvar for this shipment/environment
+			buildTokenEnvVar := getBuildTokenEnvVar(shipmentName, shipmentEnv)
 
 			Deploy(shipmentName, shipment.Env, buildTokenEnvVar, deployRequest, "ec2")
 		}

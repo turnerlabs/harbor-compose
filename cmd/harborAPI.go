@@ -509,3 +509,43 @@ func Deploy(shipment string, env string, buildToken string, deployRequest Deploy
 		log.Fatal("customs/deploy failed")
 	}
 }
+
+// CatalogCustoms catalogs a container using the customs catalog api
+func CatalogCustoms(shipment string, env string, buildToken string, catalogRequest CatalogitContainer, provider string) {
+
+	//POST /catalog/:shipment/:environment/:provider
+	values := make(map[string]interface{})
+	values["shipment"] = shipment
+	values["env"] = env
+	values["provider"] = provider
+	template, _ := uritemplates.Parse(customsURI + "/catalog/{shipment}/{env}/{provider}")
+	uri, _ := template.Expand(values)
+	request := gorequest.New().Get(uri)
+
+	if Verbose {
+		log.Printf("POST " + uri)
+	}
+
+	//make network request
+	res, body, err := request.
+		Post(uri).
+		Set("x-build-token", buildToken).
+		Send(catalogRequest).
+		EndBytes()
+
+	//handle errors
+	if err != nil {
+		log.Println("an error occurred calling customs api")
+		log.Fatal(err)
+	}
+
+	//logging
+	if Verbose || res.StatusCode != 200 {
+		log.Printf("customs api returned a %v", res.StatusCode)
+		log.Println(string(body))
+	}
+
+	if res.StatusCode != 200 {
+		log.Fatal("customs/catalog failed")
+	}
+}

@@ -141,7 +141,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 		}
 
 		// catalog containers
-		CatalogContainer(container, dockerService.Image)
+		catalogContainer(container, dockerService.Image)
 
 		//parse image:tag and map to name/version
 		parsedImage := strings.Split(dockerService.Image, ":")
@@ -260,7 +260,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		dockerService := dockerCompose.Services[container]
 
 		// catalog containers
-		CatalogContainer(container, dockerService.Image)
+		catalogContainer(container, dockerService.Image)
 
 		//update the shipment/container with the new image
 		if !shipment.IgnoreImageVersion {
@@ -338,5 +338,35 @@ func envVar(name string, value string) EnvVarPayload {
 		Name:  name,
 		Value: value,
 		Type:  "basic",
+	}
+}
+
+func catalogContainer(name string, image string) {
+
+	if Verbose {
+		log.Printf("cataloging container %v", name)
+	}
+
+	//parse image:tag and map to name/version
+	parsedImage := strings.Split(image, ":")
+
+	newContainer := CatalogitContainer{
+		Name:    name,
+		Image:   image,
+		Version: parsedImage[1],
+	}
+
+	// send POST to catalogit
+	// if post failes and says image already exists, do not exit 1
+	//trigger shipment
+	message, err := Catalogit(newContainer)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// cataloged successfully
+	if Verbose {
+		fmt.Println(message)
 	}
 }
