@@ -200,10 +200,18 @@ And then simply run
 harbor-compose deploy -e qa
 ```
 
-This allows for a clean CI/CD workflow in your build scripts...
+This allows for a clean CI/CD work flow in your build scripts...
 
 ```
 docker-compose build
 docker-compose push
 harbor-compose deploy
+```
+
+If you're just doing CI and not CD, you can use the `catalog` command to catalog all of the built docker images but not deploy them.
+
+```
+docker-compose build
+docker-compose push
+harbor-compose catalog
 ```
