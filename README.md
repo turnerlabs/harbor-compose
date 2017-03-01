@@ -20,8 +20,10 @@ Using Harbor Compose is basically a four-step process.
 Just like `docker-compose`, `harbor-compose` has similar commands for managing the lifecycle of your app on Harbor:
 
 - Start and stop services
+- Upload environment variables and scale replicas
 - View the status of running services
 - Stream the log output of running services
+- Trigger an image deployment from a public build system (like Circle CI, Travis CI, etc.)
 
 
 A simple `docker-compose.yml` might look like this:
@@ -68,7 +70,7 @@ Access your app logs...
 $ harbor-compose logs
 ```
 
-Get the status of your shipment...
+Get the status of your shipments...
 
 ```
 $ harbor-compose ps
@@ -79,6 +81,11 @@ To stop your application, remove all running containers and delete your load bal
 ```
 $ harbor-compose down
 ```
+
+### Compose file reference
+
+See the [full harbor-compose.yml reference](compose-reference.md) along with which [docker-compose.yml](https://docs.docker.com/compose/) properties are supported by Harbor Compose.
+
 
 #### Getting Started
 
@@ -98,10 +105,10 @@ $ sudo wget -O /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbo
 $ docker run -it --rm -v `pwd`:/work quay.io/turner/harbor-compose up
 ```
 
-- or if you want to reuse your session (and use a specific version):
+- or if you want to reuse your session:
 
 ```
-$ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose:0.8.2 up
+$ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose up
 ```
 
 
@@ -123,6 +130,12 @@ Run your shipment locally in Docker (practically identically to how it runs in H
 
 ```
 $ docker-compose up
+```
+
+Push your images to a registry.
+
+```
+$ docker-compose push
 ```
 
 Scale your shipment by changing the replicas in `harbor-compose.yml`, or change your environment variables and re-deploy, or deploy a new image, etc....
@@ -149,20 +162,56 @@ ab97cef   registry.services.dmtio.net/mss-poc-multi-container:1.0.0    running  
 db93650   registry.services.dmtio.net/mss-poc-multi-container2:1.0.0   running   5 days ago   2          terminated 5 days ago   
 ```
 
-
-To stop your application, delete your load balancer, and delete the environment.  Note that this is equivalent to setting replicas = 0 and triggering.
-
-```
-$ harbor-compose down --delete
-```
-
 You can also manage multiple shipments using Harbor Compose by listing them in your harbor-compose.yml file.  This is particularly useful if you have a web/worker, or microservices type application where each shipment can be scaled independently.
+
 
 #### Authentication
 
 Some commands (`up`, `down`, `generate`) require authentication and will automatically prompt you for your credentials.  A temporary (6 hours) authentication token is stored on your machine so that you don't have to login when running each command.  If you want to logout and remove the authentication token, you can run the `logout` command.  You can also explicitly login by running the `login` command.
 
 
-### Compose file reference
+#### CI/CD
 
-See the [full harbor-compose.yml reference](compose-reference.md) along with which [docker-compose.yml](https://docs.docker.com/compose/) properties are supported by Harbor Compose.
+The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  This works from public build services (e.g.; Circle CI, Travis CI, etc.) by using the shipment/environment build token specified using environment variables with the naming convention, `SHIPMENT_ENV_TOKEN`.  
+
+So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add environment variables to your build.
+
+```
+MSS_APP_WEB_DEV_TOKEN=xyz
+MSS_APP_WORKER_DEV_TOKEN=xyz
+```
+
+And then simply run the following to deploy all containers in all shipments specified in your compose files.
+
+```
+harbor-compose deploy
+```
+
+If you wanted to conditionally deploy to a different environment (e.g., QA) using the same set of compose files, you could...
+
+```
+MSS_APP_WEB_QA_TOKEN=xyz
+MSS_APP_WORKER_QA_TOKEN=xyz
+```
+
+And then simply run
+
+```
+harbor-compose deploy -e qa
+```
+
+This allows for a clean CI/CD work flow in your build scripts...
+
+```
+docker-compose build
+docker-compose push
+harbor-compose deploy
+```
+
+If you're just doing CI and not CD, you can use the `catalog` command to catalog all of the built docker images but not deploy them.
+
+```
+docker-compose build
+docker-compose push
+harbor-compose catalog
+```

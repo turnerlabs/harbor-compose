@@ -5,14 +5,27 @@ import (
 	"log"
 	"strings"
 
+	"github.com/docker/libcompose/docker"
+	"github.com/docker/libcompose/docker/ctx"
+	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 )
 
 // catalogCmd represents the up command
 var catalogCmd = &cobra.Command{
 	Use:   "catalog",
-	Short: "Add containers in docker-compose to Harbor Catalog",
-	Run:   catalog,
+	Short: "Add container images defined in compose files to the Harbor catalog",
+	Long: `Add container images defined in compose files to the Harbor catalog.
+	
+This command is safe to run multiple times.  In other words, the command will not fail if the specified name/version has already been cataloged.
+
+Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.
+
+Example (shipment = mss-app-web):
+
+MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose catalog
+`,
+	Run: catalog,
 }
 
 func init() {
@@ -24,69 +37,67 @@ func init() {
 // catalog images
 func catalog(cmd *cobra.Command, args []string) {
 
-	// read the harbor compose file
+	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 
-	// read the docker compose file
-	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
+	//use libcompose to parse yml file
+	dockerComposeProject, err := docker.NewProject(&ctx.Context{
+		Context: project.Context{
+			ComposeFiles: []string{DockerComposeFile},
+		},
+	}, nil)
+
+	if err != nil {
+		log.Fatal("error parsing compose file" + err.Error())
+	}
+
+	//validate the compose file
+	_, err = dockerComposeProject.Config()
+	if err != nil {
+		log.Fatal("error parsing compose file" + err.Error())
+	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
-		fmt.Printf("Cataloging images for Shipment: %v ...\n", shipmentName)
-
-		if Verbose {
-			log.Printf("cataloging shipment: %v/%v", shipmentName, shipment.Env)
-		}
+		fmt.Printf("cataloging images for shipment: %v ...\n", shipmentName)
 
 		// loop over containers in docker-compose file
-		for containerIndex, containerName := range shipment.Containers {
-
-			if Verbose {
-				log.Printf("processing container: %v %v", containerName, containerIndex)
-			}
+		for _, containerName := range shipment.Containers {
 
 			//lookup the container in the list of services in the docker-compose file
-			container, isset := dockerCompose.Services[containerName]
+			serviceConfig, found := dockerComposeProject.GetServiceConfig(containerName)
+			if !found {
+				log.Fatal("could not find service in docker compose file")
+			}
 
-			if isset == true {
-				// catalog the containers in the shipment
-				CatalogContainer(containerName, container.Image)
+			//parse image:tag
+			parsedImage := strings.Split(serviceConfig.Image, ":")
+			tag := parsedImage[1]
+
+			//lookup container image in the catalog and catalog if missing
+			if !IsContainerVersionCataloged(containerName, tag) {
+
+				if Verbose {
+					log.Printf("cataloging container: %v\n", containerName)
+				}
+
+				catalogContainer := CatalogitContainer{
+					Name:    containerName,
+					Image:   serviceConfig.Image,
+					Version: tag,
+				}
+
+				//get for envvar for this shipment/environment
+				buildTokenEnvVar := getBuildTokenEnvVar(shipmentName, shipment.Env)
+
+				CatalogCustoms(shipmentName, shipment.Env, buildTokenEnvVar, catalogContainer, "ec2")
+
+			} else if Verbose {
+				log.Printf("%s:%s has already been cataloged\n", containerName, tag)
 			}
 		}
 
 		fmt.Println("done")
 
 	} //shipments
-}
-
-// CatalogContainer will create a container object from name and image params
-// Will send POST to catalogit api
-func CatalogContainer(name string, image string) {
-
-	if Verbose {
-		log.Printf("cataloging container %v", name)
-	}
-
-	//parse image:tag and map to name/version
-	parsedImage := strings.Split(image, ":")
-
-	newContainer := CatalogitContainer{
-		Name:    name,
-		Image:   image,
-		Version: parsedImage[1],
-	}
-
-	// send POST to catalogit
-	// if post failes and says image already exists, do not exit 1
-	//trigger shipment
-	message, err := Catalogit(newContainer)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// cataloged successfully
-	if Verbose {
-		fmt.Println(message)
-	}
 }
