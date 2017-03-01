@@ -1,3 +1,9 @@
+## 0.10.0 (2017-3-1)
+
+Features:
+
+- Support for CI/CD via the new `deploy` and `catalog` commands.
+
 ## 0.9.0 (2017-2-1)
 
 Features:
