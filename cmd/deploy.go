@@ -99,7 +99,7 @@ func deploy(cmd *cobra.Command, args []string) {
 			//get for envvar for this shipment/environment
 			buildTokenEnvVar := getBuildTokenEnvVar(shipmentName, shipmentEnv)
 
-			Deploy(shipmentName, shipment.Env, buildTokenEnvVar, deployRequest, "ec2")
+			Deploy(shipmentName, shipmentEnv, buildTokenEnvVar, deployRequest, "ec2")
 		}
 
 		fmt.Println("done")
