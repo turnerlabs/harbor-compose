@@ -1,3 +1,10 @@
+## 0.10.1 (2017-3-2)
+
+Bug fixes:
+
+- Fixed bug in `deploy -e` command.
+
+
 ## 0.10.0 (2017-3-1)
 
 Features:
