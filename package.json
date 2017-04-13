@@ -1,0 +1,28 @@
+{
+  "name": "harbor-compose",
+  "version": "0.10.1",
+  "description": "A tool for defining and running multi-container Docker applications on Harbor",
+  "main": "main.go",
+  "scripts": {
+    "test": "godep go test ./cmd",
+    "watch": "watch 'npm test' cmd"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/turnerlabs/harbor-compose.git"
+  },
+  "keywords": [
+    "harbor",
+    "docker",
+    "docker-compose"
+  ],
+  "author": "turnerlabs",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/turnerlabs/harbor-compose/issues"
+  },
+  "homepage": "https://github.com/turnerlabs/harbor-compose#readme",
+  "devDependencies": {
+    "watch": "^1.0.2"
+  }
+}
