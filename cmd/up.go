@@ -76,8 +76,6 @@ func up(cmd *cobra.Command, args []string) {
 		} else {
 			//make changes to harbor based on compose files
 			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment, dockerComposeProject)
-
-			//TODO: desired state reconciliation
 		}
 
 		fmt.Println("done")
@@ -161,7 +159,9 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 			log.Fatal("error getting service config")
 		}
 
-		envVarMap := serviceConfig.Environment.ToMap()
+		//envVarMap := serviceConfig.Environment.ToMap()
+		//todo: temporary (until this libcompose pr is merged -> https://github.com/docker/libcompose/pull/458)
+		envVarMap := toMap(serviceConfig.Environment)
 
 		for name, value := range envVarMap {
 			if name != "" {
@@ -272,7 +272,9 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 			log.Fatal("error getting service config")
 		}
 
-		envVarMap := serviceConfig.Environment.ToMap()
+		//envVarMap := serviceConfig.Environment.ToMap()
+		//todo: temporary (until this libcompose pr is merged -> https://github.com/docker/libcompose/pull/458)
+		envVarMap := toMap(serviceConfig.Environment)
 
 		for evName, evValue := range envVarMap {
 			if evName != "" {
@@ -329,7 +331,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	//if replicas is changing from 0, then show wait messages
 	if ec2Provider(currentShipment.Providers).Replicas == 0 {
-		fmt.Println("Please allow up to 5 minutes for DNS changes to take effect.")
+		fmt.Println("Please allow up to 5 minutes for Load Balancer and DNS changes to take effect.")
 	}
 }
 
@@ -369,4 +371,14 @@ func catalogContainer(name string, image string) {
 	if Verbose {
 		fmt.Println(message)
 	}
+}
+
+func toMap(s []string) map[string]string {
+	m := map[string]string{}
+	for _, v := range s {
+		// Return everything past first sep
+		values := strings.Split(v, "=")
+		m[values[0]] = strings.SplitN(v, "=", 2)[1]
+	}
+	return m
 }
