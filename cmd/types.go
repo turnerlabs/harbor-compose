@@ -33,12 +33,13 @@ type HarborCompose struct {
 
 // DockerCompose represents a docker-compose.yml file
 type DockerCompose struct {
-	Version  string                          `yaml:"version"`
-	Services map[string]DockerComposeService `yaml:"services"`
+	Version  string                           `yaml:"version"`
+	Services map[string]*DockerComposeService `yaml:"services"`
 }
 
 // DockerComposeService represents a container
 type DockerComposeService struct {
+	Build       string            `yaml:"build,omitempty"`
 	Image       string            `yaml:"image"`
 	Ports       []string          `yaml:"ports"`
 	Environment map[string]string `yaml:"environment"`
@@ -123,7 +124,7 @@ type NewShipmentInfo struct {
 	Vars  []EnvVarPayload `json:"vars"`
 }
 
-// NewEnvironment representsa new environment
+// NewEnvironment represents new environment
 type NewEnvironment struct {
 	Name string          `json:"name"`
 	Vars []EnvVarPayload `json:"vars"`

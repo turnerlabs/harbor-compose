@@ -344,7 +344,7 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 }
 
 // UpdateContainerImage updates a container version on a shipment
-func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, dockerService DockerComposeService) {
+func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, dockerService *DockerComposeService) {
 	if Verbose {
 		log.Printf("updating container settings")
 	}
