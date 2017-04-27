@@ -10,6 +10,8 @@ type CircleCIv1 struct{}
 
 //ProvideArtifacts -
 func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose) ([]*BuildArtifact, error) {
+
+	//iterate containers
 	for _, svc := range dockerCompose.Services {
 
 		//set build configuration to string containing a path to the build context
@@ -17,6 +19,9 @@ func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 
 		//add the circle ci build number to the image tag
 		svc.Image += ".${CIRCLE_BUILD_NUM}"
+
+		//remove environment variables since they're not needed for ci/cd
+		svc.Environment = nil
 	}
 
 	//output circle.yml

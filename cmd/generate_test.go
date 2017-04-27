@@ -600,6 +600,9 @@ func TestTransformShipmentToDockerComposeBuildProviderCircleCI(t *testing.T) {
 	//docker compose configuration should have the circle ci build number in the image tag
 	assert.True(t, strings.HasSuffix(svc.Image, ".${CIRCLE_BUILD_NUM}"))
 
+	//docker compose configuration shouldn't have any environment variables
+	assert.Equal(t, 0, len(svc.Environment))
+
 	//the provider should output a circle.yml
 	assert.NotNil(t, artifacts)
 	assert.Equal(t, "circle.yml", artifacts[0].FilePath)

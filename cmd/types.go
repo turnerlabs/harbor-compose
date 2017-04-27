@@ -40,9 +40,9 @@ type DockerCompose struct {
 // DockerComposeService represents a container
 type DockerComposeService struct {
 	Build       string            `yaml:"build,omitempty"`
-	Image       string            `yaml:"image"`
-	Ports       []string          `yaml:"ports"`
-	Environment map[string]string `yaml:"environment"`
+	Image       string            `yaml:"image,omitempty"`
+	Ports       []string          `yaml:"ports,omitempty"`
+	Environment map[string]string `yaml:"environment,omitempty"`
 }
 
 // ShipmentEnvironment represents a shipment/environment combination
