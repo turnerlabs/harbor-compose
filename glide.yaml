@@ -1,0 +1,22 @@
+package: github.com/turnerlabs/harbor-compose
+import:
+- package: github.com/docker/libcompose
+  version: c6a7d4679d065a4f50e08d4d1fe13776062cf1ec
+  subpackages:
+  - docker
+  - docker/ctx
+  - project
+- package: github.com/dustin/go-humanize
+- package: github.com/jtacoma/uritemplates
+- package: github.com/mitchellh/go-homedir
+- package: github.com/parnurzeal/gorequest
+- package: github.com/spf13/cobra
+- package: github.com/turnerlabs/harbor-auth-client
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh/terminal
+- package: gopkg.in/yaml.v2
+testImport:
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert

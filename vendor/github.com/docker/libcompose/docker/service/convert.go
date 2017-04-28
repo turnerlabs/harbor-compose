@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"golang.org/x/net/context"
-
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/strslice"
@@ -17,7 +15,7 @@ import (
 	composecontainer "github.com/docker/libcompose/docker/container"
 	"github.com/docker/libcompose/project"
 	"github.com/docker/libcompose/utils"
-	// "github.com/docker/libcompose/yaml"
+	"golang.org/x/net/context"
 )
 
 // ConfigWrapper wraps Config, HostConfig and NetworkingConfig for a container.
@@ -167,6 +165,7 @@ func Convert(c *config.ServiceConfig, ctx project.Context, clientFactory compose
 		WorkingDir:   c.WorkingDir,
 		Volumes:      toMap(Filter(vols, isVolume)),
 		MacAddress:   c.MacAddress,
+		StopSignal:   c.StopSignal,
 	}
 
 	ulimits := []*units.Ulimit{}
@@ -180,15 +179,20 @@ func Convert(c *config.ServiceConfig, ctx project.Context, clientFactory compose
 		}
 	}
 
+	memorySwappiness := int64(c.MemSwappiness)
+
 	resources := container.Resources{
-		CgroupParent: c.CgroupParent,
-		Memory:       int64(c.MemLimit),
-		MemorySwap:   int64(c.MemSwapLimit),
-		CPUShares:    int64(c.CPUShares),
-		CPUQuota:     int64(c.CPUQuota),
-		CpusetCpus:   c.CPUSet,
-		Ulimits:      ulimits,
-		Devices:      deviceMappings,
+		CgroupParent:      c.CgroupParent,
+		Memory:            int64(c.MemLimit),
+		MemoryReservation: int64(c.MemReservation),
+		MemorySwap:        int64(c.MemSwapLimit),
+		MemorySwappiness:  &memorySwappiness,
+		CPUShares:         int64(c.CPUShares),
+		CPUQuota:          int64(c.CPUQuota),
+		CpusetCpus:        c.CPUSet,
+		Ulimits:           ulimits,
+		Devices:           deviceMappings,
+		OomKillDisable:    &c.OomKillDisable,
 	}
 
 	networkMode := c.NetworkMode
@@ -212,10 +216,7 @@ func Convert(c *config.ServiceConfig, ctx project.Context, clientFactory compose
 				}
 				if len(containers) != 0 {
 					container := containers[0]
-					containerID, err := container.ID()
-					if err != nil {
-						return nil, nil, err
-					}
+					containerID := container.ID()
 					networkMode = "container:" + containerID
 				}
 				// FIXME(vdemeester) log/warn in case of len(containers) == 0
@@ -233,21 +234,35 @@ func Convert(c *config.ServiceConfig, ctx project.Context, clientFactory compose
 		}
 	}
 
+	tmpfs := map[string]string{}
+	for _, path := range c.Tmpfs {
+		split := strings.SplitN(path, ":", 2)
+		if len(split) == 1 {
+			tmpfs[split[0]] = ""
+		} else if len(split) == 2 {
+			tmpfs[split[0]] = split[1]
+		}
+	}
+
 	hostConfig := &container.HostConfig{
 		VolumesFrom: volumesFrom,
 		CapAdd:      strslice.StrSlice(utils.CopySlice(c.CapAdd)),
 		CapDrop:     strslice.StrSlice(utils.CopySlice(c.CapDrop)),
+		GroupAdd:    c.GroupAdd,
 		ExtraHosts:  utils.CopySlice(c.ExtraHosts),
 		Privileged:  c.Privileged,
 		Binds:       Filter(vols, isBind),
 		DNS:         utils.CopySlice(c.DNS),
+		DNSOptions:  utils.CopySlice(c.DNSOpts),
 		DNSSearch:   utils.CopySlice(c.DNSSearch),
+		Isolation:   container.Isolation(c.Isolation),
 		LogConfig: container.LogConfig{
 			Type:   c.Logging.Driver,
 			Config: utils.CopyMap(c.Logging.Options),
 		},
 		NetworkMode:    container.NetworkMode(networkMode),
 		ReadonlyRootfs: c.ReadOnly,
+		OomScoreAdj:    int(c.OomScoreAdj),
 		PidMode:        container.PidMode(c.Pid),
 		UTSMode:        container.UTSMode(c.Uts),
 		IpcMode:        container.IpcMode(c.Ipc),
@@ -255,6 +270,7 @@ func Convert(c *config.ServiceConfig, ctx project.Context, clientFactory compose
 		RestartPolicy:  *restartPolicy,
 		ShmSize:        int64(c.ShmSize),
 		SecurityOpt:    utils.CopySlice(c.SecurityOpt),
+		Tmpfs:          tmpfs,
 		VolumeDriver:   c.VolumeDriver,
 		Resources:      resources,
 	}
@@ -288,7 +304,7 @@ func parseDevices(devices []string) ([]container.DeviceMapping, error) {
 	// parse device mappings
 	deviceMappings := []container.DeviceMapping{}
 	for _, device := range devices {
-		v, err := opts.ParseDevice(device)
+		v, err := parseDevice(device)
 		if err != nil {
 			return nil, err
 		}
@@ -300,4 +316,60 @@ func parseDevices(devices []string) ([]container.DeviceMapping, error) {
 	}
 
 	return deviceMappings, nil
+}
+
+// parseDevice parses a device mapping string to a container.DeviceMapping struct
+// FIXME(vdemeester) de-duplicate this by re-exporting it in docker/docker
+func parseDevice(device string) (container.DeviceMapping, error) {
+	src := ""
+	dst := ""
+	permissions := "rwm"
+	arr := strings.Split(device, ":")
+	switch len(arr) {
+	case 3:
+		permissions = arr[2]
+		fallthrough
+	case 2:
+		if validDeviceMode(arr[1]) {
+			permissions = arr[1]
+		} else {
+			dst = arr[1]
+		}
+		fallthrough
+	case 1:
+		src = arr[0]
+	default:
+		return container.DeviceMapping{}, fmt.Errorf("invalid device specification: %s", device)
+	}
+
+	if dst == "" {
+		dst = src
+	}
+
+	deviceMapping := container.DeviceMapping{
+		PathOnHost:        src,
+		PathInContainer:   dst,
+		CgroupPermissions: permissions,
+	}
+	return deviceMapping, nil
+}
+
+// validDeviceMode checks if the mode for device is valid or not.
+// Valid mode is a composition of r (read), w (write), and m (mknod).
+func validDeviceMode(mode string) bool {
+	var legalDeviceMode = map[rune]bool{
+		'r': true,
+		'w': true,
+		'm': true,
+	}
+	if mode == "" {
+		return false
+	}
+	for _, c := range mode {
+		if !legalDeviceMode[c] {
+			return false
+		}
+		legalDeviceMode[c] = false
+	}
+	return true
 }

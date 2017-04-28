@@ -14,7 +14,6 @@ machine:
 dependencies:
   pre:
     - sudo mkdir -p $IMPORT_PATH
-    - go get github.com/tools/godep
     - go get github.com/mitchellh/gox
     - go get github.com/inconshreveable/mousetrap
     - wget https://github.com/tcnksm/ghr/releases/download/${GHR_VERSION}/ghr_${GHR_VERSION}_linux_amd64.zip && sudo unzip ghr_${GHR_VERSION}_linux_amd64.zip -d /usr/local/bin
@@ -27,10 +26,10 @@ dependencies:
 
 test:
   pre:
-    - cd $IMPORT_PATH && go vet -x $(go list ./... | grep -v /vendor/)
+    - cd $IMPORT_PATH && go vet -x ./cmd
 
   override:
-    - cd $IMPORT_PATH && godep go test -v $(go list ./... | grep -v /vendor/)
+    - cd $IMPORT_PATH && go test -v ./cmd
 
 deployment:
   

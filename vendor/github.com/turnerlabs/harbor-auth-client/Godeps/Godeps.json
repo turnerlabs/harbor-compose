@@ -1,0 +1,5 @@
+{
+	"ImportPath": "github.com/turnerlabs/harbor-auth-client",
+	"GoVersion": "go1.6",
+	"Deps": []
+}
