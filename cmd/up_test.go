@@ -35,5 +35,5 @@ services:
 
 	proj, _ := dockerComposeProject.GetServiceConfig("container")
 
-	assert.Equal(t, "foo=bar", toMap(proj.Environment)["CHAR_EQUAL"])
+	assert.Equal(t, "foo=bar", proj.Environment.ToMap()["CHAR_EQUAL"])
 }

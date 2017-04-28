@@ -159,11 +159,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 			log.Fatal("error getting service config")
 		}
 
-		//envVarMap := serviceConfig.Environment.ToMap()
-		//todo: temporary (until this libcompose pr is merged -> https://github.com/docker/libcompose/pull/458)
-		envVarMap := toMap(serviceConfig.Environment)
-
-		for name, value := range envVarMap {
+		for name, value := range serviceConfig.Environment.ToMap() {
 			if name != "" {
 				if Verbose {
 					log.Println("processing " + name)
@@ -272,11 +268,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 			log.Fatal("error getting service config")
 		}
 
-		//envVarMap := serviceConfig.Environment.ToMap()
-		//todo: temporary (until this libcompose pr is merged -> https://github.com/docker/libcompose/pull/458)
-		envVarMap := toMap(serviceConfig.Environment)
-
-		for evName, evValue := range envVarMap {
+		for evName, evValue := range serviceConfig.Environment.ToMap() {
 			if evName != "" {
 				if Verbose {
 					log.Println("processing " + evName)
@@ -359,7 +351,7 @@ func catalogContainer(name string, image string) {
 	}
 
 	// send POST to catalogit
-	// if post failes and says image already exists, do not exit 1
+	// if post fails and says image already exists, do not exit 1
 	//trigger shipment
 	message, err := Catalogit(newContainer)
 
@@ -371,14 +363,4 @@ func catalogContainer(name string, image string) {
 	if Verbose {
 		fmt.Println(message)
 	}
-}
-
-func toMap(s []string) map[string]string {
-	m := map[string]string{}
-	for _, v := range s {
-		// Return everything past first sep
-		values := strings.Split(v, "=")
-		m[values[0]] = strings.SplitN(v, "=", 2)[1]
-	}
-	return m
 }
