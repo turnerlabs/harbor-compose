@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types/strslice"
+	"github.com/docker/go-units"
 )
 
 // StringorInt represents a string or an integer.
@@ -23,6 +24,7 @@ func (s *StringorInt) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var stringType string
 	if err := unmarshal(&stringType); err == nil {
 		intType, err := strconv.ParseInt(stringType, 10, 64)
+
 		if err != nil {
 			return err
 		}
@@ -31,6 +33,32 @@ func (s *StringorInt) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	return errors.New("Failed to unmarshal StringorInt")
+}
+
+// MemStringorInt represents a string or an integer
+// the String supports notations like 10m for then Megabyte of memory
+type MemStringorInt int64
+
+// UnmarshalYAML implements the Unmarshaller interface.
+func (s *MemStringorInt) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var intType int64
+	if err := unmarshal(&intType); err == nil {
+		*s = MemStringorInt(intType)
+		return nil
+	}
+
+	var stringType string
+	if err := unmarshal(&stringType); err == nil {
+		intType, err := units.RAMInBytes(stringType)
+
+		if err != nil {
+			return err
+		}
+		*s = MemStringorInt(intType)
+		return nil
+	}
+
+	return errors.New("Failed to unmarshal MemStringorInt")
 }
 
 // Stringorslice represents
@@ -189,6 +217,8 @@ func toSepMapParts(value map[interface{}]interface{}, sep string) ([]string, err
 				parts = append(parts, sk+sep+strconv.Itoa(sv))
 			} else if sv, ok := v.(int64); ok {
 				parts = append(parts, sk+sep+strconv.FormatInt(sv, 10))
+			} else if sv, ok := v.(float64); ok {
+				parts = append(parts, sk+sep+strconv.FormatFloat(sv, 'f', -1, 64))
 			} else if v == nil {
 				parts = append(parts, sk)
 			} else {
@@ -219,8 +249,9 @@ func toStrings(s []interface{}) ([]string, error) {
 func toMap(s []string, sep string) map[string]string {
 	m := map[string]string{}
 	for _, v := range s {
+		// Return everything past first sep
 		values := strings.Split(v, sep)
-		m[values[0]] = values[1]
+		m[values[0]] = strings.SplitN(v, sep, 2)[1]
 	}
 	return m
 }

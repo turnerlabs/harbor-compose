@@ -76,8 +76,6 @@ func up(cmd *cobra.Command, args []string) {
 		} else {
 			//make changes to harbor based on compose files
 			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment, dockerComposeProject)
-
-			//TODO: desired state reconciliation
 		}
 
 		fmt.Println("done")
@@ -161,9 +159,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 			log.Fatal("error getting service config")
 		}
 
-		envVarMap := serviceConfig.Environment.ToMap()
-
-		for name, value := range envVarMap {
+		for name, value := range serviceConfig.Environment.ToMap() {
 			if name != "" {
 				if Verbose {
 					log.Println("processing " + name)
@@ -272,9 +268,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 			log.Fatal("error getting service config")
 		}
 
-		envVarMap := serviceConfig.Environment.ToMap()
-
-		for evName, evValue := range envVarMap {
+		for evName, evValue := range serviceConfig.Environment.ToMap() {
 			if evName != "" {
 				if Verbose {
 					log.Println("processing " + evName)
@@ -329,7 +323,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	//if replicas is changing from 0, then show wait messages
 	if ec2Provider(currentShipment.Providers).Replicas == 0 {
-		fmt.Println("Please allow up to 5 minutes for DNS changes to take effect.")
+		fmt.Println("Please allow up to 5 minutes for Load Balancer and DNS changes to take effect.")
 	}
 }
 
@@ -357,7 +351,7 @@ func catalogContainer(name string, image string) {
 	}
 
 	// send POST to catalogit
-	// if post failes and says image already exists, do not exit 1
+	// if post fails and says image already exists, do not exit 1
 	//trigger shipment
 	message, err := Catalogit(newContainer)
 
