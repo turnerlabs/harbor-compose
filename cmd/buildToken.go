@@ -7,10 +7,15 @@ import (
 	"strings"
 )
 
+func getBuildTokenName(shipment string, environment string) string {
+	//SHIPMENT_ENV_TOKEN
+	return fmt.Sprintf("%v_%v_TOKEN", strings.Replace(strings.ToUpper(shipment), "-", "_", -1), strings.ToUpper(environment))
+}
+
 func getBuildTokenEnvVar(shipment string, environment string) string {
 
 	//look for envvar for this shipment/environment that matches naming convention: SHIPMENT_ENV_TOKEN
-	envvar := fmt.Sprintf("%v_%v_TOKEN", strings.Replace(strings.ToUpper(shipment), "-", "_", -1), strings.ToUpper(environment))
+	envvar := getBuildTokenName(shipment, environment)
 	if Verbose {
 		log.Printf("looking for environment variable named: %v\n", envvar)
 	}
