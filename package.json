@@ -4,7 +4,7 @@
   "description": "A tool for defining and running multi-container Docker applications on Harbor",
   "main": "main.go",
   "scripts": {
-    "test": "godep go test ./cmd",
+    "test": "go test ./cmd",
     "watch": "watch 'npm test' cmd"
   },
   "repository": {
