@@ -3,13 +3,13 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/docker/libcompose/docker"
 	"github.com/docker/libcompose/docker/ctx"
 	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 
-	"strconv"
 	"strings"
 )
 
@@ -31,6 +31,8 @@ var upCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(upCmd)
 }
+
+var successMessage = "Please allow up to 5 minutes for Load Balancer and DNS changes to take effect."
 
 func up(cmd *cobra.Command, args []string) {
 
@@ -83,20 +85,10 @@ func up(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) {
-	userName, token, _ := Login()
-
-	//map a ComposeShipment object (based on compose files) into
-	//a new NewShipmentEnvironment object
-
-	if Verbose {
-		log.Println("creating shipment environment")
-	}
+func transformComposeToNewShipment(shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) NewShipmentEnvironment {
 
 	//create object used to create a new shipment environment from scratch
 	newShipment := NewShipmentEnvironment{
-		Username: userName,
-		Token:    token,
 		Info: NewShipmentInfo{
 			Name:  shipmentName,
 			Group: shipment.Group,
@@ -226,6 +218,19 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 	//add provider
 	newShipment.Providers = append(newShipment.Providers, provider)
 
+	return newShipment
+}
+
+func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) {
+
+	if Verbose {
+		log.Println("creating shipment environment")
+	}
+
+	//map a ComposeShipment object (based on compose files) into
+	//a new NewShipmentEnvironment object
+	newShipment := transformComposeToNewShipment(shipmentName, dockerCompose, shipment, dockerComposeProject)
+
 	//push the new shipment/environment up to harbor
 	SaveNewShipmentEnvironment(username, token, newShipment)
 
@@ -237,7 +242,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 	}
 
 	if success && shipment.Replicas > 0 {
-		fmt.Println("Please allow up to 5 minutes for DNS changes to take effect.")
+		fmt.Println(successMessage)
 	}
 }
 
@@ -323,7 +328,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	//if replicas is changing from 0, then show wait messages
 	if ec2Provider(currentShipment.Providers).Replicas == 0 {
-		fmt.Println("Please allow up to 5 minutes for Load Balancer and DNS changes to take effect.")
+		fmt.Println(successMessage)
 	}
 }
 

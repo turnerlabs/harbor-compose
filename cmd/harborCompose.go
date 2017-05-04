@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// DeserializeHarborCompose deserializes a harbor-compse.yml file into an object
+// DeserializeHarborCompose deserializes a harbor-compose.yml file into an object
 func DeserializeHarborCompose(file string) HarborCompose {
 
 	//read the harbor compose file
