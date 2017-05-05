@@ -37,7 +37,7 @@ type DockerCompose struct {
 	Services map[string]*DockerComposeService `yaml:"services"`
 }
 
-// DockerComposeService represents a container
+// DockerComposeService represents a container (only used for writing via generate)
 type DockerComposeService struct {
 	Build       string            `yaml:"build,omitempty"`
 	Image       string            `yaml:"image,omitempty"`

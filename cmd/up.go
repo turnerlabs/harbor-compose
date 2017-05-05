@@ -42,9 +42,6 @@ func up(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 
-	//read the docker compose file
-	dockerCompose := DeserializeDockerCompose(DockerComposeFile)
-
 	//use libcompose to parse compose yml file as well (since it supports the full spec)
 	dockerComposeProject, err := docker.NewProject(&ctx.Context{
 		Context: project.Context{
@@ -73,11 +70,11 @@ func up(cmd *cobra.Command, args []string) {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(username, token, shipmentName, dockerCompose, shipment, dockerComposeProject)
+			createShipment(username, token, shipmentName, shipment, dockerComposeProject)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(username, token, shipmentObject, shipmentName, dockerCompose, shipment, dockerComposeProject)
+			updateShipment(username, token, shipmentObject, shipmentName, shipment, dockerComposeProject)
 		}
 
 		fmt.Println("done")
@@ -85,7 +82,7 @@ func up(cmd *cobra.Command, args []string) {
 	} //shipments
 }
 
-func transformComposeToNewShipment(shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) NewShipmentEnvironment {
+func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) NewShipmentEnvironment {
 
 	//create object used to create a new shipment environment from scratch
 	newShipment := NewShipmentEnvironment{
@@ -123,35 +120,37 @@ func transformComposeToNewShipment(shipmentName string, dockerCompose DockerComp
 			log.Printf("processing container: %v", container)
 		}
 
-		//lookup the container in the list of services in the docker-compose file
-		dockerService := dockerCompose.Services[container]
+		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
+		if !success {
+			log.Fatal("error getting service config")
+		}
 
-		if dockerService.Image == "" {
+		//lookup the container in the list of services in the docker-compose file
+		//dockerService := dockerCompose.Services[container]
+
+		image := serviceConfig.Image
+		if image == "" {
 			log.Fatalln("'image' is required in docker compose file")
 		}
 
 		// catalog containers
-		catalogContainer(container, dockerService.Image)
+		catalogContainer(container, image)
 
 		//parse image:tag and map to name/version
-		parsedImage := strings.Split(dockerService.Image, ":")
+		parsedImage := strings.Split(image, ":")
 
 		newContainer := NewContainer{
 			Name:    container,
-			Image:   dockerService.Image,
+			Image:   image,
 			Version: parsedImage[1],
 			Vars:    make([]EnvVarPayload, 0),
 			Ports:   make([]PortPayload, 0),
 		}
 
-		//container-level env vars
-
-		serviceConfig, success := dockerComposeProject.GetServiceConfig(newContainer.Name)
-		if !success {
-			log.Fatal("error getting service config")
-		}
-
-		for name, value := range serviceConfig.Environment.ToMap() {
+		//container-level env vars (note that these are parsed by libcompose which supports:
+		//environment, env_file, and variable substitution with .env)
+		containerEnvVars := serviceConfig.Environment.ToMap()
+		for name, value := range containerEnvVars {
 			if name != "" {
 				if Verbose {
 					log.Println("processing " + name)
@@ -161,14 +160,14 @@ func transformComposeToNewShipment(shipmentName string, dockerCompose DockerComp
 		}
 
 		//map the docker compose service ports to harbor ports
-		if len(dockerService.Ports) == 0 {
+		if len(serviceConfig.Ports) == 0 {
 			log.Fatalln("At least one port mapping is required in docker compose file.")
 		}
 
-		parsedPort := strings.Split(dockerService.Ports[0], ":")
+		parsedPort := strings.Split(serviceConfig.Ports[0], ":")
 
 		//validate health check
-		healthCheck := dockerService.Environment["HEALTHCHECK"]
+		healthCheck := containerEnvVars["HEALTHCHECK"]
 		if healthCheck == "" {
 			log.Fatalln("A container-level 'HEALTHCHECK' environment variable is required")
 		}
@@ -221,7 +220,7 @@ func transformComposeToNewShipment(shipmentName string, dockerCompose DockerComp
 	return newShipment
 }
 
-func createShipment(username string, token string, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) {
+func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) {
 
 	if Verbose {
 		log.Println("creating shipment environment")
@@ -229,7 +228,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 
 	//map a ComposeShipment object (based on compose files) into
 	//a new NewShipmentEnvironment object
-	newShipment := transformComposeToNewShipment(shipmentName, dockerCompose, shipment, dockerComposeProject)
+	newShipment := transformComposeToNewShipment(shipmentName, shipment, dockerComposeProject)
 
 	//push the new shipment/environment up to harbor
 	SaveNewShipmentEnvironment(username, token, newShipment)
@@ -246,7 +245,7 @@ func createShipment(username string, token string, shipmentName string, dockerCo
 	}
 }
 
-func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, dockerCompose DockerCompose, shipment ComposeShipment, dockerComposeProject project.APIProject) {
+func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) {
 
 	//map a ComposeShipment object (based on compose files) into
 	//a series of API call to update a shipment
@@ -258,19 +257,17 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		}
 
 		//lookup the container in the list of services in the docker-compose file
-		dockerService := dockerCompose.Services[container]
-
-		// catalog containers
-		catalogContainer(container, dockerService.Image)
-
-		//update the shipment/container with the new image
-		if !shipment.IgnoreImageVersion {
-			UpdateContainerImage(username, token, shipmentName, shipment, container, dockerService)
-		}
-
 		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
 		if !success {
 			log.Fatal("error getting service config")
+		}
+
+		// catalog containers
+		catalogContainer(container, serviceConfig.Image)
+
+		//update the shipment/container with the new image
+		if !shipment.IgnoreImageVersion {
+			UpdateContainerImage(username, token, shipmentName, shipment, container, serviceConfig.Image)
 		}
 
 		for evName, evValue := range serviceConfig.Environment.ToMap() {
