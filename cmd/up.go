@@ -17,13 +17,14 @@ import (
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start your application",
-	Long: `The up command applies changes from your docker/harbor compose files and brings your application up on Harbor.  The up command:
+	Long: `Start your application
+The up command applies changes from your docker/harbor compose files and brings your application up on Harbor.  The up command:
 
-- Create Harbor shipment(s) if needed
-- Update container and shipment/environment level environment variables in Harbor
-- Update container images in Harbor
-- Update replicas in Harbor
-- Trigger your shipment(s) in Harbor
+- Creates Harbor shipments if needed
+- Updates container and shipment/environment level environment variables
+- Updates and catalogs container images
+- Updates container replicas
+- Triggers your shipments
 	`,
 	Run: up,
 }
@@ -42,7 +43,7 @@ func up(cmd *cobra.Command, args []string) {
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 
-	//use libcompose to parse compose yml file as well (since it supports the full spec)
+	//use libcompose to parse docker-compose yml file
 	dockerComposeProject, err := docker.NewProject(&ctx.Context{
 		Context: project.Context{
 			ComposeFiles: []string{DockerComposeFile},
@@ -120,21 +121,16 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			log.Printf("processing container: %v", container)
 		}
 
+		//lookup the container in the list of services in the docker-compose file
 		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
 		if !success {
 			log.Fatal("error getting service config")
 		}
 
-		//lookup the container in the list of services in the docker-compose file
-		//dockerService := dockerCompose.Services[container]
-
 		image := serviceConfig.Image
 		if image == "" {
 			log.Fatalln("'image' is required in docker compose file")
 		}
-
-		// catalog containers
-		catalogContainer(container, image)
 
 		//parse image:tag and map to name/version
 		parsedImage := strings.Split(image, ":")
@@ -229,6 +225,15 @@ func createShipment(username string, token string, shipmentName string, shipment
 	//map a ComposeShipment object (based on compose files) into
 	//a new NewShipmentEnvironment object
 	newShipment := transformComposeToNewShipment(shipmentName, shipment, dockerComposeProject)
+
+	//catalog containers
+	for _, container := range shipment.Containers {
+		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
+		if !success {
+			log.Fatal("error getting service config")
+		}
+		catalogContainer(container, serviceConfig.Image)
+	}
 
 	//push the new shipment/environment up to harbor
 	SaveNewShipmentEnvironment(username, token, newShipment)
