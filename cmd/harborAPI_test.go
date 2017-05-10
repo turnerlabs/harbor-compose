@@ -6,22 +6,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// GetShipmentEnvironment
-
-var shipment string
-var env string
-
 func TestGetShipmentEnvironment(t *testing.T) {
-	t.SkipNow()
-	var token = ""
-	shipment = "ams-harbor-api-api"
-	env = "prod"
-
-	if len(token) > 0 {
-		shipmentEnv := GetShipmentEnvironment(usernameTest, token, shipment, env)
-
-		assert.Nil(t, shipmentEnv)
-		// assert.NotNil(t, shipmentEnv)
-		// assert.Equal(t, shipmentEnv.Name, "prod")
+	if !*integrationTest || *usernameTest == "" || *passwordTest == "" {
+		t.SkipNow()
 	}
+
+	//login
+	token, err := harborLogin(*usernameTest, *passwordTest)
+	assert.NotEmpty(t, token)
+	assert.Nil(t, err)
+
+	//todo: consider creating a shipment here
+
+	//test
+	shipment := "mss-shipit-api"
+	env := "dev"
+	shipmentEnv := GetShipmentEnvironment(*usernameTest, token, shipment, env)
+
+	//assertions
+	assert.NotNil(t, shipmentEnv)
+	assert.Equal(t, shipmentEnv.ParentShipment.Name, shipment)
+	assert.Equal(t, shipmentEnv.Name, env)
+
+	//logout
+	success, err := harborLogout(*usernameTest, token)
+	assert.Nil(t, err)
+	assert.True(t, success)
 }
