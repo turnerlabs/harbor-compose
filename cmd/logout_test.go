@@ -7,13 +7,12 @@ import (
 )
 
 func TestDeleteFileSucceed(t *testing.T) {
-	successfullyDeleted, err := deleteFile()
-	assert.Equal(t, successfullyDeleted, true)
+	//write a file so we can test deleting it
+	success, err := writeFile("v1", "foo", "foo")
 	assert.Nil(t, err)
-}
+	assert.Equal(t, true, success)
 
-func TestDeleteFileFail(t *testing.T) {
-	successfullyDeleted, err := deleteFile()
-	assert.Equal(t, successfullyDeleted, false)
-	assert.Contains(t, err.Error(), "no such file or directory")
+	success, err = deleteFile()
+	assert.Nil(t, err)
+	assert.Equal(t, true, success)
 }

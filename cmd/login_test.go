@@ -6,21 +6,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWriteFileSuccess(t *testing.T) {
+func getTestCreds() (string, string, string) {
 	var version = "v1"
 	var username = "testtest"
 	var token = "1234567"
-	successfullyWritten, err := writeFile(version, username, token)
+	return version, username, token
+}
+
+func TestWriteFileSuccess(t *testing.T) {
+	version, username, token := getTestCreds()
+	success, err := writeFile(version, username, token)
 	assert.Nil(t, err)
-	assert.Equal(t, successfullyWritten, true)
+	assert.Equal(t, true, success)
 }
 
 func TestReadFileSuccess(t *testing.T) {
+	//write a file so we can test reading it
+	version, username, token := getTestCreds()
+	success, err := writeFile(version, username, token)
+	assert.Nil(t, err)
+	assert.Equal(t, true, success)
+
+	//test read
 	auth, err := readFile()
 	assert.Nil(t, err)
-	assert.Equal(t, auth.Version, "v1")
-	assert.Equal(t, auth.Username, "testtest")
-	assert.Equal(t, auth.Token, "1234567")
+	assert.Equal(t, version, auth.Version)
+	assert.Equal(t, username, auth.Username)
+	assert.Equal(t, token, auth.Token)
 }
 
 func TestHarborLoginFail(t *testing.T) {
