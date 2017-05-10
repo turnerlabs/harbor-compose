@@ -33,7 +33,7 @@ test:
     - cd $IMPORT_PATH && go test -v ./cmd
     - |
       trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-      cd $IMPORT_PATH && go test -v ./cmd | tee ${TEST_RESULTS}/go-test.out
+      cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${TEST_RESULTS}/go-test.out
 
 deployment:
   
