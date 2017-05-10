@@ -34,7 +34,7 @@ test:
     # - |
     #   trap "go-junit-report <${CIRCLE_TEST_REPORTS}/junit/go-test.out > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml" EXIT
     #   cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${CIRCLE_TEST_REPORTS}/junit/go-test.out
-    - cd $IMPORT_PATH && go test -v ./cmd | go-junit-report > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml
+    - cd $IMPORT_PATH && go test -v ./cmd | sudo go-junit-report > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml
 
 deployment:
   
