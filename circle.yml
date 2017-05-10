@@ -17,6 +17,7 @@ dependencies:
     - go get github.com/mitchellh/gox
     - go get github.com/inconshreveable/mousetrap
     - wget https://github.com/tcnksm/ghr/releases/download/${GHR_VERSION}/ghr_${GHR_VERSION}_linux_amd64.zip && sudo unzip ghr_${GHR_VERSION}_linux_amd64.zip -d /usr/local/bin
+    - go get github.com/jstemmer/go-junit-report
     - docker login -e="." -u="${DOCKER_USER}" -p="${DOCKER_PASS}" quay.io
     - echo "VERSION=$(git describe --tags)" > .env
 
@@ -30,6 +31,9 @@ test:
 
   override:
     - cd $IMPORT_PATH && go test -v ./cmd
+    - |
+      trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+      cd $IMPORT_PATH && go test -v ./cmd | tee ${TEST_RESULTS}/go-test.out
 
 deployment:
   
