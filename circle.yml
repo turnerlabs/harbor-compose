@@ -32,8 +32,8 @@ test:
   override:
     - cd $IMPORT_PATH && go test -v ./cmd
     - |
-      trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-      cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${TEST_RESULTS}/go-test.out
+      trap "go-junit-report <${CIRCLE_TEST_REPORTS}/reports/go-test.out > ${CIRCLE_TEST_REPORTS}/reports/go-test-report.xml" EXIT
+      cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${CIRCLE_TEST_REPORTS}/reports/go-test.out
 
 deployment:
   
