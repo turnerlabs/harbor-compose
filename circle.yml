@@ -31,10 +31,9 @@ test:
 
   override:
     - sudo mkdir -p ${CIRCLE_TEST_REPORTS}/junit
-    # - |
-    #   trap "go-junit-report <${CIRCLE_TEST_REPORTS}/junit/go-test.out > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml" EXIT
-    #   cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${CIRCLE_TEST_REPORTS}/junit/go-test.out
-    - cd $IMPORT_PATH && go test -v ./cmd | sudo go-junit-report > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml
+    - |
+        trap "go-junit-report <${CIRCLE_TEST_REPORTS}/junit/go-test.xml > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml" EXIT
+        cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${CIRCLE_TEST_REPORTS}/junit/go-test.xml
 
 deployment:
   
