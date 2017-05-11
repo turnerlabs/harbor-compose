@@ -31,8 +31,8 @@ test:
 
   override:
     - sudo mkdir -p ${CIRCLE_TEST_REPORTS}/go-test
-    - cd $IMPORT_PATH && go test -v ./cmd | go-junit-report > ./go-test.xml
-    - sudo mv ./go-test.xml ${CIRCLE_TEST_REPORTS}/go-test/
+    - cd $IMPORT_PATH && go test -v ./cmd | go-junit-report > go-test.xml
+    - cd $IMPORT_PATH && sudo mv go-test.xml ${CIRCLE_TEST_REPORTS}/go-test/
 
 deployment:
   
