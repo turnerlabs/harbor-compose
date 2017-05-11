@@ -30,10 +30,9 @@ test:
     - cd $IMPORT_PATH && go vet -x ./cmd
 
   override:
-    - sudo mkdir -p ${CIRCLE_TEST_REPORTS}/junit
-    - |
-        trap "go-junit-report <${CIRCLE_TEST_REPORTS}/junit/go-test.xml > ${CIRCLE_TEST_REPORTS}/junit/test-results.xml" EXIT
-        cd $IMPORT_PATH && go test -v ./cmd | sudo tee ${CIRCLE_TEST_REPORTS}/junit/go-test.xml
+    - sudo mkdir -p ${CIRCLE_TEST_REPORTS}/go-test
+    - cd $IMPORT_PATH && go test -v ./cmd | go-junit-report > ./go-test.xml
+    - sudo mv ./go-test.xml ${CIRCLE_TEST_REPORTS}/go-test/
 
 deployment:
   
