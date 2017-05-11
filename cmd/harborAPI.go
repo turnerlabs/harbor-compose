@@ -344,7 +344,7 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 }
 
 // UpdateContainerImage updates a container version on a shipment
-func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, dockerService *DockerComposeService) {
+func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, image string) {
 	if Verbose {
 		log.Printf("updating container settings")
 	}
@@ -360,7 +360,7 @@ func UpdateContainerImage(username string, token string, shipment string, compos
 
 	var payload = ContainerPayload{
 		Name:  container,
-		Image: dockerService.Image,
+		Image: image,
 	}
 
 	//call api
@@ -369,6 +369,10 @@ func UpdateContainerImage(username string, token string, shipment string, compos
 
 // SaveNewShipmentEnvironment bulk saves a new shipment/environment
 func SaveNewShipmentEnvironment(username string, token string, shipment NewShipmentEnvironment) bool {
+
+	shipment.Username = username
+	shipment.Token = token
+
 	//POST /api/v1/shipments
 	res, body, err := create(username, token, harborURI+"/api/v1/shipments", shipment)
 

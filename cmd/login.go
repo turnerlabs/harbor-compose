@@ -15,7 +15,7 @@ import (
 	"github.com/turnerlabs/harbor-auth-client"
 )
 
-//Auth struc
+//Auth represents a user authentication token
 type Auth struct {
 	Version  string `json:"version"`
 	Username string `json:"username"`
