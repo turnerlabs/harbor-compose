@@ -410,7 +410,7 @@ func DeleteShipmentEnvironment(username string, token string, shipment string, e
 }
 
 // Catalogit sends a POST to the catalogit api
-func Catalogit(container CatalogitContainer) (response string, err []error) {
+func Catalogit(container CatalogitContainer) (string, []error) {
 
 	if Verbose {
 		log.Printf("Sending POST to: %v /v1/containers\n", catalogitURI)
@@ -422,23 +422,12 @@ func Catalogit(container CatalogitContainer) (response string, err []error) {
 		Send(container).
 		EndBytes()
 
-	// handle errors
-	if err != nil && resp.StatusCode != 422 {
-		log.Println("an error occurred calling catalogit api")
-		log.Fatal(err)
+	//treat non-200 as error
+	if resp.StatusCode != 200 {
+		err = append(err, fmt.Errorf("catalogit api returned a %v", resp.StatusCode))
 	}
 
-	if Verbose && resp.StatusCode == 422 {
-		log.Println("container has already been cataloged.")
-	}
-
-	// if verbose or non-200, log status code and message body
-	if Verbose || (resp.StatusCode != 200 && resp.StatusCode != 422) {
-		log.Printf("catalogit api returned a %v", resp.StatusCode)
-		log.Println(string(body))
-	}
-
-	return "Successfully Cataloged Container " + container.Name, nil
+	return string(body), err
 }
 
 //IsContainerVersionCataloged determines whether or not a container/version exists in the catalog
