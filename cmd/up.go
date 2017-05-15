@@ -350,24 +350,29 @@ func catalogContainer(name string, image string) {
 
 	//parse image:tag and map to name/version
 	parsedImage := strings.Split(image, ":")
+	tag := parsedImage[1]
 
-	newContainer := CatalogitContainer{
-		Name:    name,
-		Image:   image,
-		Version: parsedImage[1],
-	}
+	//lookup container image in the catalog and catalog if missing
+	if !IsContainerVersionCataloged(name, tag) {
 
-	// send POST to catalogit
-	// if post fails and says image already exists, do not exit 1
-	//trigger shipment
-	message, err := Catalogit(newContainer)
+		newContainer := CatalogitContainer{
+			Name:    name,
+			Image:   image,
+			Version: tag,
+		}
 
-	if err != nil {
-		log.Fatal(err)
-	}
+		message, err := Catalogit(newContainer)
 
-	// cataloged successfully
-	if Verbose {
-		fmt.Println(message)
+		if Verbose {
+			fmt.Println(message)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	} else {
+		if Verbose {
+			log.Printf("container %v already cataloged", name)
+		}
 	}
 }
