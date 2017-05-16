@@ -1,3 +1,22 @@
+## 0.11.0 (2017-5-16)
+
+Features:
+
+- `generate --build-provider` feature along with `circleciv1` implementation ([#84](https://github.com/turnerlabs/harbor-compose/issues/84))
+
+- Use of variable substitution in docker-compose.yml for things other than envvars ([#82](https://github.com/turnerlabs/harbor-compose/issues/82))
+
+Bug fixes:
+
+- Environment variables containing equals signs ("=") are not parsed correctly ([#77](https://github.com/turnerlabs/harbor-compose/issues/77))
+
+- HEALTHCHECK environment variable not found when in an included env_file ([#89](https://github.com/turnerlabs/harbor-compose/issues/89))
+
+- up now checks catalog before cataloging ([#93](https://github.com/turnerlabs/harbor-compose/issues/93))
+
+- Switched download scripts from wget to curl ([#80](https://github.com/turnerlabs/harbor-compose/issues/80))
+
+
 ## 0.10.1 (2017-3-2)
 
 Bug fixes:
