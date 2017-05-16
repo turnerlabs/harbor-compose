@@ -36,3 +36,5 @@ up.md
 create.json
 *.env
 /dist
+node_modules
+.glide

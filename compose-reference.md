@@ -105,7 +105,7 @@ group: mss
 
 ### ignoreImageVersion
 
-This value tells `harbor-comopse up` to not deploy the `image:tag` specified in the docker compose file.  The behavior applies to all containers in the shipment.  This setting may be useful if you'd like to use `harbor-compose up` to do things like update env vars and scale replicas but you don't want to update the image since maybe a continuous delivery/deployment process is controlling that.  The default value is false.
+This value tells `harbor-compose up` to not deploy the `image:tag` specified in the docker compose file.  The behavior applies to all containers in the shipment.  This setting may be useful if you'd like to use `harbor-compose up` to do things like update env vars and scale replicas but you don't want to update the image since maybe a continuous delivery/deployment process is controlling that.  The default value is false.
 
 ```yaml
 shipments:
@@ -185,6 +185,13 @@ The tagged Docker image that is deployed to Harbor.
 image: registry.services.dmtio.net/my-web-app:1.0.0
 ```
 
+Note that variable substitution is supported.  For example:
+
+```yaml
+web:
+  image: "quay.io/turner/web-app:${VERSION}"
+```
+
 ### [ports](https://docs.docker.com/compose/compose-file/#ports)
 
 The docker exposed ports (HOST:CONTAINER) will be mapped to the (FRONT-END:BACK-END) ports on the load balancer.  Note the currently only a single Harbor port is supported.
@@ -192,4 +199,13 @@ The docker exposed ports (HOST:CONTAINER) will be mapped to the (FRONT-END:BACK-
 ```yaml
 ports:
   - "80:5000"
+```
+
+Note that variable substitution is supported.  For example:
+
+```yaml
+ports:
+  - "80:${PORT}"
+environment:
+  PORT: ${PORT}
 ```

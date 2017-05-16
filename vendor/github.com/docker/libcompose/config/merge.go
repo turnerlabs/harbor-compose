@@ -10,6 +10,7 @@ import (
 	"github.com/docker/libcompose/utils"
 	composeYaml "github.com/docker/libcompose/yaml"
 	"gopkg.in/yaml.v2"
+	"reflect"
 )
 
 var (
@@ -29,23 +30,20 @@ func CreateConfig(bytes []byte) (*Config, error) {
 	if err := yaml.Unmarshal(bytes, &config); err != nil {
 		return nil, err
 	}
-	if config.Version == "2" {
-		for key, value := range config.Networks {
-			if value == nil {
-				config.Networks[key] = &NetworkConfig{}
-			}
-		}
-		for key, value := range config.Volumes {
-			if value == nil {
-				config.Volumes[key] = &VolumeConfig{}
-			}
-		}
-	} else {
+
+	if config.Version != "2" {
 		var baseRawServices RawServiceMap
 		if err := yaml.Unmarshal(bytes, &baseRawServices); err != nil {
 			return nil, err
 		}
 		config.Services = baseRawServices
+	}
+
+	if config.Volumes == nil {
+		config.Volumes = make(map[string]interface{})
+	}
+	if config.Networks == nil {
+		config.Networks = make(map[string]interface{})
 	}
 
 	return &config, nil
@@ -62,6 +60,46 @@ func Merge(existingServices *ServiceConfigs, environmentLookup EnvironmentLookup
 		return "", nil, nil, nil, err
 	}
 	baseRawServices := config.Services
+
+	for service, data := range baseRawServices {
+		for key, value := range data {
+			//check for "extends" key and check whether it is string or not
+			if key == "extends" && reflect.TypeOf(value).Kind() == reflect.String {
+				//converting string to map
+				extendMap := make(map[interface{}]interface{})
+				extendMap["service"] = value
+				baseRawServices[service][key] = extendMap
+			}
+		}
+	}
+
+	if options.Interpolate {
+		if err := InterpolateRawServiceMap(&baseRawServices, environmentLookup); err != nil {
+			return "", nil, nil, nil, err
+		}
+
+		for k, v := range config.Volumes {
+			if err := Interpolate(k, &v, environmentLookup); err != nil {
+				return "", nil, nil, nil, err
+			}
+			config.Volumes[k] = v
+		}
+
+		for k, v := range config.Networks {
+			if err := Interpolate(k, &v, environmentLookup); err != nil {
+				return "", nil, nil, nil, err
+			}
+			config.Networks[k] = v
+		}
+	}
+
+	if options.Preprocess != nil {
+		var err error
+		baseRawServices, err = options.Preprocess(baseRawServices)
+		if err != nil {
+			return "", nil, nil, nil, err
+		}
+	}
 
 	var serviceConfigs map[string]*ServiceConfig
 	if config.Version == "2" {
@@ -91,7 +129,29 @@ func Merge(existingServices *ServiceConfigs, environmentLookup EnvironmentLookup
 		}
 	}
 
-	return config.Version, serviceConfigs, config.Volumes, config.Networks, nil
+	var volumes map[string]*VolumeConfig
+	var networks map[string]*NetworkConfig
+	if err := utils.Convert(config.Volumes, &volumes); err != nil {
+		return "", nil, nil, nil, err
+	}
+	if err := utils.Convert(config.Networks, &networks); err != nil {
+		return "", nil, nil, nil, err
+	}
+
+	return config.Version, serviceConfigs, volumes, networks, nil
+}
+
+// InterpolateRawServiceMap replaces varialbse in raw service map struct based on environment lookup
+func InterpolateRawServiceMap(baseRawServices *RawServiceMap, environmentLookup EnvironmentLookup) error {
+	for k, v := range *baseRawServices {
+		for k2, v2 := range v {
+			if err := Interpolate(k2, &v2, environmentLookup); err != nil {
+				return err
+			}
+			(*baseRawServices)[k][k2] = v2
+		}
+	}
+	return nil
 }
 
 func adjustValues(configs map[string]*ServiceConfig) {

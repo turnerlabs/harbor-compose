@@ -3,14 +3,13 @@ package volume
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
-
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/libcompose/config"
-
 	composeclient "github.com/docker/libcompose/docker/client"
 	"github.com/docker/libcompose/project"
+	"golang.org/x/net/context"
 )
 
 // Volume holds attributes and method for a volume definition in compose
@@ -69,7 +68,7 @@ func (v *Volume) EnsureItExists(ctx context.Context) error {
 
 func (v *Volume) create(ctx context.Context) error {
 	fmt.Printf("Creating volume %q with driver %q\n", v.fullName(), v.driver)
-	_, err := v.client.VolumeCreate(ctx, types.VolumeCreateRequest{
+	_, err := v.client.VolumeCreate(ctx, volume.VolumesCreateBody{
 		Name:       v.fullName(),
 		Driver:     v.driver,
 		DriverOpts: v.driverOptions,
@@ -81,14 +80,18 @@ func (v *Volume) create(ctx context.Context) error {
 
 // NewVolume creates a new volume from the specified name and config.
 func NewVolume(projectName, name string, config *config.VolumeConfig, client client.VolumeAPIClient) *Volume {
-	return &Volume{
-		client:        client,
-		projectName:   projectName,
-		name:          name,
-		driver:        config.Driver,
-		driverOptions: config.DriverOpts,
-		external:      config.External.External,
+	vol := &Volume{
+		client:      client,
+		projectName: projectName,
+		name:        name,
 	}
+	if config != nil {
+		vol.driver = config.Driver
+		vol.driverOptions = config.DriverOpts
+		vol.external = config.External.External
+
+	}
+	return vol
 }
 
 // Volumes holds a list of volume

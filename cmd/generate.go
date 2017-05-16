@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -12,38 +13,35 @@ import (
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Generate docker-compose.yml and harbor-compose.yml files from an existing shipment",
-	Long: `
-$ harbor-compose generate my-shipment dev
-or
-$ harbor-compose generate my-shipment qa --user foo
+	Short: "Generate compose files and build artifacts from an existing shipment",
+	Long: `Generate compose files and build artifacts from an existing shipment
+
+The generate command outputs compose files and build artifacts that allow you to build and run your app locally in Docker, do CI/CD in Harbor, and make changes in Harbor using the up command.
+
+Example:
+harbor-compose generate my-shipment dev
+
+The generate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD with Harbor.
+
+Examples:
+harbor-compose generate my-shipment dev --build-provider local
+harbor-compose generate my-shipment dev -b circleciv1
 `,
 	Run: generate,
 }
 
+var buildProvider string
+
 func init() {
+	generateCmd.PersistentFlags().StringVarP(&buildProvider, "build-provider", "b", "", "generate build provider-specific files that allow you to build Docker images do CI/CD with Harbor")
 	RootCmd.AddCommand(generateCmd)
 }
 
-func generate(cmd *cobra.Command, args []string) {
-	username, token, _ := Login()
+func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) DockerCompose {
 
-	if len(args) < 2 {
-		log.Fatal("2 arguments are required. ex: harbor-compose generate my-shipment dev")
-	}
-
-	shipment := args[0]
-	env := args[1]
-
-	if Verbose {
-		log.Printf("fetching shipment...")
-	}
-	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
-
-	//convert a Shipment object into a DockerCompose object
 	dockerCompose := DockerCompose{
 		Version:  "2",
-		Services: make(map[string]DockerComposeService),
+		Services: make(map[string]*DockerComposeService),
 	}
 
 	//convert containers to docker services
@@ -81,13 +79,63 @@ func generate(cmd *cobra.Command, args []string) {
 		//environment
 		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil)
 
-		//todo: provider
-
 		//container
 		copyEnvVars(container.EnvVars, service.Environment, nil)
 
 		//add service to list
-		dockerCompose.Services[container.Name] = service
+		dockerCompose.Services[container.Name] = &service
+	}
+
+	return dockerCompose
+}
+
+func generate(cmd *cobra.Command, args []string) {
+	username, token, _ := Login()
+
+	if len(args) < 2 {
+		log.Fatal("at least 2 arguments are required. ex: harbor-compose generate my-shipment dev")
+	}
+
+	shipment := args[0]
+	env := args[1]
+
+	if Verbose {
+		log.Printf("fetching shipment...")
+	}
+	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
+
+	//convert a Shipment object into a DockerCompose object
+	dockerCompose := transformShipmentToDockerCompose(shipmentObject)
+
+	//convert a Shipment object into a HarborCompose object
+	harborCompose := transformShipmentToHarborCompose(shipmentObject, &dockerCompose)
+
+	//if build provider is specified, allow it modify the compose objects and do its thing
+	if len(buildProvider) > 0 {
+		provider, err := getBuildProvider(buildProvider)
+		if err != nil {
+			log.Fatal(err)
+		}
+		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//write artifacts to file system
+		if artifacts != nil {
+			for _, artifact := range artifacts {
+				if _, err := os.Stat(artifact.FilePath); err == nil {
+					//exists
+					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")
+					if askForConfirmation() {
+						err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), 0644)
+					}
+				} else {
+					//doesn't exist
+					err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), 0644)
+				}
+			}
+		}
 	}
 
 	//prompt if the file already exist
@@ -102,7 +150,33 @@ func generate(cmd *cobra.Command, args []string) {
 		SerializeDockerCompose(dockerCompose, DockerComposeFile)
 	}
 
-	//now generate harbor-compose.yml
+	//prompt if the file already exist
+	if _, err := os.Stat(HarborComposeFile); err == nil {
+		//exists
+		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
+		if askForConfirmation() {
+			SerializeHarborCompose(harborCompose, HarborComposeFile)
+			fmt.Println("done")
+		}
+	} else {
+		//doesn't exist
+		SerializeHarborCompose(harborCompose, HarborComposeFile)
+		fmt.Println("done")
+	}
+}
+
+//find the ec2 provider
+func ec2Provider(providers []ProviderPayload) *ProviderPayload {
+	for _, provider := range providers {
+		if provider.Name == "ec2" {
+			return &provider
+		}
+	}
+	log.Fatal("ec2 provider is missing")
+	return nil
+}
+
+func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment, dockerCompose *DockerCompose) HarborCompose {
 
 	//convert a Shipment object into a HarborCompose object with a single shipment
 	harborCompose := HarborCompose{
@@ -149,29 +223,5 @@ func generate(cmd *cobra.Command, args []string) {
 	//add single shipment to list
 	harborCompose.Shipments[shipmentObject.ParentShipment.Name] = composeShipment
 
-	//prompt if the file already exist
-	if _, err := os.Stat(HarborComposeFile); err == nil {
-		//exists
-		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
-		if askForConfirmation() {
-			SerializeHarborCompose(harborCompose, HarborComposeFile)
-			fmt.Println("done")
-		}
-	} else {
-		//doesn't exist
-		SerializeHarborCompose(harborCompose, HarborComposeFile)
-		fmt.Println("done")
-	}
-
-}
-
-//find the ec2 provider
-func ec2Provider(providers []ProviderPayload) *ProviderPayload {
-	for _, provider := range providers {
-		if provider.Name == "ec2" {
-			return &provider
-		}
-	}
-	log.Fatal("ec2 provider is missing")
-	return nil
+	return harborCompose
 }

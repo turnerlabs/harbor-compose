@@ -6,17 +6,14 @@ import (
 	"testing"
 )
 
-var usernameTest string
-var passwordTest string
-
 // Flags for testing
+var (
+	integrationTest = flag.Bool("integrationTest", false, "run integration tests")
+	usernameTest    = flag.String("usernameTest", "", "username for authorization")
+	passwordTest    = flag.String("passwordTest", "", "password for authorization")
+)
 
 func TestMain(m *testing.M) {
-
-	// username and password are not required but if you do pass them you get more testes ran
-	flag.StringVar(&usernameTest, "usernameTest", "", "username for authorization")
-	flag.StringVar(&passwordTest, "passwordTest", "", "password for authorization")
 	flag.Parse()
-
 	os.Exit(m.Run())
 }

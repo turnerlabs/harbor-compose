@@ -96,7 +96,7 @@ There are currently two installation options for Harbor Compose.
 - You can use the following script to download and install (update the URL for your desired platform and version).
 
 ```
-$ sudo wget -O /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.8.2/ncd_darwin_amd64 && sudo chmod +x /usr/local/bin/harbor-compose
+$ sudo curl -sSLo /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.10.1/ncd_darwin_amd64 &&  sudo chmod +x /usr/local/bin/harbor-compose
 ```
 
 2) Run as a docker container
@@ -214,4 +214,23 @@ If you're just doing CI and not CD, you can use the `catalog` command to catalog
 docker-compose build
 docker-compose push
 harbor-compose catalog
+```
+
+#### generate --build-provider
+
+The `generate` command has a `--build-provider` flag that can help with scenarios where teams want to take existing applications running on Harbor and migrate them to various third-party build CI/CD providers.  The idea is that a `build provider` can output the compose files along with any other necessary files required to do CI/CD using a particular provider.  The following is a list of supported providers.
+
+circleciv1
+
+This provider will output a docker-compose.yml file with a [build](https://github.com/turnerlabs/harbor-compose/blob/master/compose-reference.md#build) directive and an image tagged with a Circle CI build number.  Note that environment variables updates in Harbor are not currently supported via the public API, and are therefore not outputted.  A `harbor-compose.yml` file and a [`circle.yml`](https://circleci.com/docs/1.0/configuration/) file are also outputted and are already setup to be able to catalog and deploy new images.  You can run this command in the root of your source code repo, and after linking your repo to Circle CI, you can commit/push the files and get basic CI/CD working.  For example:
+
+```
+$ harbor-compose generate mss-my-shipment dev --build-provider circleciv1
+
+Be sure to supply the following environment variables in your Circle CI build:
+DOCKER_USER (registry user)
+DOCKER_PASS (registry password)
+MSS_MY_SHIPMENT_DEV_TOKEN (Harbor shipment/environment build token)
+
+done
 ```
