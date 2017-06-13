@@ -34,7 +34,6 @@ var HarborComposeFile string
 func Execute(version string, buildDate string) {
 	Version = version
 	BuildDate = buildDate
-
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
