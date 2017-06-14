@@ -10,6 +10,24 @@ Thanks for your interest in the project!  We want to welcome contributors so we 
   * Make sure you fill in the earliest version that you know has the issue.
 * Fork the repository on GitHub
 
+## Developing Against Different APIs
+* By default harbor-compose hits production apis. You can set an environment variable called `HC_CONFIG` or create file named
+`~/.harbor/config` and overwrite any of the harbor apis.
+
+example of the config file looks like so.
+
+```
+{
+  "shipit": "http://shipit.foo.com",
+  "catalogit": "http://catalogit.foo.com",
+  "trigger": "http://trigger.foo.com",
+  "authn": "http://auth.foo.com",
+  "helmit": "http://helmit.foo.com",
+  "harbor": "http://harbor.foo.com",
+  "customs": "http://customs.foo.com"
+}
+```
+
 
 ## Making Changes
 
@@ -18,9 +36,9 @@ Thanks for your interest in the project!  We want to welcome contributors so we 
   * To quickly create a feature branch; `git checkout -b feature/my-feature`. Please avoid working directly on the
     `master` branch.
 * Make commits of logical units.
-* Run `go fmt ./...` before committing.
+* Run `go fmt ./cmd` before committing.
 * Make sure you have added the necessary tests for your changes.
-* Run _all_ the tests to assure nothing else was accidentally broken (`godep go test ./...`).
+* Run _all_ the tests to assure nothing else was accidentally broken (`go test ./cmd`).
 
 
 ## Submitting Changes
