@@ -18,10 +18,11 @@ func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 		svc.Build = "."
 
 		//add the circle ci build number to the image tag
-		svc.Image += ".${CIRCLE_BUILD_NUM}"
+		svc.Image += "-${CIRCLE_BUILD_NUM}"
 
-		//remove environment variables since they're not needed for ci/cd
+		//remove environment variables and ports since they're not needed for ci/cd
 		svc.Environment = nil
+		svc.Ports = nil
 	}
 
 	//output circle.yml

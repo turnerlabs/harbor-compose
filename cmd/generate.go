@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ The generate command's --build-provider flag allows you to generate build provid
 Examples:
 harbor-compose generate my-shipment dev --build-provider local
 harbor-compose generate my-shipment dev -b circleciv1
+harbor-compose generate my-shipment dev -b circleciv2
 `,
 	Run: generate,
 }
@@ -124,6 +126,12 @@ func generate(cmd *cobra.Command, args []string) {
 		//write artifacts to file system
 		if artifacts != nil {
 			for _, artifact := range artifacts {
+				//create directories if needed
+				dirs := filepath.Dir(artifact.FilePath)
+				err = os.MkdirAll(dirs, os.ModePerm)
+				if err != nil {
+					log.Fatal(err)
+				}
 				if _, err := os.Stat(artifact.FilePath); err == nil {
 					//exists
 					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")
