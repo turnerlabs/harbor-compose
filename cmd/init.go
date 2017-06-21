@@ -72,8 +72,10 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	//look for existing docker-compose.yml to get containers
 	if _, err := os.Stat(DockerComposeFile); err == nil {
 
+		//parse the docker compose yaml to get the list of containers
+		dockerCompose, _ := DeserializeDockerCompose(DockerComposeFile)
+
 		//add all docker services as containers
-		dockerCompose := DeserializeDockerCompose(DockerComposeFile)
 		for container := range dockerCompose.Services {
 			composeShipment.Containers = append(composeShipment.Containers, container)
 		}

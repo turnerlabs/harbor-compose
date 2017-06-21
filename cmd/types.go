@@ -164,6 +164,7 @@ type ShipmentStatusOutput struct {
 	Status      string
 	Containers  string
 	Replicas    string
+	Endpoint    string
 }
 
 // CatalogitContainer is what gets sent to catalog to post a new image
