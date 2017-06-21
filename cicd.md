@@ -1,6 +1,6 @@
 ### Harbor Compose and CI/CD
 
-The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  This works from public build services (e.g.; Circle CI, Codeship, Travis CI, etc.) by using the shipment/environment build token specified using environment variables with the naming convention, `SHIPMENT_ENV_TOKEN`.  
+The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  This works from public build services (e.g.; Circle CI, Codeship, Travis CI, etc.) by using the shipment/environment build token specified using environment variables with the naming convention, `${SHIPMENT}_${ENV}_TOKEN`.  
 
 So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add environment variables to your build.
 
