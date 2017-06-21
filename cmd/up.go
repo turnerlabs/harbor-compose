@@ -38,7 +38,10 @@ var successMessage = "Please allow up to 5 minutes for Load Balancer and DNS cha
 func up(cmd *cobra.Command, args []string) {
 
 	//make sure user is authenticated
-	username, token, _ := Login()
+	username, token, err := Login()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)

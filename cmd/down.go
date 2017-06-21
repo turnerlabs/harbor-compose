@@ -23,7 +23,11 @@ func init() {
 }
 
 func down(cmd *cobra.Command, args []string) {
-	username, token, _ := Login()
+
+	username, token, err := Login()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
