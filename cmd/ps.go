@@ -154,7 +154,11 @@ func getShipmentPrimaryPort(dockerCompose project.APIProject, shipment ComposeSh
 	for _, container := range shipment.Containers {
 		serviceConfig, success := dockerCompose.GetServiceConfig(container)
 		if !success {
-			log.Fatal("error getting service config")
+			return "", errors.New("error getting service config")
+		}
+
+		if serviceConfig.Ports == nil {
+			return "", errors.New("no ports found")
 		}
 
 		parsedPort := strings.Split(serviceConfig.Ports[0], ":")
