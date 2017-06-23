@@ -26,7 +26,7 @@ Just like `docker-compose`, `harbor-compose` has similar commands for managing t
 - Trigger an image deployment from a public build system (like Circle CI, Travis CI, etc.)
 
 
-A simple `docker-compose.yml` might look like this:
+A simple [`docker-compose.yml`](https://docs.docker.com/compose/compose-file/compose-file-v2/) might look like this:
 
 ```yaml
 version: "2"
@@ -36,9 +36,8 @@ services:
     ports:
       - "80:5000"
     environment:
-      PORT: 5000
       HEALTHCHECK: /hc
-      CONTAINER_LEVEL: foo
+      PORT: 5000
 ```
 
 A [`harbor-compose.yml`](compose-reference.md) might look like this:
@@ -46,16 +45,16 @@ A [`harbor-compose.yml`](compose-reference.md) might look like this:
 ```yaml
 version: "1"
 shipments:
-  my-web-app:    
+  my-web-app:
     env: dev
-    barge: corp-sandbox
+    barge: digital-sandbox
     containers:
       - web-app    
     replicas: 2
     group: mss
-    property: turner.com
-    project: my-web-app
-    product: my-web-app    
+    property: turner
+    project: turner
+    product: turner
 ```
 
 Then to start your application...
@@ -112,13 +111,13 @@ $ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/t
 ```
 
 
-To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  Note that you will be prompted to login if you don't already have a token or if your token has expired.  For example:
+To get started with an existing shipment, you can run the following to generate [`docker-compose.yml`](https://docs.docker.com/compose/compose-file/compose-file-v2/) and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  Note that you will be prompted to login if you don't already have a token or if your token has expired.  For example:
 
 ```
 $ harbor-compose generate my-shipment dev
 ```
 
-To create new shipments and environments, you can use the `init` command to generate [`harbor-compose.yml`](compose-reference.md) files.  `init` will ask you questions to build your compose file.  Note that you use the `--yes` flag to accept defaults and generate one quickly.
+To create new shipments, you can use the `init` command to generate new [`docker-compose.yml`](https://docs.docker.com/compose/compose-file/compose-file-v2/) and [`harbor-compose.yml`](compose-reference.md) files.  `init` will ask you questions to build your compose files.  Note that you use the `--yes` flag to accept defaults and generate one quickly.
 
 ```
 $ harbor-compose init
