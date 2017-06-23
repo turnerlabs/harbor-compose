@@ -8,11 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	yaml "gopkg.in/yaml.v2"
-
-	"github.com/docker/libcompose/docker"
-	"github.com/docker/libcompose/docker/ctx"
-	"github.com/docker/libcompose/project"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,19 +21,8 @@ services:
     environment:
       CHAR_EQUAL: foo=bar	
 `
-	bytes := [][]byte{[]byte(yaml)}
 
-	//use libcompose to parse compose yml
-	dockerComposeProject, err := docker.NewProject(&ctx.Context{
-		Context: project.Context{
-			ComposeBytes: bytes,
-		},
-	}, nil)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	_, dockerComposeProject := unmarshalDockerCompose(yaml)
 	proj, _ := dockerComposeProject.GetServiceConfig("container")
 
 	assert.Equal(t, "foo=bar", proj.Environment.ToMap()["CHAR_EQUAL"])
@@ -78,7 +62,7 @@ shipments:
 	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
 	composeServiceName := "app"
 	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
-	dockerCompose, harborCompose := parseCompose(dockerComposeYaml, harborComposeYaml)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
@@ -153,7 +137,7 @@ shipments:
 	composeServiceName := "app"
 	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
 	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
-	dockerCompose, harborCompose := parseCompose(dockerComposeYaml, harborComposeYaml)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
@@ -232,7 +216,7 @@ shipments:
 	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
 	composeServiceName := "app"
 	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
-	dockerCompose, harborCompose := parseCompose(dockerComposeYaml, harborComposeYaml)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
@@ -313,7 +297,7 @@ shipments:
 	composeServiceName := "app"
 	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
 	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
-	dockerCompose, harborCompose := parseCompose(dockerComposeYaml, harborComposeYaml)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
@@ -377,27 +361,4 @@ func assertEnvVarsMatch(t *testing.T, composeEnvVars map[string]string, shipment
 	}
 
 	return true
-}
-
-func parseCompose(dockerComposeYaml string, harborComposeYaml string) (project.APIProject, HarborCompose) {
-
-	//use libcompose to parse compose yml
-	bytes := [][]byte{[]byte(dockerComposeYaml)}
-	dockerCompose, err := docker.NewProject(&ctx.Context{
-		Context: project.Context{
-			ComposeBytes: bytes,
-		},
-	}, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//parse the harbor compose yml
-	var harborCompose HarborCompose
-	err = yaml.Unmarshal([]byte(harborComposeYaml), &harborCompose)
-	if err != nil {
-		log.Fatalf("harbor compose error: %v", err)
-	}
-
-	return dockerCompose, harborCompose
 }
