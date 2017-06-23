@@ -20,7 +20,7 @@ And then simply run the following to deploy all containers in all shipments spec
 harbor-compose deploy
 ```
 
-If you wanted to conditionally deploy to a different environment (e.g., QA) in your build (maybe based on branch) using the same set of compose files, you could another set of environment variables to your build.
+If you wanted to conditionally deploy to a different environment (e.g., QA) in your build (maybe based on branch) using the same set of compose files, you could add another set of environment variables to your build.
 
 ```
 $ harbor-compose buildtoken ls -e qa
