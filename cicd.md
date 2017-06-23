@@ -1,12 +1,17 @@
 ### Harbor Compose and CI/CD
 
-The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  This works from public build services (e.g.; Circle CI, Codeship, Travis CI, etc.) by using the shipment/environment build token specified using environment variables with the naming convention, `${SHIPMENT}_${ENV}_TOKEN` (see the [buildtoken command](#The-buildtoken-command) below for how to get your build tokens).
+The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  
 
-So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add environment variables to your build.
+This works from public build services (e.g.; Circle CI, Codeship, Travis CI, etc.) by using the shipment/environment build token specified with environment variables with the naming convention, `${SHIPMENT}_${ENV}_TOKEN`.
+
+So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add the following environment variables to your build environment (see the [buildtoken command](#the-buildtoken-command) below for more info).
 
 ```
-MSS_APP_WEB_DEV_TOKEN=xyz
-MSS_APP_WORKER_DEV_TOKEN=xyz
+$ harbor-compose buildtoken ls
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8	
 ```
 
 And then simply run the following to deploy all containers in all shipments specified in your compose files.
@@ -18,11 +23,14 @@ harbor-compose deploy
 If you wanted to conditionally deploy to a different environment (e.g., QA) using the same set of compose files, you could...
 
 ```
-MSS_APP_WEB_QA_TOKEN=xyz
-MSS_APP_WORKER_QA_TOKEN=xyz
+$ harbor-compose buildtoken ls -e qa
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      qa            MSS_POC_SQS_WEB_DEV_TOKEN      ihtvPrAH84ULVm6IC7LjWvXUgEhr7cnQ
+mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_DEV_TOKEN   Y3Jk0DmMaUsoWO8mbI2Edn9Ixhwj14Vd
 ```
 
-And then simply run
+And then run
 
 ```
 harbor-compose deploy -e qa
@@ -42,44 +50,6 @@ If you're just doing CI and not CD, you can use the `catalog` command to catalog
 docker-compose build
 docker-compose push
 harbor-compose catalog
-```
-
-#### The buildtoken command
-
-The `buildtoken` command has two sub commands.
-```
-Available Commands:
-  get         displays a build token for the requested shipment and environment
-  list        list harbor build tokens for shipments in harbor-compose.yml
-```
-
-The `list` or `ls` command.
-```
-$ harbor-compose buildtoken ls
-
-SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
-mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2asdf
-mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
-```
-
-The `get` command prompts you for a shipment and environment.
-```
-$ harbor-compose buildtoken get
-
-Shipment: mss-poc-sqs-worker
-Environment: dev
-
-SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
-mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
-```
-
-Or, alternatively, you can pass the shipment and environment as args.
-```
-$ harbor-compose buildtoken get mss-poc-sqs-worker dev
-
-SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
-mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
-
 ```
 
 
@@ -190,4 +160,51 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then 
               harbor-compose deploy;
             fi
+```
+
+
+#### The buildtoken command
+
+The `buildtoken` command has two sub commands.
+```
+Available Commands:
+  get         displays a build token for the requested shipment and environment
+  list        list harbor build tokens for shipments in harbor-compose.yml
+```
+
+The `get` command prompts you for a shipment and environment.
+```
+$ harbor-compose buildtoken get
+
+Shipment: mss-poc-sqs-worker
+Environment: dev
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+```
+
+Or, alternatively, you can pass the shipment and environment as args.
+```
+$ harbor-compose buildtoken get mss-poc-sqs-worker dev
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+```
+
+The `list` (or `ls`) command provides the build tokens for the shipments in your harbor-compose.yml.
+```
+$ harbor-compose buildtoken ls
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8	
+```
+
+Or, if you want to deploy your shipments to an environment different from the one that's specified in your harbor-compose.yml, you can use the following.
+```
+$ harbor-compose buildtoken ls -e qa
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      qa            MSS_POC_SQS_WEB_DEV_TOKEN      ihtvPrAH84ULVm6IC7LjWvXUgEhr7cnQ
+mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_DEV_TOKEN   Y3Jk0DmMaUsoWO8mbI2Edn9Ixhwj14Vd
 ```

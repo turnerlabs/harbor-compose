@@ -19,10 +19,15 @@ type BuildTokenOutput struct {
 	Token       string
 }
 
+var listEnvironmentOverride string
+
 func init() {
 	RootCmd.AddCommand(buildTokenCmd)
-	buildTokenCmd.AddCommand(listBuildTokensCmd)
+
 	buildTokenCmd.AddCommand(getBuildTokenCmd)
+
+	listBuildTokensCmd.PersistentFlags().StringVarP(&listEnvironmentOverride, "env", "e", "", "list build tokens for an alternative environment.")
+	buildTokenCmd.AddCommand(listBuildTokensCmd)
 }
 
 // buildTokenCmd represents the buildtoken command
@@ -30,7 +35,9 @@ var buildTokenCmd = &cobra.Command{
 	Use:   "buildtoken",
 	Short: "manage harbor build tokens",
 	Long:  `manage harbor build tokens`,
-	Run:   buildTokens,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
 // listBuildTokensCmd represents the buildtoken command
@@ -42,8 +49,16 @@ var listBuildTokensCmd = &cobra.Command{
 harbor-compose buildtoken ls
 
 SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
-mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2asdf
-mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf	
+mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8	
+
+OR
+
+harbor-compose buildtoken ls -e qa
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      qa            MSS_POC_SQS_WEB_DEV_TOKEN      ihtvPrAH84ULVm6IC7LjWvXUgEhr7cnQ
+mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_DEV_TOKEN   Y3Jk0DmMaUsoWO8mbI2Edn9Ixhwj14Vd
 	`,
 	Run:     listBuildTokens,
 	Aliases: []string{"ls"}}
@@ -63,20 +78,16 @@ Shipment: mss-poc-sqs-worker
 Environment: dev
 
 SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
-mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8
 
 OR 
 
 harbor-compose buildtoken get mss-poc-sqs-worker dev
 
 SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
-mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8
 `,
 	Run: getBuildToken,
-}
-
-func buildTokens(cmd *cobra.Command, args []string) {
-	cmd.Help()
 }
 
 func listBuildTokens(cmd *cobra.Command, args []string) {
@@ -99,6 +110,7 @@ func listBuildTokens(cmd *cobra.Command, args []string) {
 }
 
 func internalListBuildTokens(shipmentMap map[string]ComposeShipment, username string, authToken string) {
+
 	//print table header
 	const padding = 3
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.DiscardEmptyColumns)
@@ -114,14 +126,23 @@ func internalListBuildTokens(shipmentMap map[string]ComposeShipment, username st
 	//iterate shipments
 	for shipmentName, shipment := range shipmentMap {
 
+		//allow --env flag to override environment specified in compose file
+		shipmentEnv := shipment.Env
+		if len(listEnvironmentOverride) > 0 {
+			shipmentEnv = listEnvironmentOverride
+		}
+
 		//fetch the current state
-		shipmentObject := GetShipmentEnvironment(username, authToken, shipmentName, shipment.Env)
+		shipmentObject := GetShipmentEnvironment(username, authToken, shipmentName, shipmentEnv)
+		if shipmentObject == nil {
+			continue
+		}
 
 		//build an object to pass to the template
 		output := BuildTokenOutput{
 			Shipment:    shipmentName,
-			Environment: shipment.Env,
-			CiCdEnvVar:  getBuildTokenName(shipmentName, shipment.Env),
+			Environment: shipmentEnv,
+			CiCdEnvVar:  getBuildTokenName(shipmentName, shipmentEnv),
 			Token:       shipmentObject.BuildToken,
 		}
 
