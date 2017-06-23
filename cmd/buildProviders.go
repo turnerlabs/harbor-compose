@@ -15,7 +15,7 @@ type BuildArtifact struct {
 type BuildProvider interface {
 
 	//build providers can manipulate the docker compose configuration and output build artifacts
-	ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose) ([]*BuildArtifact, error)
+	ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string) ([]*BuildArtifact, error)
 }
 
 //return a build provider based on its name

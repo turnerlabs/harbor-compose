@@ -509,7 +509,7 @@ func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
 	}
 
 	//run the build provider
-	_, err = provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+	_, err = provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
 	if err != nil {
 		t.Fail()
 	}
@@ -585,7 +585,7 @@ func TestTransformShipmentToDockerComposeBuildProviderCircleCI(t *testing.T) {
 	}
 
 	//run the build provider
-	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
 	if err != nil {
 		t.Fail()
 	}
@@ -674,7 +674,7 @@ func TestTransformShipmentToDockerComposeBuildProviderCircleCIv2(t *testing.T) {
 	}
 
 	//run the build provider
-	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
 	if err != nil {
 		t.Fail()
 	}

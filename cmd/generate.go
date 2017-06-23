@@ -121,7 +121,7 @@ func generate(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken)
 		if err != nil {
 			log.Fatal(err)
 		}
