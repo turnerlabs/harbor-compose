@@ -14,8 +14,8 @@ var yesUseDefaults bool
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Interactively create a harbor-compose.yml file",
-	Long: `This will ask you a bunch of questions, and then write a harbor-compose.yml for you.
+	Short: "Interactively create a docker-compose.yml and a harbor-compose.yml file",
+	Long: `This will ask you a bunch of questions, and then write a docker-compose.yml harbor-compose.yml for you.
 
 If you invoke it with -y or --yes it will use only defaults and not prompt you for any options.`,
 	Run: initHarborCompose,
@@ -28,20 +28,61 @@ func init() {
 
 func initHarborCompose(cmd *cobra.Command, args []string) {
 
+	//docker-compose
+	registry := "quay.io/turner"
+	container := "mss-my-app"
+	tag := "0.1.0"
+	publicPort := "80"
+	internalPort := "5000"
+	healthCheck := "/health"
+
+	//harbor-compose
 	name := "mss-harbor-compose-app"
 	env := "dev"
 	barge := "digital-sandbox"
 	replicas := "2"
 	group := "mss"
-	property := "turner.com"
-	project := "poc"
-	product := "poc"
+	property := "turner"
+	project := "turner"
+	product := "turner"
 
-	//ask questions
+	//if docker-compose.yml doesn't exist, then create one
+	var dockerCompose DockerCompose
+	if _, err := os.Stat(DockerComposeFile); err != nil {
+
+		if !yesUseDefaults {
+			registry = promptAndGetResponse("docker registry: (e.g., quay.io/turner) ")
+			container = promptAndGetResponse("docker container name: (e.g., mss-my-app) ")
+			tag = promptAndGetResponse("version tag: (e.g., 0.1.0) ")
+			publicPort = promptAndGetResponse("public port: (e.g., 80) ")
+			internalPort = promptAndGetResponse("internal port: (e.g., 5000) ")
+			healthCheck = promptAndGetResponse("health check: (e.g., /health) ")
+		}
+
+		//create a DockerCompose object
+		dockerCompose = DockerCompose{
+			Version:  "2",
+			Services: map[string]*DockerComposeService{},
+		}
+		service := DockerComposeService{
+			Build: ".",
+			Image: fmt.Sprintf("%v/%v:%v", registry, container, tag),
+			Ports: []string{fmt.Sprintf("%v:%v", publicPort, internalPort)},
+			Environment: map[string]string{
+				"HEALTHCHECK": healthCheck,
+			},
+		}
+		dockerCompose.Services[container] = &service
+
+		//write docker-compose.yml
+		SerializeDockerCompose(dockerCompose, DockerComposeFile)
+	}
+
+	//ask questions for harbor-compose.yml
 	if !yesUseDefaults {
 		name = promptAndGetResponse("shipment name: (e.g., mss-my-app) ")
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ")
-		barge = promptAndGetResponse("barge: (cnn, nba, digital-sandbox, ent-prod, corp-sandbox, corp-prod) ")
+		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ")
 		replicas = promptAndGetResponse("replicas (how many container instances): ")
 		group = promptAndGetResponse("group (mss, cnn, nba, ams, etc.): ")
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
@@ -95,9 +136,9 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 
 	if write {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
+		fmt.Println("remember to docker build/push your image before running the up command")
 		fmt.Println("done")
 	}
-
 }
 
 func promptAndGetResponse(question string) string {
