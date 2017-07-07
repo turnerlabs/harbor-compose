@@ -57,6 +57,7 @@ type ShipmentEnvironment struct {
 		EnvVars []EnvVarPayload `json:"envVars,omitempty"`
 		Group   string          `json:"group,omitempty"`
 	}
+	BuildToken string `json:"buildToken,omitempty"`
 }
 
 // EnvVarPayload represents EnvVar

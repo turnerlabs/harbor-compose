@@ -108,6 +108,10 @@ func generate(cmd *cobra.Command, args []string) {
 		log.Printf("fetching shipment...")
 	}
 	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
+	if shipmentObject == nil {
+		fmt.Println("shipment not found")
+		return
+	}
 
 	//convert a Shipment object into a DockerCompose object
 	dockerCompose := transformShipmentToDockerCompose(shipmentObject)
@@ -121,7 +125,7 @@ func generate(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken)
 		if err != nil {
 			log.Fatal(err)
 		}

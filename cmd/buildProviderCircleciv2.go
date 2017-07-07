@@ -9,7 +9,7 @@ import (
 type CircleCIv2 struct{}
 
 //ProvideArtifacts -
-func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose) ([]*BuildArtifact, error) {
+func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string) ([]*BuildArtifact, error) {
 
 	//iterate containers
 	for _, svc := range dockerCompose.Services {
@@ -37,7 +37,8 @@ func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 	if harborCompose != nil {
 		for name, shipment := range harborCompose.Shipments {
 			fmt.Print(getBuildTokenName(name, shipment.Env))
-			fmt.Println(" (Harbor shipment/environment build token)")
+			fmt.Print("=")
+			fmt.Println(token)
 		}
 	}
 	fmt.Println()

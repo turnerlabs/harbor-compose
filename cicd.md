@@ -1,12 +1,17 @@
 ### Harbor Compose and CI/CD
 
-The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  This works from public build services (e.g.; Circle CI, Codeship, Travis CI, etc.) by using the shipment/environment build token specified using environment variables with the naming convention, `${SHIPMENT}_${ENV}_TOKEN`.  
+The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  
 
-So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add environment variables to your build.
+This works from public build services (e.g.; Circle CI, Codeship, Travis CI, etc.) by using the shipment/environment build token specified with environment variables with the naming convention, `${SHIPMENT}_${ENV}_TOKEN`.
+
+So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add the following environment variables to your build environment (see the [buildtoken command](#the-buildtoken-command) below for more info).
 
 ```
-MSS_APP_WEB_DEV_TOKEN=xyz
-MSS_APP_WORKER_DEV_TOKEN=xyz
+$ harbor-compose buildtoken ls
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8	
 ```
 
 And then simply run the following to deploy all containers in all shipments specified in your compose files.
@@ -15,14 +20,17 @@ And then simply run the following to deploy all containers in all shipments spec
 harbor-compose deploy
 ```
 
-If you wanted to conditionally deploy to a different environment (e.g., QA) using the same set of compose files, you could...
+If you wanted to conditionally deploy to a different environment (e.g., QA) in your build (maybe based on branch) using the same set of compose files, you could add another set of environment variables to your build.
 
 ```
-MSS_APP_WEB_QA_TOKEN=xyz
-MSS_APP_WORKER_QA_TOKEN=xyz
+$ harbor-compose buildtoken ls -e qa
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      qa            MSS_POC_SQS_WEB_QA_TOKEN       ihtvPrAH84ULVm6IC7LjWvXUgEhr7cnQ
+mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_QA_TOKEN    Y3Jk0DmMaUsoWO8mbI2Edn9Ixhwj14Vd
 ```
 
-And then simply run
+And then run
 
 ```
 harbor-compose deploy -e qa
@@ -44,16 +52,17 @@ docker-compose push
 harbor-compose catalog
 ```
 
+
 #### generate --build-provider
 
 The `generate` command has a `--build-provider` flag that can help with scenarios where teams want to take existing applications running on Harbor and migrate them to various third-party build CI/CD providers.  The idea is that a `build provider` can output the compose files along with any other necessary files required to do CI/CD using a particular provider.  The following is a list of supported providers.
 
-`local`
+##### local
 
 Simply adds a docker-compose [build](https://github.com/turnerlabs/harbor-compose/blob/master/compose-reference.md#build) directive.
 
 
-`circleciv1`
+##### circleciv1
 
 This provider will output a docker-compose.yml file with a [build](https://github.com/turnerlabs/harbor-compose/blob/master/compose-reference.md#build) directive and an image tagged with a Circle CI build number.  Note that environment variables updates in Harbor are not currently supported via the public API, and are therefore not outputted.  A `harbor-compose.yml` file and a [`circle.yml`](https://circleci.com/docs/1.0/configuration/) file are also outputted and are already setup to be able to catalog and deploy new images.  You can run this command in the root of your source code repo, and after linking your repo to Circle CI, you can commit/push the files and get basic CI/CD working.  For example:
 
@@ -63,7 +72,7 @@ $ harbor-compose generate mss-my-shipment dev --build-provider circleciv1
 Be sure to supply the following environment variables in your Circle CI build:
 DOCKER_USER (registry user)
 DOCKER_PASS (registry password)
-MSS_MY_SHIPMENT_DEV_TOKEN (Harbor shipment/environment build token)
+MSS_MY_SHIPMENT_DEV_TOKEN=2N3QFkQkdilwj34ezS2JKxwt6Fn3yuA7
 
 done
 ```
@@ -111,9 +120,13 @@ deployment:
       - harbor-compose deploy		
 ```
 
-`circleciv2 (beta)`
+##### circleciv2 (beta)
 
 Same as `circleciv1` but outputs the v2 format.
+
+```
+$ harbor-compose generate mss-my-shipment dev --build-provider circleciv2
+```
 
 .circle/config.yml
 ```yaml
@@ -147,4 +160,51 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then 
               harbor-compose deploy;
             fi
+```
+
+
+#### The buildtoken command
+
+The `buildtoken` command has two sub commands.
+```
+Available Commands:
+  get         displays a build token for the requested shipment and environment
+  list        list harbor build tokens for shipments in harbor-compose.yml
+```
+
+The `get` command prompts you for a shipment and environment.
+```
+$ harbor-compose buildtoken get
+
+Shipment: mss-poc-sqs-worker
+Environment: dev
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+```
+
+Or, alternatively, you can pass the shipment and environment as args.
+```
+$ harbor-compose buildtoken get mss-poc-sqs-worker dev
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+```
+
+The `list` (or `ls`) command provides the build tokens for the shipments in your harbor-compose.yml.
+```
+$ harbor-compose buildtoken ls
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
+mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8	
+```
+
+Or, if you want to deploy your shipments to an environment different from the one that's specified in your harbor-compose.yml, you can use the following.
+```
+$ harbor-compose buildtoken ls -e qa
+
+SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
+mss-poc-sqs-web      qa            MSS_POC_SQS_WEB_QA_TOKEN       ihtvPrAH84ULVm6IC7LjWvXUgEhr7cnQ
+mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_QA_TOKEN    Y3Jk0DmMaUsoWO8mbI2Edn9Ixhwj14Vd
 ```
