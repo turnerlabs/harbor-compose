@@ -62,7 +62,7 @@ jobs:
           command: docker-compose build
       - run:        
           name: Login to registry
-          command: docker login -u="${DOCKER_USER}" -p="${DOCKER_PASS}" -e="." quay.io
+          command: docker login -u="${DOCKER_USER}" -p="${DOCKER_PASS}" quay.io
       - run:
           name: Push app image to registry
           command: docker-compose push
