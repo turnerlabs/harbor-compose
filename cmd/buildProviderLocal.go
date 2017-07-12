@@ -4,7 +4,7 @@ package cmd
 type LocalBuild struct{}
 
 //ProvideArtifacts -
-func (provider LocalBuild) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose) ([]*BuildArtifact, error) {
+func (provider LocalBuild) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string) ([]*BuildArtifact, error) {
 	//set build configuration to string containing a path to the build context
 	for _, svc := range dockerCompose.Services {
 		svc.Build = "."

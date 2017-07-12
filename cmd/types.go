@@ -57,6 +57,7 @@ type ShipmentEnvironment struct {
 		EnvVars []EnvVarPayload `json:"envVars,omitempty"`
 		Group   string          `json:"group,omitempty"`
 	}
+	BuildToken string `json:"buildToken,omitempty"`
 }
 
 // EnvVarPayload represents EnvVar
@@ -164,6 +165,7 @@ type ShipmentStatusOutput struct {
 	Status      string
 	Containers  string
 	Replicas    string
+	Endpoint    string
 }
 
 // CatalogitContainer is what gets sent to catalog to post a new image

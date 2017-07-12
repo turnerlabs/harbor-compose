@@ -5,30 +5,31 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/docker/libcompose/project"
+
 	"gopkg.in/yaml.v2"
 )
 
 // DeserializeDockerCompose deserializes a docker-compose.yml file into an object
-func DeserializeDockerCompose(file string) DockerCompose {
+func DeserializeDockerCompose(file string) (DockerCompose, project.APIProject) {
+	if Verbose {
+		log.Printf("DeserializeDockerCompose - %v", file)
+	}
 
-	//read the harbor compose file
+	//read the docker compose file from disk
 	dockerComposeData, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//parse the harbor compose file
-	var dockerCompose DockerCompose
-	err = yaml.Unmarshal([]byte(dockerComposeData), &dockerCompose)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
+	//marshal into compose objects
+	dockerCompose, dockerComposeProject := unmarshalDockerCompose(string(dockerComposeData))
 
 	if dockerCompose.Version != "2" {
 		log.Fatal("only docker-compose format v2 is supported")
 	}
 
-	return dockerCompose
+	return dockerCompose, dockerComposeProject
 }
 
 // SerializeDockerCompose serializes an object to a docker-compose.yml file

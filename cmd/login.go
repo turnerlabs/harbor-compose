@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"syscall"
@@ -39,9 +40,8 @@ func init() {
 func login(cmd *cobra.Command, args []string) {
 	_, _, err := Login()
 	if err != nil {
-		fmt.Println("Login Failed")
+		log.Fatal(err)
 	}
-	return
 }
 
 func writeFile(version string, username string, token string) (bool, error) {

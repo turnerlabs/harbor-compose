@@ -9,7 +9,7 @@ import (
 type CircleCIv1 struct{}
 
 //ProvideArtifacts -
-func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose) ([]*BuildArtifact, error) {
+func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string) ([]*BuildArtifact, error) {
 
 	//iterate containers
 	for _, svc := range dockerCompose.Services {
@@ -18,10 +18,11 @@ func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 		svc.Build = "."
 
 		//add the circle ci build number to the image tag
-		svc.Image += ".${CIRCLE_BUILD_NUM}"
+		svc.Image += "-${CIRCLE_BUILD_NUM}"
 
-		//remove environment variables since they're not needed for ci/cd
+		//remove environment variables and ports since they're not needed for ci/cd
 		svc.Environment = nil
+		svc.Ports = nil
 	}
 
 	//output circle.yml
@@ -32,11 +33,12 @@ func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 	})
 
 	fmt.Println()
-	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (registry user)\nDOCKER_PASS (registry password)")
+	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (quay.io registry user, e.g., turner+my_team)\nDOCKER_PASS (quay.io registry password)")
 	if harborCompose != nil {
 		for name, shipment := range harborCompose.Shipments {
 			fmt.Print(getBuildTokenName(name, shipment.Env))
-			fmt.Println(" (Harbor shipment/environment build token)")
+			fmt.Print("=")
+			fmt.Println(token)
 		}
 	}
 	fmt.Println()

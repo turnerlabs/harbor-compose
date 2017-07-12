@@ -28,6 +28,15 @@ func askForConfirmation() bool {
 	}
 }
 
+func askForString() string {
+	var response string
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return response
+}
+
 // posString returns the first index of element in slice.
 // If slice does not contain element, returns -1.
 func posString(slice []string, element string) int {

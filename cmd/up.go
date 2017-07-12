@@ -38,7 +38,10 @@ var successMessage = "Please allow up to 5 minutes for Load Balancer and DNS cha
 func up(cmd *cobra.Command, args []string) {
 
 	//make sure user is authenticated
-	username, token, _ := Login()
+	username, token, err := Login()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
@@ -155,20 +158,19 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			}
 		}
 
-		//map the docker compose service ports to harbor ports
-		if len(serviceConfig.Ports) == 0 {
-			log.Fatalln("At least one port mapping is required in docker compose file.")
-		}
-
-		parsedPort := strings.Split(serviceConfig.Ports[0], ":")
-
 		//validate health check
 		healthCheck := containerEnvVars["HEALTHCHECK"]
 		if healthCheck == "" {
 			log.Fatalln("A container-level 'HEALTHCHECK' environment variable is required")
 		}
 
+		//map the docker compose service ports to harbor ports
+		if len(serviceConfig.Ports) == 0 {
+			log.Fatalln("At least one port mapping is required in docker compose file.")
+		}
+
 		//map first port in docker compose to default primary HTTP "PORT"
+		parsedPort := strings.Split(serviceConfig.Ports[0], ":")
 
 		external, err := strconv.Atoi(parsedPort[0])
 		if err != nil {
@@ -253,7 +255,7 @@ func createShipment(username string, token string, shipmentName string, shipment
 func updateShipment(username string, token string, currentShipment *ShipmentEnvironment, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) {
 
 	//map a ComposeShipment object (based on compose files) into
-	//a series of API call to update a shipment
+	//a series of API calls to update a shipment
 
 	//iterate defined containers and apply container level updates
 	for _, container := range shipment.Containers {

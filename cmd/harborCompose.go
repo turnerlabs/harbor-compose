@@ -17,14 +17,7 @@ func DeserializeHarborCompose(file string) HarborCompose {
 		log.Fatal(err)
 	}
 
-	//parse the harbor compose file
-	var harborCompose HarborCompose
-	err = yaml.Unmarshal([]byte(harborComposeData), &harborCompose)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	return harborCompose
+	return unmarshalHarborCompose(string(harborComposeData))
 }
 
 // SerializeHarborCompose serializes an object to a harbor-compose.yml file

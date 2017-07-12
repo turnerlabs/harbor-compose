@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,8 @@ func TestGetShipmentEnvironment(t *testing.T) {
 	if !*integrationTest || *usernameTest == "" || *passwordTest == "" {
 		t.SkipNow()
 	}
+
+	os.Unsetenv("HC_CONFIG")
 
 	//login
 	token, err := harborLogin(*usernameTest, *passwordTest)

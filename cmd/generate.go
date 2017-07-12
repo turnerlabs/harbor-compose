@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ The generate command's --build-provider flag allows you to generate build provid
 Examples:
 harbor-compose generate my-shipment dev --build-provider local
 harbor-compose generate my-shipment dev -b circleciv1
+harbor-compose generate my-shipment dev -b circleciv2
 `,
 	Run: generate,
 }
@@ -90,10 +92,13 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) Docke
 }
 
 func generate(cmd *cobra.Command, args []string) {
-	username, token, _ := Login()
-
 	if len(args) < 2 {
 		log.Fatal("at least 2 arguments are required. ex: harbor-compose generate my-shipment dev")
+	}
+
+	username, token, err := Login()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	shipment := args[0]
@@ -103,6 +108,10 @@ func generate(cmd *cobra.Command, args []string) {
 		log.Printf("fetching shipment...")
 	}
 	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
+	if shipmentObject == nil {
+		fmt.Println("shipment not found")
+		return
+	}
 
 	//convert a Shipment object into a DockerCompose object
 	dockerCompose := transformShipmentToDockerCompose(shipmentObject)
@@ -116,7 +125,7 @@ func generate(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose)
+		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -124,6 +133,12 @@ func generate(cmd *cobra.Command, args []string) {
 		//write artifacts to file system
 		if artifacts != nil {
 			for _, artifact := range artifacts {
+				//create directories if needed
+				dirs := filepath.Dir(artifact.FilePath)
+				err = os.MkdirAll(dirs, os.ModePerm)
+				if err != nil {
+					log.Fatal(err)
+				}
 				if _, err := os.Stat(artifact.FilePath); err == nil {
 					//exists
 					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")

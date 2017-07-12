@@ -12,12 +12,12 @@ Using Harbor Compose is basically a four-step process.
 
 2. Define the services that make up your app in `docker-compose.yml` so they can be run together in an isolated environment.  You can use the standard Docker Compose commands (like `docker-compose build`, `docker-compose push`, `docker-compose up`, etc.) to build/run/test your Docker app locally.
 
-3. When you're ready to launch your Docker app on Harbor, you define the Harbor-specifc parameters in a [`harbor-compose.yml`](compose-reference.md) file.
+3. When you're ready to launch your Docker app on Harbor, you define the Harbor-specific parameters in a [`harbor-compose.yml`](compose-reference.md) file.
 
 4. Run `harbor-compose up` and Harbor Compose will start and run your entire app on a managed barge.
 
 
-Just like `docker-compose`, `harbor-compose` has similar commands for managing the lifecycle of your app on Harbor:
+Just like `docker-compose`, `harbor-compose` has similar commands for managing the life cycle of your app on Harbor:
 
 - Start and stop services
 - Upload environment variables and scale replicas
@@ -26,19 +26,18 @@ Just like `docker-compose`, `harbor-compose` has similar commands for managing t
 - Trigger an image deployment from a public build system (like Circle CI, Travis CI, etc.)
 
 
-A simple `docker-compose.yml` might look like this:
+A simple [`docker-compose.yml`](https://docs.docker.com/compose/compose-file/compose-file-v2/) might look like this:
 
 ```yaml
 version: "2"
 services:
   web-app:
-    image: registry.services.dmtio.net/my-web-app:1.0.0
+    image: quay.io/turner/my-web-app:1.0.0
     ports:
       - "80:5000"
     environment:
-      PORT: 5000
       HEALTHCHECK: /hc
-      CONTAINER_LEVEL: foo
+      PORT: 5000
 ```
 
 A [`harbor-compose.yml`](compose-reference.md) might look like this:
@@ -46,16 +45,16 @@ A [`harbor-compose.yml`](compose-reference.md) might look like this:
 ```yaml
 version: "1"
 shipments:
-  my-web-app:    
+  my-web-app:
     env: dev
-    barge: corp-sandbox
+    barge: digital-sandbox
     containers:
       - web-app    
     replicas: 2
     group: mss
-    property: turner.com
-    project: my-web-app
-    product: my-web-app    
+    property: turner
+    project: turner
+    product: turner
 ```
 
 Then to start your application...
@@ -112,13 +111,13 @@ $ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/t
 ```
 
 
-To get started with an existing shipment, you can run the following to generate `docker-compose.yml` and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  Note that you will be prompted to login if you don't already have a token or if your token has expired.  For example:
+To get started with an existing shipment, you can run the following to generate [`docker-compose.yml`](https://docs.docker.com/compose/compose-file/compose-file-v2/) and [`harbor-compose.yml`](compose-reference.md) files, by specifying the shipment name and environment as args.  Note that you will be prompted to login if you don't already have a token or if your token has expired.  For example:
 
 ```
 $ harbor-compose generate my-shipment dev
 ```
 
-To create new shipments and environments, you can use the `init` command to generate [`harbor-compose.yml`](compose-reference.md) files.  `init` will ask you questions to build your compose file.  Note that you use the `--yes` flag to accept defaults and generate one quickly.
+To create new shipments, you can use the `init` command to generate new [`docker-compose.yml`](https://docs.docker.com/compose/compose-file/compose-file-v2/) and [`harbor-compose.yml`](compose-reference.md) files.  `init` will ask you questions to build your compose files.  Note that you use the `--yes` flag to accept defaults and generate one quickly.
 
 ```
 $ harbor-compose init
@@ -156,10 +155,10 @@ CONTAINERS:    2
 REPLICAS:      2
 
 ID        IMAGE                                                        STATUS    STARTED      RESTARTS   LAST STATE              
-ab97cef   registry.services.dmtio.net/mss-poc-multi-container:1.0.0    running   1 week ago   1          terminated 1 week ago   
-873a390   registry.services.dmtio.net/mss-poc-multi-container2:1.0.0   running   1 week ago   1          terminated 1 week ago   
-73fad42   registry.services.dmtio.net/mss-poc-multi-container:1.0.0    running   5 days ago   2          terminated 5 days ago   
-db93650   registry.services.dmtio.net/mss-poc-multi-container2:1.0.0   running   5 days ago   2          terminated 5 days ago   
+ab97cef   quay.io/turner/mss-poc-multi-container:1.0.0    running   1 week ago   1          terminated 1 week ago   
+873a390   quay.io/turner/mss-poc-multi-container2:1.0.0   running   1 week ago   1          terminated 1 week ago   
+73fad42   quay.io/turner/mss-poc-multi-container:1.0.0    running   5 days ago   2          terminated 5 days ago   
+db93650   quay.io/turner/mss-poc-multi-container2:1.0.0   running   5 days ago   2          terminated 5 days ago   
 ```
 
 You can also manage multiple shipments using Harbor Compose by listing them in your harbor-compose.yml file.  This is particularly useful if you have a web/worker, or microservices type application where each shipment can be scaled independently.
@@ -172,65 +171,4 @@ Some commands (`up`, `down`, `generate`) require authentication and will automat
 
 #### CI/CD
 
-The `up` command is currently not very CI/CD friendly since it requires login credentials and uses internal-facing APIs.  That's where the `deploy` command comes in.  The `deploy` command can be used to trigger a deployment of new versions of Docker images specified in compose files (one or many shipments with one or many containers).  This works from public build services (e.g.; Circle CI, Travis CI, etc.) by using the shipment/environment build token specified using environment variables with the naming convention, `SHIPMENT_ENV_TOKEN`.  
-
-So, for example, to deploy an app with two shipments named, "mss-app-web" and "mss-app-worker" to your dev environment, you would add environment variables to your build.
-
-```
-MSS_APP_WEB_DEV_TOKEN=xyz
-MSS_APP_WORKER_DEV_TOKEN=xyz
-```
-
-And then simply run the following to deploy all containers in all shipments specified in your compose files.
-
-```
-harbor-compose deploy
-```
-
-If you wanted to conditionally deploy to a different environment (e.g., QA) using the same set of compose files, you could...
-
-```
-MSS_APP_WEB_QA_TOKEN=xyz
-MSS_APP_WORKER_QA_TOKEN=xyz
-```
-
-And then simply run
-
-```
-harbor-compose deploy -e qa
-```
-
-This allows for a clean CI/CD work flow in your build scripts...
-
-```
-docker-compose build
-docker-compose push
-harbor-compose deploy
-```
-
-If you're just doing CI and not CD, you can use the `catalog` command to catalog all of the built docker images but not deploy them.
-
-```
-docker-compose build
-docker-compose push
-harbor-compose catalog
-```
-
-#### generate --build-provider
-
-The `generate` command has a `--build-provider` flag that can help with scenarios where teams want to take existing applications running on Harbor and migrate them to various third-party build CI/CD providers.  The idea is that a `build provider` can output the compose files along with any other necessary files required to do CI/CD using a particular provider.  The following is a list of supported providers.
-
-circleciv1
-
-This provider will output a docker-compose.yml file with a [build](https://github.com/turnerlabs/harbor-compose/blob/master/compose-reference.md#build) directive and an image tagged with a Circle CI build number.  Note that environment variables updates in Harbor are not currently supported via the public API, and are therefore not outputted.  A `harbor-compose.yml` file and a [`circle.yml`](https://circleci.com/docs/1.0/configuration/) file are also outputted and are already setup to be able to catalog and deploy new images.  You can run this command in the root of your source code repo, and after linking your repo to Circle CI, you can commit/push the files and get basic CI/CD working.  For example:
-
-```
-$ harbor-compose generate mss-my-shipment dev --build-provider circleciv1
-
-Be sure to supply the following environment variables in your Circle CI build:
-DOCKER_USER (registry user)
-DOCKER_PASS (registry password)
-MSS_MY_SHIPMENT_DEV_TOKEN (Harbor shipment/environment build token)
-
-done
-```
+See the [CI/CD doc](cicd.md).
