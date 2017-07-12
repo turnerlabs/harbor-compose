@@ -28,12 +28,12 @@ func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 	//output circle.yml
 	artifacts := []*BuildArtifact{}
 	artifacts = append(artifacts, &BuildArtifact{
-		FilePath:     ".circle/config.yml",
+		FilePath:     ".circleci/config.yml",
 		FileContents: getCircleCIv2YAML(),
 	})
 
 	fmt.Println()
-	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (registry user)\nDOCKER_PASS (registry password)")
+	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (quay.io registry user, e.g., turner+my_team)\nDOCKER_PASS (quay.io registry password)")
 	if harborCompose != nil {
 		for name, shipment := range harborCompose.Shipments {
 			fmt.Print(getBuildTokenName(name, shipment.Env))
@@ -57,9 +57,6 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run:        
-          name: Generate image tag/version from package.json + unique build number
-          command: echo "VERSION=$(jq -r .version package.json)-${CIRCLE_BUILD_NUM}" > .env
       - run:
           name: Build app image
           command: docker-compose build

@@ -697,6 +697,6 @@ func TestTransformShipmentToDockerComposeBuildProviderCircleCIv2(t *testing.T) {
 
 	//the provider should output a .circle/config.yml
 	assert.NotNil(t, artifacts)
-	assert.Equal(t, ".circle/config.yml", artifacts[0].FilePath)
+	assert.Equal(t, ".circleci/config.yml", artifacts[0].FilePath)
 	t.Log(artifacts[0].FileContents)
 }
