@@ -33,7 +33,7 @@ func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 	})
 
 	fmt.Println()
-	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (registry user)\nDOCKER_PASS (registry password)")
+	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (quay.io registry user, e.g., turner+my_team)\nDOCKER_PASS (quay.io registry password)")
 	if harborCompose != nil {
 		for name, shipment := range harborCompose.Shipments {
 			fmt.Print(getBuildTokenName(name, shipment.Env))
