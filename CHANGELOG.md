@@ -1,3 +1,25 @@
+## 0.12.0 (2017-7-12)
+
+Features:
+
+- Harbor Compose now scaffolds out `Circle CI v2 config files` that enable `CI/CD pipelines` into Harbor (with more providers to come). ([#95](https://github.com/turnerlabs/harbor-compose/issues/95))
+
+- Added a new `buildtoken` command (and sub commands) for managing Harbor build tokens ([#100](https://github.com/turnerlabs/harbor-compose/issues/100))
+
+- The `init` command now outputs `docker-compose.yml` files to make it easier to Dockerize/Harborize ([#35](https://github.com/turnerlabs/harbor-compose/issues/35))
+
+- The `ps` command now includes service endpoint(s) ([#94](https://github.com/turnerlabs/harbor-compose/issues/94))
+
+- All commands should return a useful exit code should ([#96](https://github.com/turnerlabs/harbor-compose/issues/96))
+
+- Added ability to configure harbor-compose via a config file ([#97](https://github.com/turnerlabs/harbor-compose/issues/97))
+
+
+Bug fixes:
+
+- The up command continues to run even if user is not authenticated ([#102](https://github.com/turnerlabs/harbor-compose/issues/102))
+
+
 ## 0.11.0 (2017-5-16)
 
 Features:
