@@ -38,3 +38,4 @@ create.json
 /dist
 node_modules
 .glide
+build-debug.sh
