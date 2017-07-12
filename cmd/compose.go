@@ -12,6 +12,9 @@ import (
 
 //unmarshal docker compose yaml
 func unmarshalDockerCompose(yamlString string) (DockerCompose, project.APIProject) {
+	if Verbose {
+		log.Printf("unmarshalDockerCompose - %v", yamlString)
+	}
 
 	yamlBits := []byte(yamlString)
 
@@ -27,6 +30,7 @@ func unmarshalDockerCompose(yamlString string) (DockerCompose, project.APIProjec
 	dockerComposeProject, err := docker.NewProject(&ctx.Context{
 		Context: project.Context{
 			ComposeBytes: bytes,
+			ProjectName:  "required",
 		},
 	}, nil)
 	if err != nil {

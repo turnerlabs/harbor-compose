@@ -30,7 +30,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 
 	//docker-compose
 	registry := "quay.io/turner"
-	container := "mss-my-app"
+	container := "mss-harbor-compose-app"
 	tag := "0.1.0"
 	publicPort := "80"
 	internalPort := "5000"
@@ -52,7 +52,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 
 		if !yesUseDefaults {
 			registry = promptAndGetResponse("docker registry: (e.g., quay.io/turner) ")
-			container = promptAndGetResponse("docker container name: (e.g., mss-my-app) ")
+			container = promptAndGetResponse("docker container name: (e.g., mss-harbor-compose-app) ")
 			tag = promptAndGetResponse("version tag: (e.g., 0.1.0) ")
 			publicPort = promptAndGetResponse("public port: (e.g., 80) ")
 			internalPort = promptAndGetResponse("internal port: (e.g., 5000) ")

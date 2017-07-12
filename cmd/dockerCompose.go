@@ -12,6 +12,9 @@ import (
 
 // DeserializeDockerCompose deserializes a docker-compose.yml file into an object
 func DeserializeDockerCompose(file string) (DockerCompose, project.APIProject) {
+	if Verbose {
+		log.Printf("DeserializeDockerCompose - %v", file)
+	}
 
 	//read the docker compose file from disk
 	dockerComposeData, err := ioutil.ReadFile(file)
