@@ -56,7 +56,8 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 17.06.0-ce
       - run:
           name: Build app image
           command: docker-compose build
@@ -74,8 +75,7 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then 
               harbor-compose deploy;
-            fi
-	`
+            fi`
 
 	return strings.Replace(template, "${HC_VERSION}", Version, 1)
 }
