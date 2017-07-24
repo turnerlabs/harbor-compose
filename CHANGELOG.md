@@ -1,3 +1,10 @@
+## 0.12.1 (2017-7-24)
+
+Bug fixes:
+
+- generate --build-provider circleciv2 now uses `docker 17.06.0-ce` (to support multi-stage build)
+
+
 ## 0.12.0 (2017-7-12)
 
 Features:
