@@ -556,7 +556,7 @@ func Restart(username string, token string, shipment string, env string) {
 		log.Printf("restarting shipment")
 	}
 
-		//build URI
+	//build URI
 	var config = GetConfig()
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
@@ -574,16 +574,16 @@ func Restart(username string, token string, shipment string, env string) {
 	}
 
 	t := time.Now()
-    time := "restart_" + t.Format("20060102150405")
+	time := "restart_" + t.Format("20060102150405")
 
 	envVarPayload := EnvVarPayload{
 		Name:  time,
 		Value: "test",
 		Type:  "basic",
 	}
-    
-    template, _ = uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envVars")
-    uri, _ = template.Expand(values)
+
+	template, _ = uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envVars")
+	uri, _ = template.Expand(values)
 	create(username, token, uri, envVarPayload)
 	Trigger(shipment, env)
 }
