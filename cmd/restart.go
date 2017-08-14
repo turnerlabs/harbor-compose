@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/docker/libcompose/docker"
-	"github.com/docker/libcompose/docker/ctx"
-	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 )
 
@@ -33,23 +30,6 @@ func restart(cmd *cobra.Command, args []string) {
 
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
-
-	//use libcompose to parse yml file
-	dockerComposeProject, err := docker.NewProject(&ctx.Context{
-		Context: project.Context{
-			ComposeFiles: []string{DockerComposeFile},
-		},
-	}, nil)
-
-	if err != nil {
-		log.Fatal("error parsing compose file" + err.Error())
-	}
-
-	//validate the compose file
-	_, err = dockerComposeProject.Config()
-	if err != nil {
-		log.Fatal("error parsing compose file" + err.Error())
-	}
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
