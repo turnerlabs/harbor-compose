@@ -7,10 +7,8 @@ import (
 	"log"
 	"os"
 	"strings"
-	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
-
+	"github.com/howeyc/gopass"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/turnerlabs/harbor-auth-client"
@@ -133,7 +131,7 @@ func Login() (string, string, error) {
 	//harborUsername, _ := reader.ReadString()
 
 	fmt.Print("Password: ")
-	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	bytePassword, err := gopass.GetPasswdMasked()
 	harborPassword := string(bytePassword)
 
 	harborToken, err := harborLogin(strings.TrimSpace(harborUsername), strings.TrimSpace(harborPassword))
