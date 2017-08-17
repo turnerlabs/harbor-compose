@@ -30,13 +30,7 @@ test:
     - cd $IMPORT_PATH && go vet -x ./cmd
 
   override:    
-    # run go tests and write results to a file + stdout
-    - cd $IMPORT_PATH && go test -v ./cmd | tee go-test.out
-    # convert go test results to junit format for circle
-    - cat $IMPORT_PATH/go-test.out | go-junit-report > go-test.xml
-    # move junit test results into special circle directory
-    - sudo mkdir -p ${CIRCLE_TEST_REPORTS}/go-test
-    - sudo mv go-test.xml ${CIRCLE_TEST_REPORTS}/go-test/
+    - ./test.sh
 
 deployment:
   
