@@ -120,7 +120,7 @@ deployment:
       - harbor-compose deploy		
 ```
 
-##### circleciv2 (beta)
+##### circleciv2
 
 Same as `circleciv1` but outputs the v2 format.
 
@@ -134,20 +134,18 @@ version: 2
 jobs:
   build:
     docker:
-      - image: quay.io/turner/harbor-cicd-image:v0.11.0
+      - image: quay.io/turner/harbor-cicd-image:v0.12.1
     working_directory: ~/app
     steps:
       - checkout
-      - setup_remote_docker
-      - run:        
-          name: Generate image tag/version from package.json + unique build number
-          command: echo "VERSION=$(jq -r .version package.json)-${CIRCLE_BUILD_NUM}" > .env
+      - setup_remote_docker:
+          version: 17.06.0-ce
       - run:
           name: Build app image
           command: docker-compose build
       - run:        
           name: Login to registry
-          command: docker login -u="${DOCKER_USER}" -p="${DOCKER_PASS}" -e="." quay.io
+          command: docker login -u="${DOCKER_USER}" -p="${DOCKER_PASS}" quay.io
       - run:
           name: Push app image to registry
           command: docker-compose push
