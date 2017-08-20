@@ -50,8 +50,6 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 		check(err)
 	}
 
-	//todo: update .gitignore with codeship.env
-
 	fmt.Println()
 	fmt.Println(`Now you just need to:
 
