@@ -28,6 +28,7 @@ Examples:
 harbor-compose generate my-shipment dev --build-provider local
 harbor-compose generate my-shipment dev -b circleciv1
 harbor-compose generate my-shipment dev -b circleciv2
+harbor-compose generate my-shipment dev -b codeship
 `,
 	Run: generate,
 }
@@ -97,9 +98,7 @@ func generate(cmd *cobra.Command, args []string) {
 	}
 
 	username, token, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	shipment := args[0]
 	env := args[1]
@@ -122,13 +121,10 @@ func generate(cmd *cobra.Command, args []string) {
 	//if build provider is specified, allow it modify the compose objects and do its thing
 	if len(buildProvider) > 0 {
 		provider, err := getBuildProvider(buildProvider)
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
+
 		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken)
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 
 		//write artifacts to file system
 		if artifacts != nil {
@@ -136,18 +132,19 @@ func generate(cmd *cobra.Command, args []string) {
 				//create directories if needed
 				dirs := filepath.Dir(artifact.FilePath)
 				err = os.MkdirAll(dirs, os.ModePerm)
-				if err != nil {
-					log.Fatal(err)
-				}
+				check(err)
+
 				if _, err := os.Stat(artifact.FilePath); err == nil {
 					//exists
 					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")
 					if askForConfirmation() {
 						err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), 0644)
+						check(err)
 					}
 				} else {
 					//doesn't exist
 					err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), 0644)
+					check(err)
 				}
 			}
 		}

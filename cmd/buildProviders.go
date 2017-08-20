@@ -33,5 +33,9 @@ func getBuildProvider(provider string) (BuildProvider, error) {
 		return CircleCIv2{}, nil
 	}
 
+	if strings.ToLower(provider) == "codeship" {
+		return Codeship{}, nil
+	}
+
 	return nil, errors.New("no build provider found for: " + provider)
 }
