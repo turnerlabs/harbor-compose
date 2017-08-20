@@ -122,7 +122,7 @@ deployment:
 
 ##### circleciv2
 
-Same as `circleciv1` but outputs the v2 format.
+Same as circleciv1 but outputs the v2 format.
 
 ```
 $ harbor-compose generate mss-my-shipment dev --build-provider circleciv2
@@ -159,6 +159,48 @@ jobs:
               harbor-compose deploy;
             fi
 ```
+
+##### codeship
+
+Outputs files to support CI/CD using [Codeship](https://documentation.codeship.com/).
+
+```
+$ harbor-compose generate mss-my-shipment dev -b codeship
+
+Now you just need to:
+
+- add your quay.io registry credentials to codeship.env
+- download your AES key from your codeship project and put it in codeship.aes
+- encrypt your codeship.env by running 'jet encrypt codeship.env codeship.env.encrypted'
+- check in codeship.env.encrypted but don't check in codeship.env
+```
+
+codeship-steps.yml
+```yaml
+- service: cicd
+  name: build image
+  command: docker-compose build
+
+- service: cicd
+  name: push image to registry
+  command: ./docker-push.sh
+
+- service: cicd
+  name: catalog image in harbor
+  command: harbor-compose catalog
+
+- service: cicd
+  tag: develop
+  name: deploy develop branch to harbor
+  command: harbor-compose deploy
+```
+
+Other files that are outputted:
+- codeship-services.yml
+- codeship.env
+- codeship.aes
+- docker-push.sh
+- .gitignore
 
 
 #### The buildtoken command
