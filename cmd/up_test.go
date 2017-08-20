@@ -22,8 +22,8 @@ services:
       CHAR_EQUAL: foo=bar	
 `
 
-	_, dockerComposeProject := unmarshalDockerCompose(yaml)
-	proj, _ := dockerComposeProject.GetServiceConfig("container")
+	dockerCompose := unmarshalDockerCompose(yaml)
+	proj, _ := dockerCompose.GetServiceConfig("container")
 
 	assert.Equal(t, "foo=bar", proj.Environment.ToMap()["CHAR_EQUAL"])
 }

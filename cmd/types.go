@@ -31,13 +31,13 @@ type HarborCompose struct {
 	Shipments map[string]ComposeShipment `yaml:"shipments"`
 }
 
-// DockerCompose represents a docker-compose.yml file
+// DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
 type DockerCompose struct {
 	Version  string                           `yaml:"version"`
 	Services map[string]*DockerComposeService `yaml:"services"`
 }
 
-// DockerComposeService represents a container (only used for writing via generate)
+// DockerComposeService represents a container (only used for writing via generate/init)
 type DockerComposeService struct {
 	Build       string            `yaml:"build,omitempty"`
 	Image       string            `yaml:"image,omitempty"`

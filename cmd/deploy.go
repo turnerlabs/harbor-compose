@@ -5,9 +5,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/docker/libcompose/docker"
-	"github.com/docker/libcompose/docker/ctx"
-	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 )
 
@@ -38,22 +35,11 @@ func init() {
 //deploy iterates shipments and containers and uses the Customs API to trigger deployments.
 func deploy(cmd *cobra.Command, args []string) {
 
-	//read the harbor compose file
-	harborCompose := DeserializeHarborCompose(HarborComposeFile)
-
-	//use libcompose to parse yml file
-	dockerComposeProject, err := docker.NewProject(&ctx.Context{
-		Context: project.Context{
-			ComposeFiles: []string{DockerComposeFile},
-		},
-	}, nil)
-
-	if err != nil {
-		log.Fatal("error parsing compose file" + err.Error())
-	}
+	//read the compose files
+	dockerCompose, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
 
 	//validate the compose file
-	_, err = dockerComposeProject.Config()
+	_, err := dockerCompose.Config()
 	if err != nil {
 		log.Fatal("error parsing compose file" + err.Error())
 	}
@@ -66,7 +52,7 @@ func deploy(cmd *cobra.Command, args []string) {
 		for _, containerName := range shipment.Containers {
 
 			//lookup the container in the list of services in the docker-compose file
-			serviceConfig, found := dockerComposeProject.GetServiceConfig(containerName)
+			serviceConfig, found := dockerCompose.GetServiceConfig(containerName)
 			if !found {
 				log.Fatal("could not find service in docker compose file")
 			}

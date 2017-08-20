@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	dockerProject "github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 )
 
@@ -114,11 +115,12 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if _, err := os.Stat(DockerComposeFile); err == nil {
 
 		//parse the docker compose yaml to get the list of containers
-		dockerCompose, _ := DeserializeDockerCompose(DockerComposeFile)
+		dockerCompose := DeserializeDockerCompose(DockerComposeFile)
+		proj := dockerCompose.(*dockerProject.Project)
 
 		//add all docker services as containers
-		for container := range dockerCompose.Services {
-			composeShipment.Containers = append(composeShipment.Containers, container)
+		for _, service := range proj.ServiceConfigs.Keys() {
+			composeShipment.Containers = append(composeShipment.Containers, service)
 		}
 	}
 
