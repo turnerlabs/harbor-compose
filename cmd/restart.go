@@ -10,7 +10,7 @@ import (
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
 	Use:   "restart",
-	Short: "Restart a Shipment",
+	Short: "Restart your application",
 	Long:  `Adds a dummy variable to the shipment and triggers it.`,
 	Run:   restart,
 }
