@@ -561,7 +561,7 @@ func Restart(username string, token string, shipment string, env string) {
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
 	values["env"] = env
-	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envVar/RESTART")
+	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envVar/HC_RESTART")
 	uri, _ := template.Expand(values)
 	if Verbose {
 		log.Printf("deleting: " + uri)
@@ -574,11 +574,11 @@ func Restart(username string, token string, shipment string, env string) {
 	}
 
 	t := time.Now()
-	time := "restart_" + t.Format("20060102150405")
+	time := username + "_" + t.Format("20060102150405")
 
 	envVarPayload := EnvVarPayload{
-		Name:  time,
-		Value: "test",
+		Name:  "HC_RESTART",
+		Value: time,
 		Type:  "basic",
 	}
 
