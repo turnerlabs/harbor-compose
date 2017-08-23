@@ -5,8 +5,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/docker/libcompose/docker"
-	"github.com/docker/libcompose/docker/ctx"
 	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 
@@ -43,19 +41,8 @@ func up(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	//read the harbor compose file
-	harborCompose := DeserializeHarborCompose(HarborComposeFile)
-
-	//use libcompose to parse docker-compose yml file
-	dockerComposeProject, err := docker.NewProject(&ctx.Context{
-		Context: project.Context{
-			ComposeFiles: []string{DockerComposeFile},
-		},
-	}, nil)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	//read the compose files
+	dockerCompose, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
@@ -74,11 +61,11 @@ func up(cmd *cobra.Command, args []string) {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(username, token, shipmentName, shipment, dockerComposeProject)
+			createShipment(username, token, shipmentName, shipment, dockerCompose)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(username, token, shipmentObject, shipmentName, shipment, dockerComposeProject)
+			updateShipment(username, token, shipmentObject, shipmentName, shipment, dockerCompose)
 		}
 
 		fmt.Println("done")

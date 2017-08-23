@@ -31,8 +31,7 @@ func init() {
 func ps(cmd *cobra.Command, args []string) {
 
 	//read the compose files
-	_, dockerCompose := DeserializeDockerCompose(DockerComposeFile)
-	harborCompose := DeserializeHarborCompose(HarborComposeFile)
+	dockerCompose, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
 
 	doPs(dockerCompose, harborCompose)
 }
