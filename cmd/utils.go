@@ -1,13 +1,6 @@
 package cmd
 
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"github.com/docker/libcompose/config"
-	"github.com/docker/libcompose/project"
-)
+import "log"
 
 func check(e error) {
 	if e != nil {
@@ -15,11 +8,24 @@ func check(e error) {
 	}
 }
 
-func getDockerComposeService(dockerCompose project.APIProject, container string) *config.ServiceConfig {
-	serviceConfig, success := dockerCompose.GetServiceConfig(container)
-	if !success {
-		fmt.Printf("ERROR: Container: %v defined in %v cannot be found in %v\n", container, HarborComposeFile, DockerComposeFile)
-		os.Exit(-1)
+//find the ec2 provider
+func ec2Provider(providers []ProviderPayload) *ProviderPayload {
+	for _, provider := range providers {
+		if provider.Name == providerEc2 {
+			return &provider
+		}
 	}
-	return serviceConfig
+	log.Fatal("ec2 provider is missing")
+	return nil
+}
+
+//find the ec2 provider
+func ec2ProviderNewProvider(providers []NewProvider) *NewProvider {
+	for _, provider := range providers {
+		if provider.Name == providerEc2 {
+			return &provider
+		}
+	}
+	log.Fatal("ec2 provider is missing")
+	return nil
 }
