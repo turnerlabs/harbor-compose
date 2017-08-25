@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/docker/libcompose/config"
 	"github.com/docker/libcompose/docker"
 	"github.com/docker/libcompose/docker/ctx"
 	"github.com/docker/libcompose/project"
@@ -56,4 +59,13 @@ func unmarshalComposeFiles(dockerComposeFile string, harborComposeFile string) (
 	dc := DeserializeDockerCompose(dockerComposeFile)
 	hc := DeserializeHarborCompose(harborComposeFile)
 	return dc, hc
+}
+
+func getDockerComposeService(dockerCompose project.APIProject, container string) *config.ServiceConfig {
+	serviceConfig, success := dockerCompose.GetServiceConfig(container)
+	if !success {
+		fmt.Printf("ERROR: Container: %v defined in %v cannot be found in %v\n", container, HarborComposeFile, DockerComposeFile)
+		os.Exit(-1)
+	}
+	return serviceConfig
 }

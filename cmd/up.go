@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/docker/libcompose/project"
@@ -33,44 +36,172 @@ func init() {
 
 var successMessage = "Please allow up to 5 minutes for Load Balancer and DNS changes to take effect."
 
+const healthCheckEnvVarName = "HEALTHCHECK"
+
 func up(cmd *cobra.Command, args []string) {
 
 	//make sure user is authenticated
 	username, token, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	//read the compose files
 	dockerCompose, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
-		fmt.Printf("Starting %v ...\n", shipmentName)
-
 		if Verbose {
 			log.Printf("processing shipment: %v/%v", shipmentName, shipment.Env)
 		}
 
 		//fetch the current state
-		shipmentObject := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
+		existingShipment := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
+
+		//transform compose yaml into a desired NewShipmentEnvironment object
+		desiredShipment := transformComposeToNewShipment(shipmentName, shipment, dockerCompose)
+
+		//validate desired state
+		err := validateUp(&desiredShipment, existingShipment)
+		if err != nil {
+			fmt.Printf("ERROR: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Starting %v ...\n", shipmentName)
 
 		//creating a shipment is a different workflow than updating
-		//bulk create a shipment if it doesn't exist
-		if shipmentObject == nil {
+		if existingShipment == nil {
 			if Verbose {
 				log.Println("shipment environment not found")
 			}
-			createShipment(username, token, shipmentName, shipment, dockerCompose)
+			createShipment(username, token, shipmentName, shipment, dockerCompose, desiredShipment)
 
 		} else {
 			//make changes to harbor based on compose files
-			updateShipment(username, token, shipmentObject, shipmentName, shipment, dockerCompose)
+			updateShipment(username, token, existingShipment, shipmentName, shipment, dockerCompose)
 		}
 
 		fmt.Println("done")
 
 	} //shipments
+}
+
+//validates desire shipment against existing
+func validateUp(desired *NewShipmentEnvironment, existing *ShipmentEnvironment) error {
+
+	if Verbose {
+		fmt.Println("existing:")
+		b, e := json.Marshal(existing)
+		check(e)
+		fmt.Println(string(b))
+		fmt.Println()
+		fmt.Println("desired:")
+		b, e = json.Marshal(desired)
+		check(e)
+		fmt.Println(string(b))
+	}
+
+	//env name
+	if strings.Contains(desired.Environment.Name, "_") {
+		if Verbose {
+			fmt.Println(desired.Environment.Name)
+		}
+		return errors.New("environment can not contain underscores ('_')")
+	}
+
+	provider := ec2ProviderNewProvider(desired.Providers)
+
+	//barge
+	if provider.Barge == "" {
+		return errors.New("barge is required for a shipment")
+	}
+
+	//replicas
+	if Verbose {
+		fmt.Println(provider.Replicas)
+	}
+	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
+		return errors.New("replicas must be between 1 and 1000")
+	}
+
+	//containers
+	if len(desired.Containers) == 0 {
+		return errors.New("at least 1 container is required")
+	}
+
+	for _, container := range desired.Containers {
+
+		//ports
+		if len(container.Ports) == 0 {
+			return errors.New("At least one port is required.")
+		}
+
+		//validate health check
+		foundHealthCheck := false
+		for _, v := range container.Vars {
+			if v.Name == healthCheckEnvVarName {
+				foundHealthCheck = true
+				break
+			}
+		}
+		if !foundHealthCheck {
+			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
+		}
+	}
+
+	//update-specific validation
+	if existing != nil {
+		existingProvider := ec2Provider(existing.Providers)
+
+		//don't allow barge changes
+		if Verbose {
+			fmt.Println("existing barge: " + existingProvider.Barge)
+			fmt.Println("desired barge: " + provider.Barge)
+		}
+		if provider.Barge != existingProvider.Barge {
+			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
+		}
+
+		//don't allow container name changes
+		for _, desiredContainer := range desired.Containers {
+			//locate existing container with same name, error if not found
+			found := false
+			for _, existingContainer := range existing.Containers {
+				if existingContainer.Name == desiredContainer.Name {
+
+					//don't allow port changes
+					existingPort := getPrimaryPort(existingContainer.Ports)
+					desiredPort := getPrimaryPort(desiredContainer.Ports)
+					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
+						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
+					}
+
+					//don't allow health check changes
+					if existingPort.Healthcheck != desiredPort.Healthcheck {
+						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
+					}
+
+					//return container match
+					found = true
+					break
+				}
+			}
+			if !found {
+				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
+			}
+		}
+	}
+
+	return nil
+}
+
+//finds the primary port in a port slice
+func getPrimaryPort(ports []PortPayload) PortPayload {
+	for _, port := range ports {
+		if port.Primary {
+			return port
+		}
+	}
+	return PortPayload{}
 }
 
 func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) NewShipmentEnvironment {
@@ -112,10 +243,7 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 		}
 
 		//lookup the container in the list of services in the docker-compose file
-		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
-		if !success {
-			log.Fatal("error getting service config")
-		}
+		serviceConfig := getDockerComposeService(dockerComposeProject, container)
 
 		image := serviceConfig.Image
 		if image == "" {
@@ -145,12 +273,6 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			}
 		}
 
-		//validate health check
-		healthCheck := containerEnvVars["HEALTHCHECK"]
-		if healthCheck == "" {
-			log.Fatalln("A container-level 'HEALTHCHECK' environment variable is required")
-		}
-
 		//map the docker compose service ports to harbor ports
 		if len(serviceConfig.Ports) == 0 {
 			log.Fatalln("At least one port mapping is required in docker compose file.")
@@ -175,20 +297,14 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			Primary:     (containerIndex == 0),
 			Protocol:    "http",
 			External:    false,
-			Healthcheck: healthCheck,
+			Healthcheck: containerEnvVars[healthCheckEnvVarName],
 		}
 
+		//add port to list
 		newContainer.Ports = append(newContainer.Ports, primaryPort)
-
-		//TODO: once Container/Port construct is added to harbor-compose.yml,
-		//they should override these defaults
 
 		//add container to list
 		newShipment.Containers = append(newShipment.Containers, newContainer)
-	}
-
-	if shipment.Barge == "" {
-		log.Fatalln("barge is required for a shipment")
 	}
 
 	//add default ec2 provider
@@ -205,22 +321,15 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 	return newShipment
 }
 
-func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) {
+func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject, newShipment NewShipmentEnvironment) {
 
 	if Verbose {
 		log.Println("creating shipment environment")
 	}
 
-	//map a ComposeShipment object (based on compose files) into
-	//a new NewShipmentEnvironment object
-	newShipment := transformComposeToNewShipment(shipmentName, shipment, dockerComposeProject)
-
 	//catalog containers
 	for _, container := range shipment.Containers {
-		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
-		if !success {
-			log.Fatal("error getting service config")
-		}
+		serviceConfig := getDockerComposeService(dockerComposeProject, container)
 		catalogContainer(container, serviceConfig.Image)
 	}
 
@@ -251,10 +360,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		}
 
 		//lookup the container in the list of services in the docker-compose file
-		serviceConfig, success := dockerComposeProject.GetServiceConfig(container)
-		if !success {
-			log.Fatal("error getting service config")
-		}
+		serviceConfig := getDockerComposeService(dockerComposeProject, container)
 
 		// catalog containers
 		catalogContainer(container, serviceConfig.Image)

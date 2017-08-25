@@ -153,7 +153,7 @@ func getShipmentPrimaryPort(dockerCompose project.APIProject, shipment ComposeSh
 	for _, container := range shipment.Containers {
 		serviceConfig, success := dockerCompose.GetServiceConfig(container)
 		if !success {
-			return "", errors.New("error getting service config")
+			return "", errors.New("unabled to find container in docker-compose.yml")
 		}
 
 		if serviceConfig.Ports == nil {
