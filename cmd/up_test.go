@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -361,4 +363,467 @@ func assertEnvVarsMatch(t *testing.T, composeEnvVars map[string]string, shipment
 	}
 
 	return true
+}
+
+//tests new shipment environment name validation
+func TestUpValidateEnvName(t *testing.T) {
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev_1
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+	t.Log(dockerComposeYaml)
+
+	//get a new shipment
+	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+
+	//test func
+	err := validateUp(&newShipment, nil)
+	assert.NotNil(t, err)
+}
+
+//tests new shipment container count validation
+func TestUpValidateContainerCount(t *testing.T) {
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev_1
+    barge: sandbox
+    containers:
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+	t.Log(dockerComposeYaml)
+
+	//get a new shipment
+	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+
+	//test func
+	err := validateUp(&newShipment, nil)
+	assert.NotNil(t, err)
+}
+
+//tests up (happy path)
+func TestUpValidate(t *testing.T) {
+
+	//create an existing shipment
+	shipmentJSON := getSampleShipmentJSONForValidation()
+
+	//update json with test values
+	name := "mss-poc-app"
+	env := "dev"
+	barge := "digital-sandbox"
+	replicas := 2
+	container := "web"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	t.Log(shipmentJSON)
+
+	//deserialize shipit json
+	var existingShipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &existingShipment)
+	check(err)
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:${port}
+    environment:
+      HEALTHCHECK: ${healthcheck}
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: ${barge}
+    containers:
+    - ${composeServiceName}
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${barge}", barge, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${port}", "5000", 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${healthcheck}", "/hc", 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//make changes to shipment
+	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+
+	//test func
+	err = validateUp(&desiredShipment, &existingShipment)
+
+	//no errors
+	assert.Nil(t, err)
+}
+
+//tests up with container name change
+func TestUpValidateContainerNameChange(t *testing.T) {
+
+	//create an existing shipment
+	shipmentJSON := getSampleShipmentJSONForValidation()
+
+	//update json with test values
+	name := "mss-poc-app"
+	env := "dev"
+	barge := "digital-sandbox"
+	replicas := 2
+	container := "web"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	t.Log(shipmentJSON)
+
+	//deserialize shipit json
+	var existingShipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &existingShipment)
+	check(err)
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:${port}
+    environment:
+      HEALTHCHECK: ${healthcheck}
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: ${barge}
+    containers:
+    - ${composeServiceName}
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product`
+
+	//simulate changing container name
+	container = "change"
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${barge}", barge, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${port}", "5000", 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${healthcheck}", "/hc", 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//make changes to shipment
+	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+
+	//test func
+	err = validateUp(&desiredShipment, &existingShipment)
+
+	//look for error
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Container changes")
+}
+
+//tests up with port change
+func TestUpValidatePortChange(t *testing.T) {
+
+	//create an existing shipment
+	shipmentJSON := getSampleShipmentJSONForValidation()
+
+	//update json with test values
+	name := "mss-poc-app"
+	env := "dev"
+	barge := "digital-sandbox"
+	replicas := 2
+	container := "web"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	t.Log(shipmentJSON)
+
+	//deserialize shipit json
+	var existingShipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &existingShipment)
+	check(err)
+
+	dockerComposeYaml := `
+  version: "2"
+  services:
+    ${composeServiceName}:
+      image: registry/app:1.0
+      ports:
+      - 80:${port}
+      environment:
+        HEALTHCHECK: ${healthcheck}
+        FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: ${barge}
+    containers:
+    - ${composeServiceName}
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${barge}", barge, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+
+	//change port
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${port}", "8000", 1)
+
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${healthcheck}", "/hc", 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//make changes to shipment
+	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+
+	//test func
+	err = validateUp(&desiredShipment, &existingShipment)
+
+	//look for error
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Port changes")
+}
+
+//tests up with adding a port
+func TestUpValidatePortAdd(t *testing.T) {
+
+	//create an existing shipment
+	shipmentJSON := getSampleShipmentJSONForValidation()
+
+	//update json with test values
+	name := "mss-poc-app"
+	env := "dev"
+	barge := "digital-sandbox"
+	replicas := 2
+	container := "web"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	t.Log(shipmentJSON)
+
+	//deserialize shipit json
+	var existingShipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &existingShipment)
+	check(err)
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:${port}
+    - 81:3000
+    environment:
+      HEALTHCHECK: ${healthcheck}
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: ${barge}
+    containers:
+    - ${composeServiceName}
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${barge}", barge, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+
+	//change port
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${port}", "8000", 1)
+
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${healthcheck}", "/hc", 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//make changes to shipment
+	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+
+	//test func
+	err = validateUp(&desiredShipment, &existingShipment)
+
+	//look for error
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Port changes")
+}
+
+//tests up with health check change
+func TestUpValidateHealthCheckChange(t *testing.T) {
+
+	//create an existing shipment
+	shipmentJSON := getSampleShipmentJSONForValidation()
+
+	//update json with test values
+	name := "mss-poc-app"
+	env := "dev"
+	barge := "digital-sandbox"
+	replicas := 2
+	container := "web"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	t.Log(shipmentJSON)
+
+	//deserialize shipit json
+	var existingShipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &existingShipment)
+	check(err)
+
+	dockerComposeYaml := `
+  version: "2"
+  services:
+    ${composeServiceName}:
+      image: registry/app:1.0
+      ports:
+      - 80:${port}
+      environment:
+        HEALTHCHECK: ${healthcheck}
+        FOO: bar`
+
+	harborComposeYaml := `
+  shipments:
+    ${shipmentName}:
+      env: dev
+      barge: ${barge}
+      containers:
+      - ${composeServiceName}
+      replicas: 2
+      group: mss
+      property: turner
+      project: project
+      product: product`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${barge}", barge, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${port}", "5000", 1)
+
+	//change health check
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${healthcheck}", "change", 1)
+
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//make changes to shipment
+	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+
+	//test func
+	err = validateUp(&desiredShipment, &existingShipment)
+
+	//look for error
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Healthcheck changes")
 }

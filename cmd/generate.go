@@ -35,6 +35,8 @@ harbor-compose generate my-shipment dev -b codeship
 
 var buildProvider string
 
+const providerEc2 = "ec2"
+
 func init() {
 	generateCmd.PersistentFlags().StringVarP(&buildProvider, "build-provider", "b", "", "generate build provider-specific files that allow you to build Docker images do CI/CD with Harbor")
 	RootCmd.AddCommand(generateCmd)
@@ -180,7 +182,18 @@ func generate(cmd *cobra.Command, args []string) {
 //find the ec2 provider
 func ec2Provider(providers []ProviderPayload) *ProviderPayload {
 	for _, provider := range providers {
-		if provider.Name == "ec2" {
+		if provider.Name == providerEc2 {
+			return &provider
+		}
+	}
+	log.Fatal("ec2 provider is missing")
+	return nil
+}
+
+//find the ec2 provider
+func ec2ProviderNewProvider(providers []NewProvider) *NewProvider {
+	for _, provider := range providers {
+		if provider.Name == providerEc2 {
 			return &provider
 		}
 	}
@@ -210,7 +223,6 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment, docke
 	//environment
 	copyEnvVars(shipmentObject.EnvVars, nil, special)
 
-	//look for the ec2 provider (for now)
 	provider := ec2Provider(shipmentObject.Providers)
 
 	//now populate other harbor-compose metadata

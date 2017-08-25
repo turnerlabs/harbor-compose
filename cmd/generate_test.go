@@ -448,6 +448,89 @@ func getSampleShipmentJSON() string {
 `
 }
 
+func getSampleShipmentJSONForValidation() string {
+	return `
+{
+  "name": "${env}",
+  "parentShipment": {
+    "name": "mss-poc-app",
+    "group": "group",
+    "envVars": [
+      {
+        "type": "basic",
+        "value": "customer",
+        "name": "CUSTOMER"
+      },
+      {
+        "type": "basic",
+        "value": "product",
+        "name": "PRODUCT"
+      },
+      {
+        "type": "basic",
+        "value": "project",
+        "name": "PROJECT"
+      },
+      {
+        "type": "basic",
+        "value": "property",
+        "name": "PROPERTY"
+      }
+    ]
+  },
+  "envVars": [
+    {
+      "type": "basic",
+      "value": "envLevel",
+      "name": "ENV_LEVEL"
+    }
+  ],
+  "providers": [
+    {
+      "replicas": ${replicas},
+      "barge": "${barge}",
+      "name": "ec2",
+      "envVars": []
+    }
+  ],
+  "containers": [
+    {
+      "image": "quay.io/turner/web:1.0",
+      "name": "${container}",
+      "envVars": [
+        {
+          "type": "basic",
+          "value": "/hc",
+          "name": "HEALTHCHECK"
+        },
+        {
+          "type": "basic",
+          "value": "containerLevel",
+          "name": "CONTAINER_LEVEL"
+        }        
+      ],
+      "ports": [
+        {
+          "protocol": "http",
+          "healthcheck": "/hc",
+          "external": true,
+          "primary": true,
+          "public_vip": false,
+          "enable_proxy_protocol": false,
+          "ssl_arn": "",
+          "ssl_management_type": "iam",
+          "healthcheck_timeout": 1,
+          "public_port": 80,
+          "value": 5000,
+          "name": "PORT"
+        }
+      ]
+    }
+  ]
+}	
+`
+}
+
 //tests the local build provider
 func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
 	shipmentJSON := getSampleShipmentJSON()
