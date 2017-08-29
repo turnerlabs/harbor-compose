@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jtacoma/uritemplates"
 	"github.com/parnurzeal/gorequest"
@@ -547,4 +548,42 @@ func CatalogCustoms(shipment string, env string, buildToken string, catalogReque
 	if res.StatusCode != 200 {
 		log.Fatal("customs/catalog failed")
 	}
+}
+
+// Restart will create an EnvVar on a shipment that will allow it be restarted
+func Restart(username string, token string, shipment string, env string) {
+	if Verbose {
+		log.Printf("restarting shipment")
+	}
+
+	//build URI
+	var config = GetConfig()
+	values := make(map[string]interface{})
+	values["shipment"] = shipment
+	values["env"] = env
+	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envVar/HC_RESTART")
+	uri, _ := template.Expand(values)
+	if Verbose {
+		log.Printf("deleting: " + uri)
+	}
+
+	res, _, _ := delete(username, token, uri)
+
+	if res.StatusCode != 200 && res.StatusCode != 422 {
+		log.Fatalf("delete returned a status code of %v", res.StatusCode)
+	}
+
+	t := time.Now()
+	time := username + "_" + t.Format("20060102150405")
+
+	envVarPayload := EnvVarPayload{
+		Name:  "HC_RESTART",
+		Value: time,
+		Type:  "basic",
+	}
+
+	template, _ = uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envVars")
+	uri, _ = template.Expand(values)
+	create(username, token, uri, envVarPayload)
+	Trigger(shipment, env)
 }

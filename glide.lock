@@ -1,5 +1,5 @@
-hash: e596a4ba60be3fc8b90ca8b9f5aeea6cbbe2bd8d6dfaa81c8e3fff89117bac65
-updated: 2017-04-28T19:58:22.786285584Z
+hash: 41b1ff518747f45fbed75953c83c79ed9b5578be97f2e8ba1148f508c401777b
+updated: 2017-08-14T09:49:36.088711818-04:00
 imports:
 - name: github.com/asaskevich/govalidator
   version: 4918b99a7cb949bb295f3c7bbaf24b577d806e35
@@ -113,6 +113,8 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 4c1c3952b7d9d0a061a3fa7b36fd373ba0398ebc
+- name: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jtacoma/uritemplates

@@ -11,7 +11,7 @@ import (
 )
 
 // DeserializeDockerCompose deserializes a docker-compose.yml file into an object
-func DeserializeDockerCompose(file string) (DockerCompose, project.APIProject) {
+func DeserializeDockerCompose(file string) project.APIProject {
 	if Verbose {
 		log.Printf("DeserializeDockerCompose - %v", file)
 	}
@@ -23,13 +23,9 @@ func DeserializeDockerCompose(file string) (DockerCompose, project.APIProject) {
 	}
 
 	//marshal into compose objects
-	dockerCompose, dockerComposeProject := unmarshalDockerCompose(string(dockerComposeData))
+	dockerCompose := unmarshalDockerCompose(string(dockerComposeData))
 
-	if dockerCompose.Version != "2" {
-		log.Fatal("only docker-compose format v2 is supported")
-	}
-
-	return dockerCompose, dockerComposeProject
+	return dockerCompose
 }
 
 // SerializeDockerCompose serializes an object to a docker-compose.yml file

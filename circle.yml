@@ -30,20 +30,14 @@ test:
     - cd $IMPORT_PATH && go vet -x ./cmd
 
   override:    
-    # run go tests and write results to a file + stdout
-    - cd $IMPORT_PATH && go test -v ./cmd | tee go-test.out
-    # convert go test results to junit format for circle
-    - cat $IMPORT_PATH/go-test.out | go-junit-report > go-test.xml
-    # move junit test results into special circle directory
-    - sudo mkdir -p ${CIRCLE_TEST_REPORTS}/go-test
-    - sudo mv go-test.xml ${CIRCLE_TEST_REPORTS}/go-test/
+    - ./test.sh
 
 deployment:
   
   release:
     branch: master
     commands:
-      - 'cd $IMPORT_PATH && chmod +x ./build.sh && ./build.sh'      
+      - 'cd $IMPORT_PATH && ./build.sh'      
       - source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} $IMPORT_PATH
       - 'cd $IMPORT_PATH && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/'
       - source .env; docker push quay.io/turner/harbor-compose:${VERSION}

@@ -1,3 +1,23 @@
+## 0.13.0 (2017-8-28)
+
+Features:
+
+- Adds Codeship build provider (`generate --build-provider codeship`) ([#101](https://github.com/turnerlabs/harbor-compose/issues/101))
+
+- Adds `restart` command ([#109](https://github.com/turnerlabs/harbor-compose/issues/109))
+
+- Asterisks are now displayed when entering password for login. ([#113](https://github.com/turnerlabs/harbor-compose/issues/113))
+
+- Adds richer validation/feedback for `up` command ([#111](https://github.com/turnerlabs/harbor-compose/issues/111))
+
+- Adds environment name validation for `up` command ([#110](https://github.com/turnerlabs/harbor-compose/issues/110))
+
+
+Bug fixes:
+
+- The `ps` command doesn't work when using expanded docker compose build context ([#112](https://github.com/turnerlabs/harbor-compose/issues/112))
+
+
 ## 0.12.1 (2017-7-24)
 
 Bug fixes:
