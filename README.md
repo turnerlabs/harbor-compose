@@ -95,7 +95,7 @@ There are currently two installation options for Harbor Compose.
 - You can use the following script to download and install (update the URL for your desired platform and version).
 
 ```
-$ sudo curl -sSLo /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.10.1/ncd_darwin_amd64 &&  sudo chmod +x /usr/local/bin/harbor-compose
+$ sudo curl -sSLo /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.13.0/ncd_darwin_amd64 &&  sudo chmod +x /usr/local/bin/harbor-compose
 ```
 
 2) Run as a docker container
