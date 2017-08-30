@@ -2,14 +2,23 @@ package cmd
 
 import "strings"
 
+const (
+	envVarNameCustomer = "CUSTOMER"
+	envVarNameProduct  = "PRODUCT"
+	envVarNameProject  = "PROJECT"
+	envVarNameProperty = "PROPERTY"
+	envVarNameBarge    = "BARGE"
+	envVarNameRestart  = "HC_RESTART"
+)
+
 func specialEnvVars() map[string]string {
 	return map[string]string{
-		"CUSTOMER":   "CUSTOMER",
-		"PRODUCT":    "PRODUCT",
-		"PROJECT":    "PROJECT",
-		"PROPERTY":   "PROPERTY",
-		"BARGE":      "BARGE",
-		"HC_RESTART": "HC_RESTART",
+		envVarNameCustomer: envVarNameCustomer,
+		envVarNameProduct:  envVarNameProduct,
+		envVarNameProject:  envVarNameProject,
+		envVarNameProperty: envVarNameProperty,
+		envVarNameBarge:    envVarNameBarge,
+		envVarNameRestart:  envVarNameRestart,
 	}
 }
 
