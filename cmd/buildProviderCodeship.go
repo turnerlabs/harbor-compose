@@ -33,7 +33,13 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 	artifacts = append(artifacts, createArtifact("codeship-steps.yml", getCodeshipSteps()))
 	artifacts = append(artifacts, createArtifact("codeship.env", getCodeshipEnv(harborCompose, token)))
 	artifacts = append(artifacts, createArtifact("codeship.aes", ""))
-	artifacts = append(artifacts, createArtifact("docker-push.sh", getDockerPush()))
+
+	//add an executable script
+	artifacts = append(artifacts, &BuildArtifact{
+		FilePath:     "docker-push.sh",
+		FileContents: getDockerPush(),
+		FileMode:     0777,
+	})
 
 	//look for .gitignore
 	if _, err := os.Stat(".gitignore"); err == nil {

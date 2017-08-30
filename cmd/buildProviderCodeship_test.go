@@ -99,7 +99,10 @@ func TestBuildProviderCodeship(t *testing.T) {
 	assertArtifact(t, artifacts, "codeship-steps.yml")
 	assertArtifact(t, artifacts, "codeship.env")
 	assertArtifact(t, artifacts, "codeship.aes")
-	assertArtifact(t, artifacts, "docker-push.sh")
+
+	//asert that docker-push.sh is writable
+	dockerPush := assertArtifact(t, artifacts, "docker-push.sh")
+	assert.True(t, dockerPush.FileMode == 0777, "expecting docker-push.sh file mode to be executable")
 
 	//assert that codeship.env and codeship.aes are added to .gitignore
 	gitignorebits, err := ioutil.ReadFile(".gitignore")
@@ -111,13 +114,14 @@ func TestBuildProviderCodeship(t *testing.T) {
 	check(err)
 }
 
-func assertArtifact(t *testing.T, artifacts []*BuildArtifact, filePath string) {
-	found := false
+func assertArtifact(t *testing.T, artifacts []*BuildArtifact, filePath string) *BuildArtifact {
+	var result *BuildArtifact
 	for _, artifact := range artifacts {
 		if artifact.FilePath == filePath {
-			found = true
+			result = artifact
 			break
 		}
 	}
-	assert.True(t, found, "expecting "+filePath)
+	assert.NotNil(t, result, "expecting "+filePath)
+	return result
 }

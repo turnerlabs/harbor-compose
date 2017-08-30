@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"os"
 	"strings"
 )
 
@@ -9,6 +10,7 @@ import (
 type BuildArtifact struct {
 	FilePath     string
 	FileContents string
+	FileMode     os.FileMode
 }
 
 //BuildProvider represents a build provider
