@@ -104,13 +104,22 @@ func TestBuildProviderCodeship(t *testing.T) {
 	dockerPush := assertArtifact(t, artifacts, "docker-push.sh")
 	assert.True(t, dockerPush.FileMode == 0777, "expecting docker-push.sh file mode to be executable")
 
-	//assert that codeship.env and codeship.aes are added to .gitignore
+	//assert that codeship.env and codeship.aes are added to .gitignore/.dockerignore
 	gitignorebits, err := ioutil.ReadFile(".gitignore")
 	check(err)
 	gitignore := string(gitignorebits)
 	assert.Contains(t, gitignore, "codeship.env")
 	assert.Contains(t, gitignore, "codeship.aes")
+	dockerignorebits, err := ioutil.ReadFile(".dockerignore")
+	check(err)
+	dockerignore := string(dockerignorebits)
+	assert.Contains(t, dockerignore, "codeship.env")
+	assert.Contains(t, dockerignore, "codeship.aes")
+
+	//clean up files
 	err = os.Remove(".gitignore")
+	check(err)
+	err = os.Remove(".dockerignore")
 	check(err)
 }
 

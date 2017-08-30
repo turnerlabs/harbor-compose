@@ -41,22 +41,10 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 		FileMode:     0777,
 	})
 
-	//look for .gitignore
-	if _, err := os.Stat(".gitignore"); err == nil {
-		//update .gitignore
-		file, err := os.OpenFile(".gitignore", os.O_APPEND|os.O_WRONLY, 0600)
-		check(err)
-		defer file.Close()
-		_, err = file.WriteString("\ncodeship.env")
-		check(err)
-		_, err = file.WriteString("\ncodeship.aes")
-		check(err)
-
-	} else {
-		//doesn't exist, create it
-		err := ioutil.WriteFile(".gitignore", []byte("codeship.env\ncodeship.aes"), 0644)
-		check(err)
-	}
+	//add sensitive files to .gitignore/.dockerignore
+	sensitiveFiles := []string{"codeship.env", "codeship.aes"}
+	appendToFile(".gitignore", sensitiveFiles)
+	appendToFile(".dockerignore", sensitiveFiles)
 
 	fmt.Println()
 	fmt.Println(`Now you just need to:
@@ -135,4 +123,25 @@ func getFirstShipment(harborCompose *HarborCompose) (string, *ComposeShipment) {
 		break
 	}
 	return shipmentName, &shipment
+}
+
+func appendToFile(file string, lines []string) {
+	if _, err := os.Stat(file); err == nil {
+		//update
+		file, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0600)
+		check(err)
+		defer file.Close()
+		for _, line := range lines {
+			_, err = file.WriteString("\n" + line)
+			check(err)
+		}
+	} else {
+		//create
+		data := ""
+		for _, line := range lines {
+			data += line + "\n"
+		}
+		err := ioutil.WriteFile(file, []byte(data), 0644)
+		check(err)
+	}
 }
