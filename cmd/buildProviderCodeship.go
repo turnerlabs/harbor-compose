@@ -43,10 +43,12 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 		defer file.Close()
 		_, err = file.WriteString("\ncodeship.env")
 		check(err)
+		_, err = file.WriteString("\ncodeship.aes")
+		check(err)
 
 	} else {
 		//doesn't exist, create it
-		err := ioutil.WriteFile(".gitignore", []byte("codeship.env"), 0644)
+		err := ioutil.WriteFile(".gitignore", []byte("codeship.env\ncodeship.aes"), 0644)
 		check(err)
 	}
 
@@ -57,6 +59,7 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 - download your AES key from your codeship project and put it in codeship.aes
 - encrypt your codeship.env by running 'jet encrypt codeship.env codeship.env.encrypted'
 - check in codeship.env.encrypted but don't check in codeship.env`)
+	fmt.Println()
 
 	return artifacts, nil
 }

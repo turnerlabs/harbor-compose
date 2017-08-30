@@ -101,10 +101,12 @@ func TestBuildProviderCodeship(t *testing.T) {
 	assertArtifact(t, artifacts, "codeship.aes")
 	assertArtifact(t, artifacts, "docker-push.sh")
 
-	//assert that codeship.env is added to .gitignore
-	gitignore, err := ioutil.ReadFile(".gitignore")
+	//assert that codeship.env and codeship.aes are added to .gitignore
+	gitignorebits, err := ioutil.ReadFile(".gitignore")
 	check(err)
-	assert.Contains(t, string(gitignore), "codeship.env")
+	gitignore := string(gitignorebits)
+	assert.Contains(t, gitignore, "codeship.env")
+	assert.Contains(t, gitignore, "codeship.aes")
 	err = os.Remove(".gitignore")
 	check(err)
 }
