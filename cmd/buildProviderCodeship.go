@@ -70,13 +70,6 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 	return artifacts, nil
 }
 
-func createArtifact(filePath string, fileContents string) *BuildArtifact {
-	return &BuildArtifact{
-		FilePath:     filePath,
-		FileContents: fileContents,
-	}
-}
-
 func getDockerPush() string {
 	template := `#!/bin/bash
 set -e
