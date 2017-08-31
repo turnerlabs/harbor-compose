@@ -66,7 +66,7 @@ func up(cmd *cobra.Command, args []string) {
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Starting %v ...\n", shipmentName)
+		fmt.Printf("Starting %v %v ...\n", shipmentName, shipment.Env)
 
 		//creating a shipment is a different workflow than updating
 		if existingShipment == nil {
