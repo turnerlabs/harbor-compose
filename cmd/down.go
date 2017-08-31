@@ -34,7 +34,7 @@ func down(cmd *cobra.Command, args []string) {
 
 	//iterate shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
-		fmt.Printf("Stopping %v ...\n", shipmentName)
+		fmt.Printf("Stopping %v %v ...\n", shipmentName, shipment.Env)
 
 		if Verbose {
 			log.Println("processing  " + shipmentName + "/" + shipment.Env)

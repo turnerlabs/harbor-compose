@@ -3,9 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -531,9 +529,102 @@ func getSampleShipmentJSONForValidation() string {
 `
 }
 
-//tests the local build provider
-func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
-	shipmentJSON := getSampleShipmentJSON()
+func getSampleShipmentRestartJSON() string {
+	return `
+{
+  "name": "${env}",
+  "parentShipment": {
+    "name": "${name}",
+    "group": "${group}",
+    "envVars": [
+      {
+        "type": "basic",
+        "value": "customer",
+        "name": "CUSTOMER"
+      },
+      {
+        "type": "basic",
+        "value": "${product}",
+        "name": "PRODUCT"
+      },
+      {
+        "type": "basic",
+        "value": "${project}",
+        "name": "PROJECT"
+      },
+      {
+        "type": "basic",
+        "value": "${property}",
+        "name": "PROPERTY"
+      }
+    ]
+  },
+  "envVars": [
+    {
+      "type": "basic",
+      "value": "${envLevel}",
+      "name": "ENV_LEVEL"
+		},
+    {
+      "type": "basic",
+      "value": "${envLevel}",
+      "name": "HC_RESTART"
+    }		
+  ],
+  "providers": [
+    {
+      "replicas": ${replicas},
+      "barge": "${barge}",
+      "name": "ec2",
+      "envVars": []
+    }
+  ],
+  "containers": [
+    {
+      "image": "quay.io/turner/web:1.0",
+      "name": "${container}",
+      "envVars": [
+        {
+          "type": "basic",
+          "value": "/hc",
+          "name": "HEALTHCHECK"
+        },
+        {
+          "type": "basic",
+          "value": "${containerLevel}",
+          "name": "CONTAINER_LEVEL"
+				},
+				{
+					"type": "basic",
+					"value": "${containerLevel}",
+					"name": "HC_RESTART"
+				}				
+      ],
+      "ports": [
+        {
+          "protocol": "http",
+          "healthcheck": "/hc",
+          "external": true,
+          "primary": true,
+          "public_vip": false,
+          "enable_proxy_protocol": false,
+          "ssl_arn": "",
+          "ssl_management_type": "iam",
+          "healthcheck_timeout": 1,
+          "public_port": 80,
+          "value": 5000,
+          "name": "PORT"
+        }
+      ]
+    }
+  ]
+}	
+`
+}
+
+//tests filtering of HC_RESTART
+func TestTransformShipmentToHarborComposeRestartEnv(t *testing.T) {
+	shipmentJSON := getSampleShipmentRestartJSON()
 
 	//update json with test values
 	name := "mss-poc-app"
@@ -584,312 +675,29 @@ func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
 	data, _ = yaml.Marshal(harborCompose)
 	t.Log(string(data))
 
-	svc := dockerCompose.Services[container]
-	assert.NotNil(t, svc)
+	//assertions
+	assert.Equal(t, 1, len(harborCompose.Shipments))
+	composeShipment := harborCompose.Shipments[name]
+	assert.NotNil(t, composeShipment)
+	assert.Equal(t, group, composeShipment.Group)
+	assert.Equal(t, barge, composeShipment.Barge)
+	assert.Equal(t, env, composeShipment.Env)
+	assert.Equal(t, replicas, composeShipment.Replicas)
+	assert.Equal(t, project, composeShipment.Project)
+	assert.Equal(t, property, composeShipment.Property)
+	assert.Equal(t, product, composeShipment.Product)
+	assert.Equal(t, 1, len(composeShipment.Containers))
 
-	//load local build provider
-	provider, err := getBuildProvider("local")
-	if err != nil {
-		t.Fail()
-	}
+	//IgnoreImageVersion should default to false
+	assert.Equal(t, false, composeShipment.IgnoreImageVersion)
 
-	//run the build provider
-	_, err = provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
-	if err != nil {
-		t.Fail()
-	}
+	//both container-level and env-level shipit envvars should get added to docker-compose and not harbor-compose
+	assert.Equal(t, containerLevel, dockerCompose.Services[container].Environment[containerLevel])
+	assert.Equal(t, envLevel, dockerCompose.Services[container].Environment[envLevel])
+	assert.NotEqual(t, envLevel, composeShipment.Environment[envLevel])
 
-	//debug
-	data, _ = yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//docker compose configuration should have the build directive
-	assert.NotEmpty(t, svc.Build)
-}
-
-//tests generate --build-provider circleciv1
-func TestTransformShipmentToDockerComposeBuildProviderCircleCI(t *testing.T) {
-	shipmentJSON := getSampleShipmentJSON()
-
-	//update json with test values
-	name := "mss-poc-app"
-	env := "dev"
-	barge := "digital-sandbox"
-	replicas := 2
-	group := "mss"
-	foo := "bar"
-	project := "project"
-	property := "property"
-	product := "product"
-	envLevel := "ENV_LEVEL"
-	containerLevel := "CONTAINER_LEVEL"
-	container := "web"
-
-	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${group}", group, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${foo}", foo, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${property}", property, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${product}", product, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${project}", project, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
-	t.Log(shipmentJSON)
-
-	//deserialize shipit json
-	var shipment ShipmentEnvironment
-	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
-
-	//debug
-	data, _ := yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
-
-	//debug
-	data, _ = yaml.Marshal(harborCompose)
-	t.Log(string(data))
-
-	svc := dockerCompose.Services[container]
-	assert.NotNil(t, svc)
-
-	//load circleciv1 build provider
-	provider, err := getBuildProvider("circleciv1")
-	if err != nil {
-		t.Fail()
-	}
-
-	//run the build provider
-	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
-	if err != nil {
-		t.Fail()
-	}
-
-	//debug
-	data, _ = yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//docker compose configuration should have the build directive
-	assert.NotEmpty(t, svc.Build)
-
-	//docker compose configuration should have the circle ci build number in the image tag
-	assert.True(t, strings.HasSuffix(svc.Image, "-${CIRCLE_BUILD_NUM}"))
-
-	//docker compose configuration shouldn't have any environment variables
-	assert.Equal(t, 0, len(svc.Environment))
-
-	//docker compose configuration shouldn't have any ports
-	assert.Equal(t, 0, len(svc.Ports))
-
-	//the provider should output a circle.yml
-	assert.NotNil(t, artifacts)
-	assert.Equal(t, "circle.yml", artifacts[0].FilePath)
-}
-
-//tests generate --build-provider circleciv2
-func TestTransformShipmentToDockerComposeBuildProviderCircleCIv2(t *testing.T) {
-	shipmentJSON := getSampleShipmentJSON()
-
-	//update json with test values
-	name := "mss-poc-app"
-	env := "dev"
-	barge := "digital-sandbox"
-	replicas := 2
-	group := "mss"
-	foo := "bar"
-	project := "project"
-	property := "property"
-	product := "product"
-	envLevel := "ENV_LEVEL"
-	containerLevel := "CONTAINER_LEVEL"
-	container := "web"
-
-	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${group}", group, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${foo}", foo, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${property}", property, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${product}", product, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${project}", project, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
-	t.Log(shipmentJSON)
-
-	//deserialize shipit json
-	var shipment ShipmentEnvironment
-	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
-
-	//debug
-	data, _ := yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
-
-	//debug
-	data, _ = yaml.Marshal(harborCompose)
-	t.Log(string(data))
-
-	svc := dockerCompose.Services[container]
-	assert.NotNil(t, svc)
-
-	//load circleciv1 build provider
-	provider, err := getBuildProvider("circleciv2")
-	if err != nil {
-		t.Fail()
-	}
-
-	//run the build provider
-	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
-	if err != nil {
-		t.Fail()
-	}
-
-	//debug
-	data, _ = yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//docker compose configuration should have the build directive
-	assert.NotEmpty(t, svc.Build)
-
-	//docker compose configuration should have the circle ci build number in the image tag
-	assert.True(t, strings.HasSuffix(svc.Image, "-${CIRCLE_BUILD_NUM}"))
-
-	//docker compose configuration shouldn't have any environment variables
-	assert.Equal(t, 0, len(svc.Environment))
-
-	//docker compose configuration shouldn't have any ports
-	assert.Equal(t, 0, len(svc.Ports))
-
-	//the provider should output a .circle/config.yml
-	assert.NotNil(t, artifacts)
-	assert.Equal(t, ".circleci/config.yml", artifacts[0].FilePath)
-	t.Log(artifacts[0].FileContents)
-}
-
-//tests generate --build-provider codeship
-func TestBuildProviderCircleCIv2(t *testing.T) {
-	shipmentJSON := getSampleShipmentJSON()
-
-	//update json with test values
-	name := "mss-poc-app"
-	env := "dev"
-	barge := "digital-sandbox"
-	replicas := 2
-	group := "mss"
-	foo := "bar"
-	project := "project"
-	property := "property"
-	product := "product"
-	envLevel := "ENV_LEVEL"
-	containerLevel := "CONTAINER_LEVEL"
-	container := "web"
-
-	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${group}", group, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${foo}", foo, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${property}", property, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${product}", product, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${project}", project, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
-	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
-	t.Log(shipmentJSON)
-
-	//deserialize shipit json
-	var shipment ShipmentEnvironment
-	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
-	check(err)
-
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
-
-	//debug
-	data, _ := yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
-
-	//debug
-	data, _ = yaml.Marshal(harborCompose)
-	t.Log(string(data))
-
-	svc := dockerCompose.Services[container]
-	assert.NotNil(t, svc)
-
-	//load circleciv1 build provider
-	provider, err := getBuildProvider("codeship")
-	if err != nil {
-		t.Fail()
-	}
-
-	//run the build provider
-	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
-	if err != nil {
-		t.Fail()
-	}
-
-	//debug
-	data, _ = yaml.Marshal(dockerCompose)
-	t.Log(string(data))
-
-	//docker compose configuration should have the build directive
-	assert.NotEmpty(t, svc.Build)
-
-	//docker compose configuration should have the codeship build number in the image tag
-	assert.True(t, strings.HasSuffix(svc.Image, "-${CI_BUILD_ID}"))
-
-	//docker compose configuration shouldn't have any environment variables
-	assert.Equal(t, 0, len(svc.Environment))
-
-	//docker compose configuration shouldn't have any ports
-	assert.Equal(t, 0, len(svc.Ports))
-
-	assert.NotNil(t, artifacts)
-	assertArtifact(t, artifacts, "codeship-services.yml")
-	assertArtifact(t, artifacts, "codeship-steps.yml")
-	assertArtifact(t, artifacts, "codeship.env")
-	assertArtifact(t, artifacts, "codeship.aes")
-	assertArtifact(t, artifacts, "docker-push.sh")
-
-	//assert that codeship.env is added to .gitignore
-	gitignore, err := ioutil.ReadFile(".gitignore")
-	check(err)
-	assert.Contains(t, string(gitignore), "codeship.env")
-	err = os.Remove(".gitignore")
-	check(err)
-}
-
-func assertArtifact(t *testing.T, artifacts []*BuildArtifact, filePath string) {
-	found := false
-	for _, artifact := range artifacts {
-		if artifact.FilePath == filePath {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expecting "+filePath)
+	//HC_RESTART should not get added to yaml files
+	hcRestart := "HC_RESTART"
+	assert.Equal(t, "", dockerCompose.Services[container].Environment[hcRestart], "expecting %v to not be added", hcRestart)
+	assert.Equal(t, "", composeShipment.Environment[hcRestart], "expecting %v to not be added", hcRestart)
 }

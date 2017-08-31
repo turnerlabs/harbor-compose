@@ -1,3 +1,12 @@
+## 0.13.1 (2017-8-31)
+
+Bug fixes:
+
+- Codeship fix ([#122](https://github.com/turnerlabs/harbor-compose/issues/122))
+
+- Restart fix ([#123](https://github.com/turnerlabs/harbor-compose/issues/123))
+
+
 ## 0.13.0 (2017-8-28)
 
 Features:
