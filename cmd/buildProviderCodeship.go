@@ -33,22 +33,18 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 	artifacts = append(artifacts, createArtifact("codeship-steps.yml", getCodeshipSteps()))
 	artifacts = append(artifacts, createArtifact("codeship.env", getCodeshipEnv(harborCompose, token)))
 	artifacts = append(artifacts, createArtifact("codeship.aes", ""))
-	artifacts = append(artifacts, createArtifact("docker-push.sh", getDockerPush()))
 
-	//look for .gitignore
-	if _, err := os.Stat(".gitignore"); err == nil {
-		//update .gitignore
-		file, err := os.OpenFile(".gitignore", os.O_APPEND|os.O_WRONLY, 0600)
-		check(err)
-		defer file.Close()
-		_, err = file.WriteString("\ncodeship.env")
-		check(err)
+	//add an executable script
+	artifacts = append(artifacts, &BuildArtifact{
+		FilePath:     "docker-push.sh",
+		FileContents: getDockerPush(),
+		FileMode:     0777,
+	})
 
-	} else {
-		//doesn't exist, create it
-		err := ioutil.WriteFile(".gitignore", []byte("codeship.env"), 0644)
-		check(err)
-	}
+	//add sensitive files to .gitignore/.dockerignore
+	sensitiveFiles := []string{"codeship.env", "codeship.aes"}
+	appendToFile(".gitignore", sensitiveFiles)
+	appendToFile(".dockerignore", sensitiveFiles)
 
 	fmt.Println()
 	fmt.Println(`Now you just need to:
@@ -57,15 +53,9 @@ func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCo
 - download your AES key from your codeship project and put it in codeship.aes
 - encrypt your codeship.env by running 'jet encrypt codeship.env codeship.env.encrypted'
 - check in codeship.env.encrypted but don't check in codeship.env`)
+	fmt.Println()
 
 	return artifacts, nil
-}
-
-func createArtifact(filePath string, fileContents string) *BuildArtifact {
-	return &BuildArtifact{
-		FilePath:     filePath,
-		FileContents: fileContents,
-	}
 }
 
 func getDockerPush() string {
@@ -133,4 +123,25 @@ func getFirstShipment(harborCompose *HarborCompose) (string, *ComposeShipment) {
 		break
 	}
 	return shipmentName, &shipment
+}
+
+func appendToFile(file string, lines []string) {
+	if _, err := os.Stat(file); err == nil {
+		//update
+		file, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0600)
+		check(err)
+		defer file.Close()
+		for _, line := range lines {
+			_, err = file.WriteString("\n" + line)
+			check(err)
+		}
+	} else {
+		//create
+		data := ""
+		for _, line := range lines {
+			data += line + "\n"
+		}
+		err := ioutil.WriteFile(file, []byte(data), 0644)
+		check(err)
+	}
 }

@@ -140,12 +140,12 @@ func generate(cmd *cobra.Command, args []string) {
 					//exists
 					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")
 					if askForConfirmation() {
-						err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), 0644)
+						err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), artifact.FileMode)
 						check(err)
 					}
 				} else {
 					//doesn't exist
-					err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), 0644)
+					err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), artifact.FileMode)
 					check(err)
 				}
 			}
