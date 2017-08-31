@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"os"
 	"strings"
 )
 
@@ -9,6 +10,15 @@ import (
 type BuildArtifact struct {
 	FilePath     string
 	FileContents string
+	FileMode     os.FileMode
+}
+
+func createArtifact(filePath string, fileContents string) *BuildArtifact {
+	return &BuildArtifact{
+		FilePath:     filePath,
+		FileContents: fileContents,
+		FileMode:     0644,
+	}
 }
 
 //BuildProvider represents a build provider
