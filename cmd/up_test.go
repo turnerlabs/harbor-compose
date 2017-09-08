@@ -827,3 +827,176 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Healthcheck changes")
 }
+
+func TestTransformComposeToNewShipmentHiddenEnvFile(t *testing.T) {
+	//test compose yaml transformation to a new harbor shipment using env_file
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+    env_file: 
+    - ${envFileName}
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: corp-sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//write hidden.env file containing env vars
+	envFileName := "/tmp/hidden.env"
+	err := ioutil.WriteFile(envFileName, []byte("HIDDEN=foo"), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test func
+	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+
+	//lookup container service
+	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
+	if !success {
+		log.Fatal("error getting service config")
+	}
+
+	//lookup transformed shipment container
+	shipmentContainer := newShipment.Containers[0]
+
+	//assertions
+
+	//all environment variables specified in docker-compose should get tranformed to shipment container vars
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+
+	//vars in hidden.env should be set to type=hidden
+	hiddenVar := getEnvVar("HIDDEN", shipmentContainer.Vars)
+	assert.Equal(t, "hidden", hiddenVar.Type)
+
+	//clean up
+	err = os.Remove(envFileName)
+	if err != nil {
+		t.Fail()
+	}
+}
+
+func TestTransformComposeToNewShipmentHiddenEnvFileWithAnotherEnvFile(t *testing.T) {
+	//test compose yaml transformation to a new harbor shipment using env_file
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+    env_file: 
+    - ${envFileName}
+    - ${envFileName2}
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: corp-sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//write hidden.env file containing env vars
+	envFileName := "/tmp/hidden.env"
+	err := ioutil.WriteFile(envFileName, []byte("HIDDEN=foo"), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	//also, write another env_file
+	envFileName2 := "/tmp/vars.env"
+	err = ioutil.WriteFile(envFileName2, []byte("FOOBAR=foo"), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName2}", envFileName2, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test func
+	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+
+	//lookup container service
+	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
+	if !success {
+		log.Fatal("error getting service config")
+	}
+
+	//lookup transformed shipment container
+	shipmentContainer := newShipment.Containers[0]
+
+	//assertions
+
+	//all environment variables specified in docker-compose should get tranformed to shipment container vars
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+
+	//vars in hidden.env should be set to type=hidden
+	hiddenVar := getEnvVar("HIDDEN", shipmentContainer.Vars)
+	assert.Equal(t, "hidden", hiddenVar.Type)
+
+	anotherVar := getEnvVar("FOOBAR", shipmentContainer.Vars)
+	assert.Equal(t, "basic", anotherVar.Type)
+
+	//clean up
+	err = os.Remove(envFileName)
+	if err != nil {
+		t.Fail()
+	}
+	err = os.Remove(envFileName2)
+	if err != nil {
+		t.Fail()
+	}
+}
+
+func getEnvVar(name string, vars []EnvVarPayload) *EnvVarPayload {
+	for _, envvar := range vars {
+		if envvar.Name == name {
+			return &envvar
+		}
+	}
+	return &EnvVarPayload{}
+}

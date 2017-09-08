@@ -133,7 +133,7 @@ func update(username string, token string, url string, data interface{}) (*http.
 	return res, body, err
 }
 
-func delete(username string, token string, url string) (*http.Response, string, []error) {
+func deleteHTTP(username string, token string, url string) (*http.Response, string, []error) {
 
 	if Verbose {
 		log.Printf("DELETE %v", url)
@@ -320,7 +320,7 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 
 	//issue delete call
 	//api will return 422 if the envvar doesn't exist, which can be ignored
-	res, _, _ := delete(username, token, url)
+	res, _, _ := deleteHTTP(username, token, url)
 
 	//throw an error if we don't get our expected status code
 	if !(res.StatusCode == 200 || res.StatusCode == 422) {
@@ -403,7 +403,7 @@ func DeleteShipmentEnvironment(username string, token string, shipment string, e
 		log.Printf("deleting: " + uri)
 	}
 
-	res, _, _ := delete(username, token, uri)
+	res, _, _ := deleteHTTP(username, token, uri)
 
 	if res.StatusCode != 200 {
 		log.Fatalf("delete returned a status code of %v", res.StatusCode)

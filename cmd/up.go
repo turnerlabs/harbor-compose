@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -264,6 +267,33 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 		//container-level env vars (note that these are parsed by libcompose which supports:
 		//environment, env_file, and variable substitution with .env)
 		containerEnvVars := serviceConfig.Environment.ToMap()
+
+		//has the user specified hidden env vars in a hidden.env?
+		hiddenEnvVars := false
+		hiddenEnvVarFile := ""
+		for _, envFileName := range serviceConfig.EnvFile {
+			if strings.HasSuffix(envFileName, "hidden.env") {
+				hiddenEnvVars = true
+				hiddenEnvVarFile = envFileName
+				break
+			}
+		}
+
+		//iterate/process hidden envvars and remove them from the list
+		if hiddenEnvVars {
+			if Verbose {
+				log.Println("found hidden env vars")
+			}
+			for _, name := range parseEnvVarNames(hiddenEnvVarFile) {
+				if Verbose {
+					log.Println("processing hidden.env = " + name)
+				}
+				newContainer.Vars = append(newContainer.Vars, envVarHidden(name, containerEnvVars[name]))
+				delete(containerEnvVars, name)
+			}
+		}
+
+		//iterate/process envvars (hidden have already filtered out)
 		for name, value := range containerEnvVars {
 			if name != "" {
 				if Verbose {
@@ -319,6 +349,27 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 	newShipment.Providers = append(newShipment.Providers, provider)
 
 	return newShipment
+}
+
+func parseEnvVarNames(envFile string) []string {
+	keys := []string{}
+
+	//read the file
+	contents, err := ioutil.ReadFile(envFile)
+	check(err)
+
+	//parse the file
+	scanner := bufio.NewScanner(bytes.NewBuffer(contents))
+	//iterate lines
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		//ignore comments and empty lines
+		if len(line) > 0 && !strings.HasPrefix(line, "#") {
+			key := strings.Split(line, "=")[0]
+			keys = append(keys, key)
+		}
+	}
+	return keys
 }
 
 func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject, newShipment NewShipmentEnvironment) {
@@ -434,6 +485,14 @@ func envVar(name string, value string) EnvVarPayload {
 		Name:  name,
 		Value: value,
 		Type:  "basic",
+	}
+}
+
+func envVarHidden(name string, value string) EnvVarPayload {
+	return EnvVarPayload{
+		Name:  name,
+		Value: value,
+		Type:  "hidden",
 	}
 }
 
