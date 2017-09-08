@@ -46,3 +46,28 @@ func copyEnvVars(source []EnvVarPayload, destination map[string]string, special 
 		}
 	}
 }
+
+func getEnvVar(name string, vars []EnvVarPayload) *EnvVarPayload {
+	for _, envvar := range vars {
+		if envvar.Name == name {
+			return &envvar
+		}
+	}
+	return &EnvVarPayload{}
+}
+
+func envVar(name string, value string) EnvVarPayload {
+	return EnvVarPayload{
+		Name:  name,
+		Value: value,
+		Type:  "basic",
+	}
+}
+
+func envVarHidden(name string, value string) EnvVarPayload {
+	return EnvVarPayload{
+		Name:  name,
+		Value: value,
+		Type:  "hidden",
+	}
+}

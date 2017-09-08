@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/docker/libcompose/config"
 	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 
@@ -264,44 +265,8 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			Ports:   make([]PortPayload, 0),
 		}
 
-		//container-level env vars (note that these are parsed by libcompose which supports:
-		//environment, env_file, and variable substitution with .env)
-		containerEnvVars := serviceConfig.Environment.ToMap()
-
-		//has the user specified hidden env vars in a hidden.env?
-		hiddenEnvVars := false
-		hiddenEnvVarFile := ""
-		for _, envFileName := range serviceConfig.EnvFile {
-			if strings.HasSuffix(envFileName, hiddenEnvFileName) {
-				hiddenEnvVars = true
-				hiddenEnvVarFile = envFileName
-				break
-			}
-		}
-
-		//iterate/process hidden envvars and remove them from the list
-		if hiddenEnvVars {
-			if Verbose {
-				log.Println("found hidden env vars")
-			}
-			for _, name := range parseEnvVarNames(hiddenEnvVarFile) {
-				if Verbose {
-					log.Println("processing = " + name)
-				}
-				newContainer.Vars = append(newContainer.Vars, envVarHidden(name, containerEnvVars[name]))
-				delete(containerEnvVars, name)
-			}
-		}
-
-		//iterate/process envvars (hidden have already filtered out)
-		for name, value := range containerEnvVars {
-			if name != "" {
-				if Verbose {
-					log.Println("processing " + name)
-				}
-				newContainer.Vars = append(newContainer.Vars, envVar(name, value))
-			}
-		}
+		//map docker-compose envvars to harbor env vars
+		newContainer.Vars = transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
 
 		//map the docker compose service ports to harbor ports
 		if len(serviceConfig.Ports) == 0 {
@@ -327,7 +292,7 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			Primary:     (containerIndex == 0),
 			Protocol:    "http",
 			External:    false,
-			Healthcheck: containerEnvVars[healthCheckEnvVarName],
+			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.Vars).Value,
 		}
 
 		//add port to list
@@ -421,20 +386,18 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 			UpdateContainerImage(username, token, shipmentName, shipment, container, serviceConfig.Image)
 		}
 
-		for evName, evValue := range serviceConfig.Environment.ToMap() {
-			if evName != "" {
+		//map docker-compose envvars to harbor env vars
+		harborEnvVars := transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
+		for _, envvar := range harborEnvVars {
+			if envvar.Name != "" {
 				if Verbose {
-					log.Println("processing " + evName)
+					log.Printf("processing %s (%s)", envvar.Name, envvar.Type)
 				}
 
-				//create an envvar object
-				envVarPayload := envVar(evName, evValue)
-
 				//save the envvar
-				SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, container)
+				SaveEnvVar(username, token, shipmentName, shipment, envvar, container)
 			}
 		}
-
 	}
 
 	//convert the specified barge into an env var
@@ -480,22 +443,6 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 	}
 }
 
-func envVar(name string, value string) EnvVarPayload {
-	return EnvVarPayload{
-		Name:  name,
-		Value: value,
-		Type:  "basic",
-	}
-}
-
-func envVarHidden(name string, value string) EnvVarPayload {
-	return EnvVarPayload{
-		Name:  name,
-		Value: value,
-		Type:  "hidden",
-	}
-}
-
 func catalogContainer(name string, image string) {
 
 	if Verbose {
@@ -529,4 +476,58 @@ func catalogContainer(name string, image string) {
 			log.Printf("container %v already cataloged", name)
 		}
 	}
+}
+
+//transform a docker service's environment variables into harbor-specific env var objects
+func transformDockerServiceEnvVarsToHarborEnvVars(dockerService *config.ServiceConfig) []EnvVarPayload {
+
+	//docker-compose.yml
+	//env_file:
+	//- hidden.env
+	//
+	//gets mapped to type=hidden
+	//everything else type=basic
+
+	harborEnvVars := []EnvVarPayload{}
+
+	//container-level env vars (note that these are parsed by libcompose which supports:
+	//environment, env_file, and variable substitution with .env)
+	containerEnvVars := dockerService.Environment.ToMap()
+
+	//has the user specified hidden env vars in a hidden.env?
+	hiddenEnvVars := false
+	hiddenEnvVarFile := ""
+	for _, envFileName := range dockerService.EnvFile {
+		if strings.HasSuffix(envFileName, hiddenEnvFileName) {
+			hiddenEnvVars = true
+			hiddenEnvVarFile = envFileName
+			break
+		}
+	}
+
+	//iterate/process hidden envvars and remove them from the list
+	if hiddenEnvVars {
+		if Verbose {
+			log.Println("found hidden env vars")
+		}
+		for _, name := range parseEnvVarNames(hiddenEnvVarFile) {
+			if Verbose {
+				log.Println("processing " + name)
+			}
+			harborEnvVars = append(harborEnvVars, envVarHidden(name, containerEnvVars[name]))
+			delete(containerEnvVars, name)
+		}
+	}
+
+	//iterate/process envvars (hidden have already filtered out)
+	for name, value := range containerEnvVars {
+		if name != "" {
+			if Verbose {
+				log.Println("processing " + name)
+			}
+			harborEnvVars = append(harborEnvVars, envVar(name, value))
+		}
+	}
+
+	return harborEnvVars
 }
