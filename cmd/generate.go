@@ -35,63 +35,14 @@ harbor-compose generate my-shipment dev -b codeship
 
 var buildProvider string
 
-const providerEc2 = "ec2"
+const (
+	providerEc2       = "ec2"
+	hiddenEnvFileName = "hidden.env"
+)
 
 func init() {
 	generateCmd.PersistentFlags().StringVarP(&buildProvider, "build-provider", "b", "", "generate build provider-specific files that allow you to build Docker images do CI/CD with Harbor")
 	RootCmd.AddCommand(generateCmd)
-}
-
-func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) DockerCompose {
-
-	dockerCompose := DockerCompose{
-		Version:  "2",
-		Services: make(map[string]*DockerComposeService),
-	}
-
-	//convert containers to docker services
-	for _, container := range shipmentObject.Containers {
-
-		//create a docker service based on this container
-		service := DockerComposeService{
-			Image:       container.Image,
-			Ports:       make([]string, len(shipmentObject.Ports)),
-			Environment: make(map[string]string),
-		}
-
-		//populate ports
-		for _, port := range container.Ports {
-
-			//format = external:internal
-			if port.PublicPort == 0 {
-				port.PublicPort = port.Value
-			}
-			dockerPort := fmt.Sprintf("%v:%v", port.PublicPort, port.Value)
-			service.Ports = append(service.Ports, dockerPort)
-
-			//set container env vars for healthcheck, and port
-			//so that apps can simulate running in harbor
-			service.Environment["PORT"] = strconv.Itoa(port.Value)
-			service.Environment["HEALTHCHECK"] = port.Healthcheck
-		}
-
-		//copy shipment, environment, provider level env vars down to the
-		//container level so that they can be used in docker-compose
-
-		//shipment
-		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil)
-
-		//environment
-		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil)
-
-		//container
-		copyEnvVars(container.EnvVars, service.Environment, nil)
-
-		//add service to list
-		dockerCompose.Services[container.Name] = &service
-	}
-
-	return dockerCompose
 }
 
 func generate(cmd *cobra.Command, args []string) {
@@ -114,11 +65,11 @@ func generate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	//convert a Shipment object into a DockerCompose object
-	dockerCompose := transformShipmentToDockerCompose(shipmentObject)
-
 	//convert a Shipment object into a HarborCompose object
-	harborCompose := transformShipmentToHarborCompose(shipmentObject, &dockerCompose)
+	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(shipmentObject)
+
+	//convert a Shipment object into a DockerCompose object, with hidden envvar
+	dockerCompose := transformShipmentToDockerCompose(shipmentObject, hiddenEnvVars)
 
 	//if build provider is specified, allow it modify the compose objects and do its thing
 	if len(buildProvider) > 0 {
@@ -170,16 +121,37 @@ func generate(cmd *cobra.Command, args []string) {
 		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
 		if askForConfirmation() {
 			SerializeHarborCompose(harborCompose, HarborComposeFile)
-			fmt.Println("done")
 		}
 	} else {
 		//doesn't exist
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
-		fmt.Println("done")
 	}
+
+	//prompt to override hidden env file
+	if _, err := os.Stat(hiddenEnvFileName); err == nil {
+		//exists
+		fmt.Print(hiddenEnvFileName + " already exists. Overwrite? ")
+		if askForConfirmation() {
+			writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+		}
+	} else {
+		//doesn't exist
+		writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+	}
+
+	fmt.Println("done")
 }
 
-func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment, dockerCompose *DockerCompose) HarborCompose {
+func writeHiddenEnvFile(envvars map[string]string, file string) {
+	contents := ""
+	for name, value := range envvars {
+		contents += fmt.Sprintf("%s=%s\n", name, value)
+	}
+	err := ioutil.WriteFile(file, []byte(contents), 0644)
+	check(err)
+}
+
+func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (HarborCompose, map[string]string) {
 
 	//convert a Shipment object into a HarborCompose object with a single shipment
 	harborCompose := HarborCompose{
@@ -195,11 +167,14 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment, docke
 	//track special envvars
 	special := map[string]string{}
 
+	//track hidden envvars
+	hiddenEnvVars := map[string]string{}
+
 	//shipment
-	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special)
+	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, hiddenEnvVars)
 
 	//environment
-	copyEnvVars(shipmentObject.EnvVars, nil, special)
+	copyEnvVars(shipmentObject.EnvVars, nil, special, hiddenEnvVars)
 
 	provider := ec2Provider(shipmentObject.Providers)
 
@@ -218,12 +193,71 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment, docke
 	composeShipment.Replicas = provider.Replicas
 
 	//add containers
-	for container := range dockerCompose.Services {
-		composeShipment.Containers = append(composeShipment.Containers, container)
+	for _, container := range shipmentObject.Containers {
+		composeShipment.Containers = append(composeShipment.Containers, container.Name)
 	}
 
 	//add single shipment to list
 	harborCompose.Shipments[shipmentObject.ParentShipment.Name] = composeShipment
 
-	return harborCompose
+	return harborCompose, hiddenEnvVars
+}
+
+//transforms a ShipmentEnvironment object to its DockerCompose representation
+//(along with hidden env vars)
+func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hiddenEnvVars map[string]string) DockerCompose {
+
+	dockerCompose := DockerCompose{
+		Version:  "2",
+		Services: make(map[string]*DockerComposeService),
+	}
+
+	//convert containers to docker services
+	for _, container := range shipmentObject.Containers {
+
+		//create a docker service based on this container
+		service := DockerComposeService{
+			Image:       container.Image,
+			Ports:       make([]string, len(shipmentObject.Ports)),
+			Environment: make(map[string]string),
+		}
+
+		//populate ports
+		for _, port := range container.Ports {
+
+			//format = external:internal
+			if port.PublicPort == 0 {
+				port.PublicPort = port.Value
+			}
+			dockerPort := fmt.Sprintf("%v:%v", port.PublicPort, port.Value)
+			service.Ports = append(service.Ports, dockerPort)
+
+			//set container env vars for healthcheck, and port
+			//so that apps can simulate running in harbor
+			service.Environment["PORT"] = strconv.Itoa(port.Value)
+			service.Environment["HEALTHCHECK"] = port.Healthcheck
+		}
+
+		//copy shipment, environment, provider level env vars down to the
+		//container level so that they can be used in docker-compose
+
+		//shipment
+		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars)
+
+		//environment
+		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars)
+
+		//container
+		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars)
+
+		//write hidden env vars to file specified in env_file
+		if len(hiddenEnvVars) > 0 {
+			service.EnvFile = []string{hiddenEnvFileName}
+		}
+
+		//add service to list
+		dockerCompose.Services[container.Name] = &service
+	}
+
+	return dockerCompose
 }

@@ -116,7 +116,7 @@ func TestTransformShipmentToDockerCompose(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
+	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -262,7 +262,7 @@ func TestTransformShipmentToDockerComposeMultiContainer(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
+	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -327,15 +327,15 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
+	//convert shipit model to harbor-compose
+	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+
+	//convert shipit model to docker-compose
+	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
 	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
 
 	//debug
 	data, _ = yaml.Marshal(harborCompose)
@@ -661,15 +661,15 @@ func TestTransformShipmentToHarborComposeRestartEnv(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
+	//convert shipit model to harbor-compose
+	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+
+	//convert shipit model to docker-compose
+	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
 	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
 
 	//debug
 	data, _ = yaml.Marshal(harborCompose)
@@ -700,4 +700,131 @@ func TestTransformShipmentToHarborComposeRestartEnv(t *testing.T) {
 	hcRestart := "HC_RESTART"
 	assert.Equal(t, "", dockerCompose.Services[container].Environment[hcRestart], "expecting %v to not be added", hcRestart)
 	assert.Equal(t, "", composeShipment.Environment[hcRestart], "expecting %v to not be added", hcRestart)
+}
+
+//tests generating a docker-compose.yml from an existing shipment with hidden env vars
+func TestTransformShipmentToDockerComposeWithHiddenEnvVar(t *testing.T) {
+
+	//define a ShipmentEnvironment
+	shipmentJSON := `
+  {
+    "enableMonitoring": true,
+    "name": "dev",
+    "parentShipment": {
+      "name": "mss-poc-app",
+      "group": "mss",
+      "envVars": [
+        {
+          "type": "basic",
+          "value": "adds",
+          "name": "CUSTOMER"
+        },
+        {
+          "type": "basic",
+          "value": "mss-poc-app",
+          "name": "PRODUCT"
+        },
+        {
+          "type": "basic",
+          "value": "mss-poc-app",
+          "name": "PROJECT"
+        },
+        {
+          "type": "basic",
+          "value": "mss",
+          "name": "PROPERTY"
+        }
+      ]
+    },
+    "envVars": [
+      {
+        "type": "basic",
+        "value": "bar",
+        "name": "FOO"
+      }
+    ],
+    "providers": [
+      {
+        "replicas": 2,
+        "barge": "corp-sandbox",
+        "name": "ec2",
+        "envVars": []
+      }
+    ],
+    "containers": [
+      {
+        "image": "${image}",
+        "name": "${service}",
+        "envVars": [
+          {
+            "type": "basic",
+            "value": "${healthCheck}",
+            "name": "HEALTHCHECK"
+          },
+          {
+            "type": "hidden",
+            "value": "${hiddenValue}",
+            "name": "HIDDEN"
+          }          
+        ],
+        "ports": [
+          {
+            "protocol": "http",
+            "healthcheck": "${healthCheck}",
+            "external": true,
+            "primary": true,
+            "public_vip": false,
+            "enable_proxy_protocol": false,
+            "ssl_arn": "",
+            "ssl_management_type": "iam",
+            "healthcheck_timeout": 1,
+            "public_port": ${publicPort},
+            "value": ${containerPort},
+            "name": "PORT"
+          }
+        ]
+      }
+    ]
+  }	
+  `
+
+	//update json with test values
+	service := "mss-poc-app"
+	image := "quay.io/turner/mss-poc-app:1.0.0"
+	publicPort := "80"
+	containerPort := "3000"
+	healthCheck := "/hc"
+	hiddenValue := "some-hidden-value"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${service}", service, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${image}", image, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${publicPort}", publicPort, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${containerPort}", containerPort, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthCheck}", healthCheck, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${hiddenValue}", hiddenValue, 1)
+
+	//deserialize json
+	var shipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//test
+	hiddenEnvVars := map[string]string{}
+	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+
+	//debug
+	data, _ := yaml.Marshal(dockerCompose)
+	t.Log(string(data))
+
+	//assertions
+	composeService := dockerCompose.Services[service]
+
+	//check hidden.env
+	if len(composeService.EnvFile) != 1 {
+		assert.FailNow(t, "env_file should contain 1 value")
+	}
+	envFileName := composeService.EnvFile[0]
+	assert.Equal(t, "hidden.env", envFileName, "env_file should contain hidden.env")
 }

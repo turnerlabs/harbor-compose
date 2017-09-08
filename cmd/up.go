@@ -272,7 +272,7 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 		hiddenEnvVars := false
 		hiddenEnvVarFile := ""
 		for _, envFileName := range serviceConfig.EnvFile {
-			if strings.HasSuffix(envFileName, "hidden.env") {
+			if strings.HasSuffix(envFileName, hiddenEnvFileName) {
 				hiddenEnvVars = true
 				hiddenEnvVarFile = envFileName
 				break
@@ -286,7 +286,7 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			}
 			for _, name := range parseEnvVarNames(hiddenEnvVarFile) {
 				if Verbose {
-					log.Println("processing hidden.env = " + name)
+					log.Println("processing = " + name)
 				}
 				newContainer.Vars = append(newContainer.Vars, envVarHidden(name, containerEnvVars[name]))
 				delete(containerEnvVars, name)
