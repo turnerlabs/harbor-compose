@@ -68,7 +68,7 @@ func generate(cmd *cobra.Command, args []string) {
 	//convert a Shipment object into a HarborCompose object
 	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(shipmentObject)
 
-	//convert a Shipment object into a DockerCompose object, with hidden envvar
+	//convert a Shipment object into a DockerCompose object, with hidden envvars
 	dockerCompose := transformShipmentToDockerCompose(shipmentObject, hiddenEnvVars)
 
 	//if build provider is specified, allow it modify the compose objects and do its thing
@@ -127,16 +127,22 @@ func generate(cmd *cobra.Command, args []string) {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
 	}
 
-	//prompt to override hidden env file
-	if _, err := os.Stat(hiddenEnvFileName); err == nil {
-		//exists
-		fmt.Print(hiddenEnvFileName + " already exists. Overwrite? ")
-		if askForConfirmation() {
+	if len(hiddenEnvVars) > 0 {
+		//prompt to override hidden env file
+		if _, err := os.Stat(hiddenEnvFileName); err == nil {
+			//exists
+			fmt.Print(hiddenEnvFileName + " already exists. Overwrite? ")
+			if askForConfirmation() {
+				writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+			}
+		} else {
+			//doesn't exist
 			writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
 		}
-	} else {
-		//doesn't exist
-		writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+
+		//add hidden env_file to .gitignore (to avoid checking secrets)
+		sensitiveFiles := []string{hiddenEnvFileName}
+		appendToFile(".gitignore", sensitiveFiles)
 	}
 
 	fmt.Println("done")
