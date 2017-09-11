@@ -230,8 +230,6 @@ func readEnvFile(resourceLookup ResourceLookup, inFile string, serviceData RawSe
 
 	serviceData["environment"] = vars
 
-	//delete(serviceData, "env_file")
-
 	return serviceData, nil
 }
 
