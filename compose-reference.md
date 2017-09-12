@@ -113,6 +113,17 @@ shipments:
     ignoreImageVersion: true
 ```
 
+### enableMonitoring
+
+This value determines whether or not automatic monitoring is enabled for this Shipment environment.
+
+```yaml
+shipments:
+  my-shipment:
+    env: prod
+    enableMonitoring: true
+```
+
 ### property
 
 This value defines which property your shipment serves.
