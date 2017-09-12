@@ -140,9 +140,10 @@ func generate(cmd *cobra.Command, args []string) {
 			writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
 		}
 
-		//add hidden env_file to .gitignore (to avoid checking secrets)
+		//add hidden env_file to .gitignore and .dockerignore (to avoid checking secrets)
 		sensitiveFiles := []string{hiddenEnvFileName}
 		appendToFile(".gitignore", sensitiveFiles)
+		appendToFile(".dockerignore", sensitiveFiles)
 	}
 
 	fmt.Println("done")
