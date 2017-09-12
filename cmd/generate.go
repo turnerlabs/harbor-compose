@@ -166,9 +166,10 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (Harb
 	}
 
 	composeShipment := ComposeShipment{
-		Env:         shipmentObject.Name,
-		Group:       shipmentObject.ParentShipment.Group,
-		Environment: make(map[string]string),
+		Env:              shipmentObject.Name,
+		Group:            shipmentObject.ParentShipment.Group,
+		EnableMonitoring: &shipmentObject.EnableMonitoring,
+		Environment:      make(map[string]string),
 	}
 
 	//track special envvars

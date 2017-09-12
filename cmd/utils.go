@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/jtacoma/uritemplates"
 )
 
 func check(e error) {
@@ -53,4 +55,28 @@ func appendToFile(file string, lines []string) {
 		err := ioutil.WriteFile(file, []byte(data), 0644)
 		check(err)
 	}
+}
+
+type tuple struct {
+	Item1 string
+	Item2 string
+}
+
+func param(item1 string, item2 string) tuple {
+	return tuple{
+		Item1: item1,
+		Item2: item2,
+	}
+}
+
+func buildURI(baseURI string, template string, params ...tuple) string {
+	uriTemplate, err := uritemplates.Parse(baseURI + template)
+	check(err)
+	values := make(map[string]interface{})
+	for _, v := range params {
+		values[v.Item1] = v.Item2
+	}
+	uri, err := uriTemplate.Expand(values)
+	check(err)
+	return uri
 }

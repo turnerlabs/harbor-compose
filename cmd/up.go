@@ -414,7 +414,6 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	//update shipment/environment-level envvars
 	for evName, evValue := range shipment.Environment {
-
 		if Verbose {
 			log.Println("processing " + evName)
 		}
@@ -426,6 +425,17 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
 
 	} //envvars
+
+	//update shipment/environment configuration
+
+	//if user specified a value for enableMonitoring that's
+	//different from current, then update
+	if shipment.EnableMonitoring != nil && *shipment.EnableMonitoring != currentShipment.EnableMonitoring {
+		if Verbose {
+			fmt.Println("updating shipment/environment configuration (enableMonitoring)")
+		}
+		UpdateShipmentEnvironment(username, token, shipmentName, shipment)
+	}
 
 	//update shipment level configuration
 	UpdateShipment(username, token, shipmentName, shipment)

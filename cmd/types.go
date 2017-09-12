@@ -12,7 +12,12 @@ type AuthResponse struct {
 	Token   string
 }
 
-// ComposeShipment represents a harbor shipment
+// HarborCompose represents a harbor-compose.yml file
+type HarborCompose struct {
+	Shipments map[string]ComposeShipment `yaml:"shipments"`
+}
+
+// ComposeShipment represents a harbor shipment in a harbor-compose.yml file
 type ComposeShipment struct {
 	Env                string            `yaml:"env"`
 	Barge              string            `yaml:"barge"`
@@ -24,11 +29,7 @@ type ComposeShipment struct {
 	Product            string            `yaml:"product"`
 	Environment        map[string]string `yaml:"environment,omitempty"`
 	IgnoreImageVersion bool              `yaml:"ignoreImageVersion,omitempty"`
-}
-
-// HarborCompose represents a harbor-compose.yml file
-type HarborCompose struct {
-	Shipments map[string]ComposeShipment `yaml:"shipments"`
+	EnableMonitoring   *bool             `yaml:"enableMonitoring"`
 }
 
 // DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
@@ -58,7 +59,8 @@ type ShipmentEnvironment struct {
 		EnvVars []EnvVarPayload `json:"envVars,omitempty"`
 		Group   string          `json:"group,omitempty"`
 	}
-	BuildToken string `json:"buildToken,omitempty"`
+	BuildToken       string `json:"buildToken,omitempty"`
+	EnableMonitoring bool   `json:"enableMonitoring,omitempty"`
 }
 
 // EnvVarPayload represents EnvVar
@@ -182,4 +184,9 @@ type DeployRequest struct {
 	Image   string `json:"image"`
 	Version string `json:"version"`
 	Catalog bool   `json:"catalog"`
+}
+
+// UpdateShipmentEnvironmentRequest represents a request to update a shipment/environment
+type UpdateShipmentEnvironmentRequest struct {
+	EnableMonitoring bool `json:"enableMonitoring"`
 }
