@@ -43,6 +43,7 @@ type DockerComposeService struct {
 	Image       string            `yaml:"image,omitempty"`
 	Ports       []string          `yaml:"ports,omitempty"`
 	Environment map[string]string `yaml:"environment,omitempty"`
+	EnvFile     []string          `yaml:"env_file,omitempty"`
 }
 
 // ShipmentEnvironment represents a shipment/environment combination

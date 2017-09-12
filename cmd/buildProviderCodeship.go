@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 )
 
@@ -123,25 +121,4 @@ func getFirstShipment(harborCompose *HarborCompose) (string, *ComposeShipment) {
 		break
 	}
 	return shipmentName, &shipment
-}
-
-func appendToFile(file string, lines []string) {
-	if _, err := os.Stat(file); err == nil {
-		//update
-		file, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0600)
-		check(err)
-		defer file.Close()
-		for _, line := range lines {
-			_, err = file.WriteString("\n" + line)
-			check(err)
-		}
-	} else {
-		//create
-		data := ""
-		for _, line := range lines {
-			data += line + "\n"
-		}
-		err := ioutil.WriteFile(file, []byte(data), 0644)
-		check(err)
-	}
 }

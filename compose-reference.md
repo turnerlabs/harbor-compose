@@ -43,12 +43,12 @@ Note that you must run `harbor-compose down` when changing this value.
 
 Add environment variables at the shipment/environment level. This must be a dictionary. Any boolean values; true, false, yes no, need to be enclosed in quotes to ensure they are not converted to True or False by the YML parser.
 
-Note that these environment variables get injected into all containers that are associated with the shipment.  Also note that values duplicated in the docker compose file will be overwritten.  
+Note that these environment variables get injected into all containers that are associated with the shipment.  Also note that values duplicated in the docker compose file will be overwritten. Also note that managing environment variables at this level will be deprecated in the future in favor of using `docker-compose.yml`.  Currently the only exception to this is for log shipping (`SHIP_LOGS`) which requires the env vars to be at the environment level.
 
 ```yaml
 environment:
-  RACK_ENV: development
-  SHOW: "true"
+  SHIP_LOGS: logzio
+  LOGS_ENDPOINT: https://listener.logz.io:8071?token=xxxxxx
 ```
 
 ### containers
@@ -151,26 +151,26 @@ build: .
 
 ### [environment](https://docs.docker.com/compose/compose-file/#environment)
 
-These environment variables get injected into your container.  Any values here will override values that are also specified in `harbor-compose.yml`.
+These environment variables get injected into your container.  Any values here will override values that are also specified in `harbor-compose.yml`.  Note that Docker Compose variable substitution is supported where values will automatically be sourced from the shell or a `.env` file.
 
 ```yaml
 environment:
-  RACK_ENV: development
+  LOG_LEVEL: debug  
   SHOW: "true"
-  DB_PASSWORD: ${DB_PASSWORD}
+  RACK_ENV: ${RACK_ENV}  
 ```
 
 ### [env_file](https://docs.docker.com/compose/compose-file/#environment#envfile)
 
 Add environment variables from a file. Can be a single value or a list.
 
-```yaml
-env_file: .env
+Note that any environment variables defined in `hidden.env` will be marked as hidden in Harbor.
 
+```yaml
 env_file:
-  - ./common.env
+  - hidden.env
+  - common.env
   - ./apps/web.env
-  - /opt/secrets.env
 ```
 
 *** Note that Harbor Compose supports [all of Docker Compose's methods for specifying environment variables](https://docs.docker.com/compose/environment-variables/).

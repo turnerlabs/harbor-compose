@@ -49,15 +49,15 @@ func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
+	//convert shipit model to harbor-compose
+	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+
+	//convert shipit model to docker-compose
+	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
 	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
 
 	//debug
 	data, _ = yaml.Marshal(harborCompose)
