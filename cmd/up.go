@@ -3,12 +3,12 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	//"encoding/json"
-	//"errors"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
-	//"os"
+	"os"
 	"strconv"
 
 	"github.com/docker/libcompose/config"
@@ -64,11 +64,11 @@ func up(cmd *cobra.Command, args []string) {
 		desiredShipment := transformComposeToShipmentEnvironment(shipmentName, shipment, dockerCompose)
 
 		//validate desired state
-		// err := validateUp(&desiredShipment, existingShipment)
-		// if err != nil {
-		// 	fmt.Printf("ERROR: %s\n", err)
-		// 	os.Exit(-1)
-		// }
+		err := validateUp(&desiredShipment, existingShipment)
+		if err != nil {
+			fmt.Printf("ERROR: %s\n", err)
+			os.Exit(-1)
+		}
 
 		fmt.Printf("Starting %v %v ...\n", shipmentName, shipment.Env)
 
@@ -90,113 +90,113 @@ func up(cmd *cobra.Command, args []string) {
 }
 
 //validates desire shipment against existing
-// func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) error {
+func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) error {
 
-// 	if Verbose {
-// 		fmt.Println("existing:")
-// 		b, e := json.Marshal(existing)
-// 		check(e)
-// 		fmt.Println(string(b))
-// 		fmt.Println()
-// 		fmt.Println("desired:")
-// 		b, e = json.Marshal(desired)
-// 		check(e)
-// 		fmt.Println(string(b))
-// 	}
+	if Verbose {
+		fmt.Println("existing:")
+		b, e := json.Marshal(existing)
+		check(e)
+		fmt.Println(string(b))
+		fmt.Println()
+		fmt.Println("desired:")
+		b, e = json.Marshal(desired)
+		check(e)
+		fmt.Println(string(b))
+	}
 
-// 	//env name
-// 	if strings.Contains(desired.Environment.Name, "_") {
-// 		if Verbose {
-// 			fmt.Println(desired.Environment.Name)
-// 		}
-// 		return errors.New("environment can not contain underscores ('_')")
-// 	}
+	//env name
+	if strings.Contains(desired.Name, "_") {
+		if Verbose {
+			fmt.Println(desired.Name)
+		}
+		return errors.New("environment can not contain underscores ('_')")
+	}
 
-// 	provider := ec2ProviderNewProvider(desired.Providers)
+	provider := ec2Provider(desired.Providers)
 
-// 	//barge
-// 	if provider.Barge == "" {
-// 		return errors.New("barge is required for a shipment")
-// 	}
+	//barge
+	if provider.Barge == "" {
+		return errors.New("barge is required for a shipment")
+	}
 
-// 	//replicas
-// 	if Verbose {
-// 		fmt.Println(provider.Replicas)
-// 	}
-// 	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
-// 		return errors.New("replicas must be between 1 and 1000")
-// 	}
+	//replicas
+	if Verbose {
+		fmt.Println(provider.Replicas)
+	}
+	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
+		return errors.New("replicas must be between 1 and 1000")
+	}
 
-// 	//containers
-// 	if len(desired.Containers) == 0 {
-// 		return errors.New("at least 1 container is required")
-// 	}
+	//containers
+	if len(desired.Containers) == 0 {
+		return errors.New("at least 1 container is required")
+	}
 
-// 	for _, container := range desired.Containers {
+	for _, container := range desired.Containers {
 
-// 		//ports
-// 		if len(container.Ports) == 0 {
-// 			return errors.New("At least one port is required.")
-// 		}
+		//ports
+		if len(container.Ports) == 0 {
+			return errors.New("At least one port is required.")
+		}
 
-// 		//validate health check
-// 		foundHealthCheck := false
-// 		for _, v := range container.Vars {
-// 			if v.Name == healthCheckEnvVarName {
-// 				foundHealthCheck = true
-// 				break
-// 			}
-// 		}
-// 		if !foundHealthCheck {
-// 			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
-// 		}
-// 	}
+		//validate health check
+		foundHealthCheck := false
+		for _, v := range container.EnvVars {
+			if v.Name == healthCheckEnvVarName {
+				foundHealthCheck = true
+				break
+			}
+		}
+		if !foundHealthCheck {
+			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
+		}
+	}
 
-// 	//update-specific validation
-// 	if existing != nil {
-// 		existingProvider := ec2Provider(existing.Providers)
+	//update-specific validation
+	if existing != nil {
+		existingProvider := ec2Provider(existing.Providers)
 
-// 		//don't allow barge changes
-// 		if Verbose {
-// 			fmt.Println("existing barge: " + existingProvider.Barge)
-// 			fmt.Println("desired barge: " + provider.Barge)
-// 		}
-// 		if provider.Barge != existingProvider.Barge {
-// 			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
-// 		}
+		//don't allow barge changes
+		if Verbose {
+			fmt.Println("existing barge: " + existingProvider.Barge)
+			fmt.Println("desired barge: " + provider.Barge)
+		}
+		if provider.Barge != existingProvider.Barge {
+			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
+		}
 
-// 		//don't allow container name changes
-// 		for _, desiredContainer := range desired.Containers {
-// 			//locate existing container with same name, error if not found
-// 			found := false
-// 			for _, existingContainer := range existing.Containers {
-// 				if existingContainer.Name == desiredContainer.Name {
+		//don't allow container name changes
+		for _, desiredContainer := range desired.Containers {
+			//locate existing container with same name, error if not found
+			found := false
+			for _, existingContainer := range existing.Containers {
+				if existingContainer.Name == desiredContainer.Name {
 
-// 					//don't allow port changes
-// 					existingPort := getPrimaryPort(existingContainer.Ports)
-// 					desiredPort := getPrimaryPort(desiredContainer.Ports)
-// 					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
-// 						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
-// 					}
+					//don't allow port changes
+					existingPort := getPrimaryPort(existingContainer.Ports)
+					desiredPort := getPrimaryPort(desiredContainer.Ports)
+					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
+						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
+					}
 
-// 					//don't allow health check changes
-// 					if existingPort.Healthcheck != desiredPort.Healthcheck {
-// 						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
-// 					}
+					//don't allow health check changes
+					if existingPort.Healthcheck != desiredPort.Healthcheck {
+						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
+					}
 
-// 					//return container match
-// 					found = true
-// 					break
-// 				}
-// 			}
-// 			if !found {
-// 				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
-// 			}
-// 		}
-// 	}
+					//return container match
+					found = true
+					break
+				}
+			}
+			if !found {
+				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
+			}
+		}
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 //finds the primary port in a port slice
 func getPrimaryPort(ports []PortPayload) PortPayload {
