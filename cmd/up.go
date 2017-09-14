@@ -335,6 +335,12 @@ func createShipment(username string, token string, shipmentName string, shipment
 		catalogContainer(container, serviceConfig.Image)
 	}
 
+	//if user specified a value for enableMonitoring that's
+	//different from current, then update
+	if shipment.EnableMonitoring != nil {
+		newShipment.EnableMonitoring = *shipment.EnableMonitoring
+	}
+
 	//push the new shipment/environment up to harbor
 	SaveNewShipmentEnvironment(username, token, newShipment)
 

@@ -27,7 +27,7 @@ services:
 	dockerCompose := unmarshalDockerCompose(yaml)
 	proj, _ := dockerCompose.GetServiceConfig("container")
 
-	assert.Equal(t, "foo=bar", proj.ToMap()["CHAR_EQUAL"])
+	assert.Equal(t, "foo=bar", proj.Environment.ToMap()["CHAR_EQUAL"])
 }
 
 func TestTransformComposeToShipmentEnvironment(t *testing.T) {
@@ -90,10 +90,10 @@ shipments:
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
 	assert.Equal(t, serviceConfig.Image, shipmentContainer.Image)
 	assert.Equal(t, len(serviceConfig.Ports), len(shipmentContainer.Ports))
-	assert.Equal(t, serviceConfig.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
+	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.ToMap(), shipmentContainer.EnvVars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 }
 
 func TestTransformComposeToShipmentEnvironmentEnvFile(t *testing.T) {
@@ -166,10 +166,10 @@ shipments:
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
 	assert.Equal(t, serviceConfig.Image, shipmentContainer.Image)
 	assert.Equal(t, len(serviceConfig.Ports), len(shipmentContainer.Ports))
-	assert.Equal(t, serviceConfig.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
+	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.ToMap(), shipmentContainer.EnvVars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(envFileName)
@@ -245,10 +245,10 @@ shipments:
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
 	assert.Equal(t, serviceConfig.Image, shipmentContainer.Image)
 	assert.Equal(t, len(serviceConfig.Ports), len(shipmentContainer.Ports))
-	assert.Equal(t, serviceConfig.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
+	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.ToMap(), shipmentContainer.EnvVars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(".env")
@@ -326,10 +326,10 @@ shipments:
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
 	assert.Equal(t, serviceConfig.Image, shipmentContainer.Image)
 	assert.Equal(t, len(serviceConfig.Ports), len(shipmentContainer.Ports))
-	assert.Equal(t, serviceConfig.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
+	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.ToMap(), shipmentContainer.EnvVars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(envFileName)
@@ -884,7 +884,7 @@ shipments:
 	//assertions
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.ToMap(), harborEnvVars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), harborEnvVars))
 
 	//vars in hidden.env should be set to type=hidden
 	hiddenVar := getEnvVar("HIDDEN", harborEnvVars)
@@ -963,7 +963,7 @@ shipments:
 	//assertions
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.ToMap(), harborEnvVars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), harborEnvVars))
 
 	//vars in hidden.env should be set to type=hidden
 	hiddenVar := getEnvVar("HIDDEN", harborEnvVars)
