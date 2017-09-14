@@ -3,12 +3,12 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
-	"errors"
+	//"encoding/json"
+	//"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
+	//"os"
 	"strconv"
 
 	"github.com/docker/libcompose/config"
@@ -61,14 +61,14 @@ func up(cmd *cobra.Command, args []string) {
 		existingShipment := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
 
 		//transform compose yaml into a desired NewShipmentEnvironment object
-		desiredShipment := transformComposeToNewShipment(shipmentName, shipment, dockerCompose)
+		desiredShipment := transformComposeToShipmentEnvironment(shipmentName, shipment, dockerCompose)
 
 		//validate desired state
-		err := validateUp(&desiredShipment, existingShipment)
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err)
-			os.Exit(-1)
-		}
+		// err := validateUp(&desiredShipment, existingShipment)
+		// if err != nil {
+		// 	fmt.Printf("ERROR: %s\n", err)
+		// 	os.Exit(-1)
+		// }
 
 		fmt.Printf("Starting %v %v ...\n", shipmentName, shipment.Env)
 
@@ -90,113 +90,113 @@ func up(cmd *cobra.Command, args []string) {
 }
 
 //validates desire shipment against existing
-func validateUp(desired *NewShipmentEnvironment, existing *ShipmentEnvironment) error {
+// func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) error {
 
-	if Verbose {
-		fmt.Println("existing:")
-		b, e := json.Marshal(existing)
-		check(e)
-		fmt.Println(string(b))
-		fmt.Println()
-		fmt.Println("desired:")
-		b, e = json.Marshal(desired)
-		check(e)
-		fmt.Println(string(b))
-	}
+// 	if Verbose {
+// 		fmt.Println("existing:")
+// 		b, e := json.Marshal(existing)
+// 		check(e)
+// 		fmt.Println(string(b))
+// 		fmt.Println()
+// 		fmt.Println("desired:")
+// 		b, e = json.Marshal(desired)
+// 		check(e)
+// 		fmt.Println(string(b))
+// 	}
 
-	//env name
-	if strings.Contains(desired.Environment.Name, "_") {
-		if Verbose {
-			fmt.Println(desired.Environment.Name)
-		}
-		return errors.New("environment can not contain underscores ('_')")
-	}
+// 	//env name
+// 	if strings.Contains(desired.Environment.Name, "_") {
+// 		if Verbose {
+// 			fmt.Println(desired.Environment.Name)
+// 		}
+// 		return errors.New("environment can not contain underscores ('_')")
+// 	}
 
-	provider := ec2ProviderNewProvider(desired.Providers)
+// 	provider := ec2ProviderNewProvider(desired.Providers)
 
-	//barge
-	if provider.Barge == "" {
-		return errors.New("barge is required for a shipment")
-	}
+// 	//barge
+// 	if provider.Barge == "" {
+// 		return errors.New("barge is required for a shipment")
+// 	}
 
-	//replicas
-	if Verbose {
-		fmt.Println(provider.Replicas)
-	}
-	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
-		return errors.New("replicas must be between 1 and 1000")
-	}
+// 	//replicas
+// 	if Verbose {
+// 		fmt.Println(provider.Replicas)
+// 	}
+// 	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
+// 		return errors.New("replicas must be between 1 and 1000")
+// 	}
 
-	//containers
-	if len(desired.Containers) == 0 {
-		return errors.New("at least 1 container is required")
-	}
+// 	//containers
+// 	if len(desired.Containers) == 0 {
+// 		return errors.New("at least 1 container is required")
+// 	}
 
-	for _, container := range desired.Containers {
+// 	for _, container := range desired.Containers {
 
-		//ports
-		if len(container.Ports) == 0 {
-			return errors.New("At least one port is required.")
-		}
+// 		//ports
+// 		if len(container.Ports) == 0 {
+// 			return errors.New("At least one port is required.")
+// 		}
 
-		//validate health check
-		foundHealthCheck := false
-		for _, v := range container.Vars {
-			if v.Name == healthCheckEnvVarName {
-				foundHealthCheck = true
-				break
-			}
-		}
-		if !foundHealthCheck {
-			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
-		}
-	}
+// 		//validate health check
+// 		foundHealthCheck := false
+// 		for _, v := range container.Vars {
+// 			if v.Name == healthCheckEnvVarName {
+// 				foundHealthCheck = true
+// 				break
+// 			}
+// 		}
+// 		if !foundHealthCheck {
+// 			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
+// 		}
+// 	}
 
-	//update-specific validation
-	if existing != nil {
-		existingProvider := ec2Provider(existing.Providers)
+// 	//update-specific validation
+// 	if existing != nil {
+// 		existingProvider := ec2Provider(existing.Providers)
 
-		//don't allow barge changes
-		if Verbose {
-			fmt.Println("existing barge: " + existingProvider.Barge)
-			fmt.Println("desired barge: " + provider.Barge)
-		}
-		if provider.Barge != existingProvider.Barge {
-			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
-		}
+// 		//don't allow barge changes
+// 		if Verbose {
+// 			fmt.Println("existing barge: " + existingProvider.Barge)
+// 			fmt.Println("desired barge: " + provider.Barge)
+// 		}
+// 		if provider.Barge != existingProvider.Barge {
+// 			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
+// 		}
 
-		//don't allow container name changes
-		for _, desiredContainer := range desired.Containers {
-			//locate existing container with same name, error if not found
-			found := false
-			for _, existingContainer := range existing.Containers {
-				if existingContainer.Name == desiredContainer.Name {
+// 		//don't allow container name changes
+// 		for _, desiredContainer := range desired.Containers {
+// 			//locate existing container with same name, error if not found
+// 			found := false
+// 			for _, existingContainer := range existing.Containers {
+// 				if existingContainer.Name == desiredContainer.Name {
 
-					//don't allow port changes
-					existingPort := getPrimaryPort(existingContainer.Ports)
-					desiredPort := getPrimaryPort(desiredContainer.Ports)
-					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
-						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
-					}
+// 					//don't allow port changes
+// 					existingPort := getPrimaryPort(existingContainer.Ports)
+// 					desiredPort := getPrimaryPort(desiredContainer.Ports)
+// 					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
+// 						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
+// 					}
 
-					//don't allow health check changes
-					if existingPort.Healthcheck != desiredPort.Healthcheck {
-						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
-					}
+// 					//don't allow health check changes
+// 					if existingPort.Healthcheck != desiredPort.Healthcheck {
+// 						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
+// 					}
 
-					//return container match
-					found = true
-					break
-				}
-			}
-			if !found {
-				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
-			}
-		}
-	}
+// 					//return container match
+// 					found = true
+// 					break
+// 				}
+// 			}
+// 			if !found {
+// 				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
+// 			}
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 //finds the primary port in a port slice
 func getPrimaryPort(ports []PortPayload) PortPayload {
@@ -208,38 +208,28 @@ func getPrimaryPort(ports []PortPayload) PortPayload {
 	return PortPayload{}
 }
 
-func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) NewShipmentEnvironment {
+func transformComposeToShipmentEnvironment(shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) ShipmentEnvironment {
 
 	//create object used to create a new shipment environment from scratch
-	newShipment := NewShipmentEnvironment{
-		Info: NewShipmentInfo{
-			Name:  shipmentName,
+	newShipment := ShipmentEnvironment{
+		Name: shipment.Env,
+		EnvVars: make([]EnvVarPayload, 0),
+		ParentShipment:  ParentShipment{
+			Name: shipmentName,
+			EnvVars: make([]EnvVarPayload, 0),
 			Group: shipment.Group,
 		},
 	}
 
 	//add shipment-level env vars
-	newShipment.Info.Vars = make([]EnvVarPayload, 0)
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("CUSTOMER", shipment.Group))
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("PROPERTY", shipment.Property))
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("PROJECT", shipment.Project))
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("PRODUCT", shipment.Product))
-
-	//create environment
-	newShipment.Environment = NewEnvironment{
-		Name: shipment.Env,
-		Vars: make([]EnvVarPayload, 0),
-	}
-
-	//add environment-level env vars
-	for name, value := range shipment.Environment {
-		newShipment.Environment.Vars = append(newShipment.Environment.Vars, envVar(name, value))
-	}
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("CUSTOMER", shipment.Group))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PROPERTY", shipment.Property))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PROJECT", shipment.Project))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PRODUCT", shipment.Product))
 
 	//containers
-
 	//iterate defined containers and apply container level updates
-	newShipment.Containers = make([]NewContainer, 0)
+	newShipment.Containers = make([]ContainerPayload, 0)
 	for containerIndex, container := range shipment.Containers {
 
 		if Verbose {
@@ -254,19 +244,15 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			log.Fatalln("'image' is required in docker compose file")
 		}
 
-		//parse image:tag and map to name/version
-		parsedImage := strings.Split(image, ":")
-
-		newContainer := NewContainer{
-			Name:    container,
-			Image:   image,
-			Version: parsedImage[1],
-			Vars:    make([]EnvVarPayload, 0),
-			Ports:   make([]PortPayload, 0),
+		newContainer := ContainerPayload{
+			Name:       container,
+			Image:      image,
+			EnvVars:    make([]EnvVarPayload, 0),
+			Ports:      make([]PortPayload, 0),
 		}
 
 		//map docker-compose envvars to harbor env vars
-		newContainer.Vars = transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
+		newContainer.EnvVars = transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
 
 		//map the docker compose service ports to harbor ports
 		if len(serviceConfig.Ports) == 0 {
@@ -292,7 +278,7 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			Primary:     (containerIndex == 0),
 			Protocol:    "http",
 			External:    false,
-			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.Vars).Value,
+			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.EnvVars).Value,
 		}
 
 		//add port to list
@@ -303,11 +289,11 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 	}
 
 	//add default ec2 provider
-	provider := NewProvider{
+	provider := ProviderPayload{
 		Name:     "ec2",
 		Barge:    shipment.Barge,
 		Replicas: shipment.Replicas,
-		Vars:     make([]EnvVarPayload, 0),
+		EnvVars:  make([]EnvVarPayload, 0),
 	}
 
 	//add provider
@@ -337,7 +323,7 @@ func parseEnvVarNames(envFile string) []string {
 	return keys
 }
 
-func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject, newShipment NewShipmentEnvironment) {
+func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject, newShipment ShipmentEnvironment) {
 
 	if Verbose {
 		log.Println("creating shipment environment")

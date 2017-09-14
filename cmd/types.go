@@ -19,6 +19,8 @@ type HarborCompose struct {
 
 // ComposeShipment represents a harbor shipment in a harbor-compose.yml file
 type ComposeShipment struct {
+	Username           string          `json:"username"`
+	Token              string          `json:"token"`
 	Env                string            `yaml:"env"`
 	Barge              string            `yaml:"barge"`
 	Containers         []string          `yaml:"containers"`
@@ -49,18 +51,22 @@ type DockerComposeService struct {
 
 // ShipmentEnvironment represents a shipment/environment combination
 type ShipmentEnvironment struct {
+	Username       string          `json:"username"`
+	Token          string          `json:"token"`
 	Name           string             `json:"name,omitempty"`
 	EnvVars        []EnvVarPayload    `json:"envVars,omitempty"`
 	Ports          []PortPayload      `json:"ports,omitempty"`
 	Containers     []ContainerPayload `json:"containers,omitempty"`
 	Providers      []ProviderPayload  `json:"providers,omitempty"`
-	ParentShipment struct {
-		Name    string          `json:"name,omitempty"`
-		EnvVars []EnvVarPayload `json:"envVars,omitempty"`
-		Group   string          `json:"group,omitempty"`
-	}
+	ParentShipment ParentShipment     `json:"parentShipment,omitempty"`
 	BuildToken       string `json:"buildToken,omitempty"`
 	EnableMonitoring bool   `json:"enableMonitoring,omitempty"`
+}
+
+type ParentShipment struct {
+	Name    string          `json:"name,omitempty"`
+	EnvVars []EnvVarPayload `json:"envVars,omitempty"`
+	Group   string          `json:"group,omitempty"`
 }
 
 // EnvVarPayload represents EnvVar
@@ -112,44 +118,44 @@ type TriggerResponseMultiple struct {
 }
 
 // NewShipmentEnvironment is used for bulk-creating a new shipment
-type NewShipmentEnvironment struct {
-	Username    string          `json:"username"`
-	Token       string          `json:"token"`
-	Info        NewShipmentInfo `json:"main"`
-	Environment NewEnvironment  `json:"environment"`
-	Containers  []NewContainer  `json:"containers"`
-	Providers   []NewProvider   `json:"providers"`
-}
+// type NewShipmentEnvironment struct {
+// 	Username    string          `json:"username"`
+// 	Token       string          `json:"token"`
+// 	Info        NewShipmentInfo `json:"main"`
+// 	Environment NewEnvironment  `json:"environment"`
+// 	Containers  []NewContainer  `json:"containers"`
+// 	Providers   []NewProvider   `json:"providers"`
+// }
 
 // NewShipmentInfo represents new shipment info
-type NewShipmentInfo struct {
-	Name  string          `json:"name"`
-	Group string          `json:"group"`
-	Vars  []EnvVarPayload `json:"vars"`
-}
+// type NewShipmentInfo struct {
+// 	Name  string          `json:"name"`
+// 	Group string          `json:"group"`
+// 	Vars  []EnvVarPayload `json:"vars"`
+// }
 
-// NewEnvironment represents new environment
-type NewEnvironment struct {
-	Name string          `json:"name"`
-	Vars []EnvVarPayload `json:"vars"`
-}
+// // NewEnvironment represents new environment
+// type NewEnvironment struct {
+// 	Name string          `json:"name"`
+// 	Vars []EnvVarPayload `json:"vars"`
+// }
 
-// NewContainer respresents a new container
-type NewContainer struct {
-	Name    string          `json:"name"`
-	Version string          `json:"version"`
-	Image   string          `json:"image"`
-	Vars    []EnvVarPayload `json:"vars"`
-	Ports   []PortPayload   `json:"ports"`
-}
+// // NewContainer respresents a new container
+// type NewContainer struct {
+// 	Name    string          `json:"name"`
+// 	Version string          `json:"version"`
+// 	Image   string          `json:"image"`
+// 	Vars    []EnvVarPayload `json:"vars"`
+// 	Ports   []PortPayload   `json:"ports"`
+// }
 
-// NewProvider represents a new provider
-type NewProvider struct {
-	Name     string          `json:"name"`
-	Replicas int             `json:"replicas"`
-	Vars     []EnvVarPayload `json:"vars,omitempty"`
-	Barge    string          `json:"barge,omitempty"`
-}
+// // NewProvider represents a new provider
+// type NewProvider struct {
+// 	Name     string          `json:"name"`
+// 	Replicas int             `json:"replicas"`
+// 	Vars     []EnvVarPayload `json:"vars,omitempty"`
+// 	Barge    string          `json:"barge,omitempty"`
+// }
 
 // ContainerStatusOutput represents an object that can be written to stdout and formatted
 type ContainerStatusOutput struct {
