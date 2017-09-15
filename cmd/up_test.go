@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
+    "encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,7 +30,7 @@ services:
 	assert.Equal(t, "foo=bar", proj.Environment.ToMap()["CHAR_EQUAL"])
 }
 
-func TestTransformComposeToNewShipment(t *testing.T) {
+func TestTransformComposeToShipmentEnvironment(t *testing.T) {
 
 	//test compose yaml transformation to a new harbor shipment
 	dockerComposeYaml := `
@@ -68,7 +68,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
 	if !success {
@@ -81,10 +81,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -93,10 +93,10 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 }
 
-func TestTransformComposeToNewShipmentEnvFile(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentEnvFile(t *testing.T) {
 	//test compose yaml transformation to a new harbor shipment using env_file
 
 	dockerComposeYaml := `
@@ -143,7 +143,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//lookup container service
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
@@ -157,10 +157,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -169,7 +169,7 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(envFileName)
@@ -178,7 +178,7 @@ shipments:
 	}
 }
 
-func TestTransformComposeToNewShipmentDotEnv(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentDotEnv(t *testing.T) {
 	//test compose yaml transformation to a new harbor shipment using .env file
 
 	dockerComposeYaml := `
@@ -222,7 +222,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//lookup container service
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
@@ -236,10 +236,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -248,7 +248,7 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(".env")
@@ -257,7 +257,7 @@ shipments:
 	}
 }
 
-func TestTransformComposeToNewShipmentEnvFileHealthCheck(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentEnvFileHealthCheck(t *testing.T) {
 	//test use of health check in env_file
 
 	dockerComposeYaml := `
@@ -303,7 +303,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//lookup container service
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
@@ -317,10 +317,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -329,7 +329,7 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(envFileName)
@@ -402,7 +402,7 @@ shipments:
 	t.Log(dockerComposeYaml)
 
 	//get a new shipment
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//test func
 	err := validateUp(&newShipment, nil)
@@ -445,7 +445,7 @@ shipments:
 	t.Log(dockerComposeYaml)
 
 	//get a new shipment
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//test func
 	err := validateUp(&newShipment, nil)
@@ -514,7 +514,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -588,7 +588,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -664,7 +664,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -741,7 +741,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -817,7 +817,7 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -828,7 +828,7 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	assert.Contains(t, err.Error(), "Healthcheck changes")
 }
 
-func TestTransformComposeToNewShipmentHiddenEnvFile(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentHiddenEnvFile(t *testing.T) {
 	//test compose yaml transformation to a new harbor shipment using env_file
 
 	dockerComposeYaml := `
@@ -897,7 +897,7 @@ shipments:
 	}
 }
 
-func TestTransformComposeToNewShipmentHiddenEnvFileWithAnotherEnvFile(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentHiddenEnvFileWithAnotherEnvFile(t *testing.T) {
 	//test compose yaml transformation to a new harbor shipment using env_file
 
 	dockerComposeYaml := `

@@ -467,17 +467,17 @@ func UpdateContainerImage(username string, token string, shipment string, compos
 }
 
 // SaveNewShipmentEnvironment bulk saves a new shipment/environment
-func SaveNewShipmentEnvironment(username string, token string, shipment NewShipmentEnvironment) bool {
+func SaveNewShipmentEnvironment(username string, token string, shipment ShipmentEnvironment) bool {
 
 	var config = GetConfig()
 	shipment.Username = username
 	shipment.Token = token
 
 	//POST /api/v1/shipments
-	res, body, err := create(username, token, config.HarborURI+"/api/v1/shipments", shipment)
+	res, body, err := create(username, token, config.ShipitURI+"/v1/bulk/shipments", shipment)
 
-	if err != nil || res.StatusCode != http.StatusOK {
-		fmt.Printf("creating shipment was not successful: %v \n", body)
+	if err != nil || res.StatusCode != http.StatusCreated {
+		fmt.Printf("creating shipment was not successful: %v\ncode: %v\n", body, res.StatusCode)
 		return false
 	}
 
