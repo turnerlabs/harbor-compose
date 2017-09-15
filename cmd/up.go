@@ -212,12 +212,12 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 	//create object used to create a new shipment environment from scratch
 	newShipment := ShipmentEnvironment{
-		Name: shipment.Env,
+		Name:    shipment.Env,
 		EnvVars: make([]EnvVarPayload, 0),
-		ParentShipment:  ParentShipment{
-			Name: shipmentName,
+		ParentShipment: ParentShipment{
+			Name:    shipmentName,
 			EnvVars: make([]EnvVarPayload, 0),
-			Group: shipment.Group,
+			Group:   shipment.Group,
 		},
 	}
 
@@ -245,10 +245,10 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 		}
 
 		newContainer := ContainerPayload{
-			Name:       container,
-			Image:      image,
-			EnvVars:    make([]EnvVarPayload, 0),
-			Ports:      make([]PortPayload, 0),
+			Name:    container,
+			Image:   image,
+			EnvVars: make([]EnvVarPayload, 0),
+			Ports:   make([]PortPayload, 0),
 		}
 
 		//map docker-compose envvars to harbor env vars
