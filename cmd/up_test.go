@@ -1,7 +1,7 @@
 package cmd
 
 import (
-    "encoding/json"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -981,4 +981,93 @@ shipments:
 	if err != nil {
 		t.Fail()
 	}
+}
+
+//ensures up correctly translates enableMonitoring
+func TestUpEnableMonitoringDefault(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+
+	//enableMonitoring should default to true if not specified in yaml
+	assert.True(t, newShipment.EnableMonitoring, "expecting enableMonitoring to default to true")
+}
+
+//ensures up correctly translates enableMonitoring
+func TestUpEnableMonitoring(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+    enableMonitoring: false
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+
+	//enableMonitoring should get mapped from yaml
+	assert.False(t, newShipment.EnableMonitoring, "expecting enableMonitoring to be false")
 }

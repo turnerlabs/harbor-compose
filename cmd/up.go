@@ -227,6 +227,13 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PROJECT", shipment.Project))
 	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PRODUCT", shipment.Product))
 
+	//default enableMonitoring to true if not specified in yaml
+	enableMonitoring := true
+	if shipment.EnableMonitoring != nil {
+		enableMonitoring = *shipment.EnableMonitoring
+	}
+	newShipment.EnableMonitoring = enableMonitoring
+
 	//add environment-level env vars
 	for name, value := range shipment.Environment {
 		newShipment.EnvVars = append(newShipment.EnvVars, envVar(name, value))
@@ -338,14 +345,6 @@ func createShipment(username string, token string, shipmentName string, shipment
 	for _, container := range shipment.Containers {
 		serviceConfig := getDockerComposeService(dockerComposeProject, container)
 		catalogContainer(container, serviceConfig.Image)
-	}
-
-	//if user specified a value for enableMonitoring that's
-	//different from current, then update
-	if shipment.EnableMonitoring != nil {
-		newShipment.EnableMonitoring = *shipment.EnableMonitoring
-	} else {
-		newShipment.EnableMonitoring = true
 	}
 
 	//push the new shipment/environment up to harbor

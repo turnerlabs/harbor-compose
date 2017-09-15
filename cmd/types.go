@@ -29,7 +29,7 @@ type ComposeShipment struct {
 	Product            string            `yaml:"product"`
 	Environment        map[string]string `yaml:"environment,omitempty"`
 	IgnoreImageVersion bool              `yaml:"ignoreImageVersion,omitempty"`
-	EnableMonitoring   *bool             `yaml:"enableMonitoring"`
+	EnableMonitoring   *bool             `yaml:"enableMonitoring,omitempty"`
 }
 
 // DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
