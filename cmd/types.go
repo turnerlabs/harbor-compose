@@ -51,20 +51,21 @@ type DockerComposeService struct {
 type ShipmentEnvironment struct {
 	Username         string             `json:"username"`
 	Token            string             `json:"token"`
-	Name             string             `json:"name,omitempty"`
-	EnvVars          []EnvVarPayload    `json:"envVars,omitempty"`
-	Ports            []PortPayload      `json:"ports,omitempty"`
-	Containers       []ContainerPayload `json:"containers,omitempty"`
-	Providers        []ProviderPayload  `json:"providers,omitempty"`
-	ParentShipment   ParentShipment     `json:"parentShipment,omitempty"`
+	Name             string             `json:"name"`
+	EnvVars          []EnvVarPayload    `json:"envVars"`
+	Ports            []PortPayload      `json:"ports"`
+	Containers       []ContainerPayload `json:"containers"`
+	Providers        []ProviderPayload  `json:"providers"`
+	ParentShipment   ParentShipment     `json:"parentShipment"`
 	BuildToken       string             `json:"buildToken,omitempty"`
 	EnableMonitoring bool               `json:"enableMonitoring"`
 }
 
+// The ParentShipment of the shipmentModel
 type ParentShipment struct {
-	Name    string          `json:"name,omitempty"`
-	EnvVars []EnvVarPayload `json:"envVars,omitempty"`
-	Group   string          `json:"group,omitempty"`
+	Name    string          `json:"name"`
+	EnvVars []EnvVarPayload `json:"envVars"`
+	Group   string          `json:"group"`
 }
 
 // EnvVarPayload represents EnvVar

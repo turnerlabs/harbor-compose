@@ -227,6 +227,11 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PROJECT", shipment.Project))
 	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PRODUCT", shipment.Product))
 
+	//add environment-level env vars
+	for name, value := range shipment.Environment {
+		newShipment.EnvVars = append(newShipment.EnvVars, envVar(name, value))
+	}
+
 	//containers
 	//iterate defined containers and apply container level updates
 	newShipment.Containers = make([]ContainerPayload, 0)
