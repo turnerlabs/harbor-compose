@@ -477,7 +477,7 @@ func SaveNewShipmentEnvironment(username string, token string, shipment Shipment
 	res, body, err := create(username, token, config.ShipitURI+"/v1/bulk/shipments", shipment)
 
 	if err != nil || res.StatusCode != 201 {
-		fmt.Printf("creating shipment was not successful: %v\ncode: %v\n", body, res.StatusCode, http.StatusOK)
+		fmt.Printf("creating shipment was not successful: %v\ncode: %v\n", body, res.StatusCode)
 		return false
 	}
 
