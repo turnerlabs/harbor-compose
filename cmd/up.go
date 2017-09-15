@@ -339,6 +339,8 @@ func createShipment(username string, token string, shipmentName string, shipment
 	//different from current, then update
 	if shipment.EnableMonitoring != nil {
 		newShipment.EnableMonitoring = *shipment.EnableMonitoring
+	} else {
+		newShipment.EnableMonitoring = true
 	}
 
 	//push the new shipment/environment up to harbor
