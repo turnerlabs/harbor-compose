@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -28,6 +29,25 @@ func init() {
 }
 
 func initHarborCompose(cmd *cobra.Command, args []string) {
+
+	//write a gitignored/dockerignored hidden.env as a placeholder for users to add secrets
+	//if it already exists, prompt to overwrite
+	//note that this file needs to be written before reference is added/parsed in docker-compose.yml
+	write := false
+	if _, err := os.Stat(hiddenEnvFileName); err == nil {
+		fmt.Print(hiddenEnvFileName + " already exists. Overwrite? ")
+		write = askForConfirmation()
+	} else { //not exists
+		write = true
+	}
+	if write {
+		sampleContents := "#FOO=bar\n"
+		err := ioutil.WriteFile(hiddenEnvFileName, []byte(sampleContents), 0644)
+		check(err)
+		sensitiveFiles := []string{hiddenEnvFileName}
+		appendToFile(".gitignore", sensitiveFiles)
+		appendToFile(".dockerignore", sensitiveFiles)
+	}
 
 	//docker-compose
 	registry := "quay.io/turner"
@@ -72,6 +92,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 			Environment: map[string]string{
 				"HEALTHCHECK": healthCheck,
 			},
+			EnvFile: []string{hiddenEnvFileName},
 		}
 		dockerCompose.Services[container] = &service
 
@@ -128,7 +149,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	harborCompose.Shipments[name] = composeShipment
 
 	//if harbor-compose.yml exists, ask to overwrite
-	write := false
+	write = false
 	if _, err := os.Stat(HarborComposeFile); err == nil {
 		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
 		write = askForConfirmation()
@@ -139,8 +160,9 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if write {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
 		fmt.Println("remember to docker build/push your image before running the up command")
-		fmt.Println("done")
 	}
+
+	fmt.Println("done")
 }
 
 func promptAndGetResponse(question string) string {
