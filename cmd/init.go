@@ -48,6 +48,8 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	project := "turner"
 	product := "turner"
 	enableMonitoring := "true"
+	hcTimeout := "1"
+	hcInterval := "10"
 
 	//if docker-compose.yml doesn't exist, then create one
 	var dockerCompose DockerCompose
@@ -82,16 +84,41 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	}
 
 	//ask questions for harbor-compose.yml
+	var (
+		intReplicas                int
+		monitoring                 bool
+		healthcheckTimeoutSeconds  int
+		healthcheckIntervalSeconds int
+		err                        error
+	)
 	if !yesUseDefaults {
 		name = promptAndGetResponse("shipment name: (e.g., mss-my-app) ")
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ")
 		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ")
 		replicas = promptAndGetResponse("replicas (how many container instances): ")
+		intReplicas, err = strconv.Atoi(replicas)
+		if err != nil {
+			log.Fatalln("replicas must be a number")
+		}
 		group = promptAndGetResponse("group (mss, cnn, nba, ams, etc.): ")
+		enableMonitoring = promptAndGetResponse("enableMonitoring (true|false): ")
+		monitoring, err = strconv.ParseBool(enableMonitoring)
+		if err != nil {
+			check(errors.New("please enter true or false for enableMonitoring"))
+		}
+		hcTimeout = promptAndGetResponse("healthcheckTimeoutSeconds (1): ")
+		healthcheckTimeoutSeconds, err = strconv.Atoi(hcTimeout)
+		if err != nil {
+			check(errors.New("please enter a valid number for healthcheckTimeoutSeconds"))
+		}
+		hcInterval = promptAndGetResponse("healthcheckIntervalSeconds (10): ")
+		healthcheckIntervalSeconds, err = strconv.Atoi(hcInterval)
+		if err != nil {
+			check(errors.New("please enter a valid number for healthcheckIntervalSeconds"))
+		}
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
 		project = promptAndGetResponse("project: ")
 		product = promptAndGetResponse("product: ")
-		enableMonitoring = promptAndGetResponse("enableMonitoring (true|false): ")
 	}
 
 	//create a harbor compose object
@@ -99,25 +126,18 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		Shipments: make(map[string]ComposeShipment),
 	}
 
-	monitoring, err := strconv.ParseBool(enableMonitoring)
-	if err != nil {
-		check(errors.New("please enter true or false for enableMonitoring"))
-	}
-
 	composeShipment := ComposeShipment{
-		Env:              env,
-		Group:            group,
-		Property:         property,
-		Project:          project,
-		Product:          product,
-		EnableMonitoring: &monitoring,
+		Env:                        env,
+		Group:                      group,
+		Property:                   property,
+		Project:                    project,
+		Product:                    product,
+		EnableMonitoring:           &monitoring,
+		HealthcheckTimeoutSeconds:  &healthcheckTimeoutSeconds,
+		HealthcheckIntervalSeconds: &healthcheckIntervalSeconds,
 	}
 
 	composeShipment.Barge = barge
-	intReplicas, err := strconv.Atoi(replicas)
-	if err != nil {
-		log.Fatalln("replicas must be a number")
-	}
 	composeShipment.Replicas = intReplicas
 
 	//look for existing docker-compose.yml to get containers

@@ -165,11 +165,16 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (Harb
 		Shipments: make(map[string]ComposeShipment),
 	}
 
+	//lookup primary port
+	primaryPort := getPrimaryPort(shipmentObject.Containers[0].Ports)
+
 	composeShipment := ComposeShipment{
-		Env:              shipmentObject.Name,
-		Group:            shipmentObject.ParentShipment.Group,
-		EnableMonitoring: &shipmentObject.EnableMonitoring,
-		Environment:      make(map[string]string),
+		Env:                        shipmentObject.Name,
+		Group:                      shipmentObject.ParentShipment.Group,
+		Environment:                make(map[string]string),
+		EnableMonitoring:           &shipmentObject.EnableMonitoring,
+		HealthcheckTimeoutSeconds:  primaryPort.HealthcheckTimeout,
+		HealthcheckIntervalSeconds: primaryPort.HealthcheckInterval,
 	}
 
 	//track special envvars

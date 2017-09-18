@@ -1071,3 +1071,56 @@ shipments:
 	//enableMonitoring should get mapped from yaml
 	assert.False(t, newShipment.EnableMonitoring, "expecting enableMonitoring to be false")
 }
+
+func TestUpHealthcheckSettings(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+    enableMonitoring: true
+    healthcheckTimeoutSeconds: 10
+    healthcheckIntervalSeconds: 100
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	fmt.Println(harborCompose.Shipments[shipmentName].HealthcheckTimeoutSeconds)
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+
+	//lookup transformed shipment container
+	shipmentContainer := newShipment.Containers[0]
+
+	//assertions
+	assert.Equal(t, 10, *shipmentContainer.Ports[0].HealthcheckTimeout)
+	assert.Equal(t, 100, *shipmentContainer.Ports[0].HealthcheckInterval)
+}
