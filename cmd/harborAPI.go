@@ -13,15 +13,30 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
+func shipitURI(template string, params ...tuple) string {
+	return buildURI(GetConfig().ShipitURI, template, params...)
+}
+
+func helmitURI(template string, params ...tuple) string {
+	return buildURI(GetConfig().HelmitURI, template, params...)
+}
+
+func triggerURI(template string, params ...tuple) string {
+	return buildURI(GetConfig().TriggerURI, template, params...)
+}
+
+func customsURI(template string, params ...tuple) string {
+	return buildURI(GetConfig().CustomsURI, template, params...)
+}
+
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(username string, token string, shipment string, env string) *ShipmentEnvironment {
+
 	//build URI
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = env
-	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/")
-	uri, _ := template.Expand(values)
+	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/",
+		param("shipment", shipment),
+		param("env", env))
+
 	if Verbose {
 		fmt.Println("fetching: " + uri)
 	}
@@ -63,14 +78,11 @@ func GetShipmentEnvironment(username string, token string, shipment string, env 
 
 //UpdateShipment updates shipment-level configuration
 func UpdateShipment(username string, token string, shipment string, composeShipment ComposeShipment) {
-	//build URI
-	var config = GetConfig()
-	//PUT /v1/shipment/:Shipment/environment/:Environment/provider/:name
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = composeShipment.Env
-	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/provider/ec2")
-	uri, _ := template.Expand(values)
+
+	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/provider/ec2",
+		param("shipment", shipment),
+		param("env", composeShipment.Env))
+
 	if Verbose {
 		log.Printf("updating replicas on shipment provider: " + uri)
 	}
@@ -81,7 +93,39 @@ func UpdateShipment(username string, token string, shipment string, composeShipm
 	}
 
 	//call the API
-	update(username, token, uri, providerPayload)
+	r, _, e := update(username, token, uri, providerPayload)
+	if e != nil {
+		log.Fatal(e)
+	}
+	if r.StatusCode != http.StatusOK {
+		check(errors.New("update provider failed"))
+	}
+}
+
+//UpdateShipmentEnvironment updates shipment/environment-level configuration
+func UpdateShipmentEnvironment(username string, token string, shipment string, composeShipment ComposeShipment) {
+
+	//update enableMonitoring
+	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}",
+		param("shipment", shipment),
+		param("env", composeShipment.Env))
+
+	if Verbose {
+		log.Printf("updating enableMonitoring on shipment provider: " + uri)
+	}
+
+	request := UpdateShipmentEnvironmentRequest{
+		EnableMonitoring: *composeShipment.EnableMonitoring,
+	}
+
+	//call the API
+	r, _, e := update(username, token, uri, request)
+	if e != nil {
+		log.Fatal(e)
+	}
+	if r.StatusCode != http.StatusOK {
+		check(errors.New("update provider failed"))
+	}
 }
 
 func create(username string, token string, url string, data interface{}) (*http.Response, string, []error) {
@@ -160,13 +204,11 @@ func deleteHTTP(username string, token string, url string) (*http.Response, stri
 
 // GetLogs returns a string of all container logs for a shipment
 func GetLogs(barge string, shipment string, env string) string {
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["barge"] = barge
-	values["shipment"] = shipment
-	values["env"] = env
-	template, _ := uritemplates.Parse(config.HelmitURI + "/harbor/{barge}/{shipment}/{env}")
-	uri, _ := template.Expand(values)
+
+	uri := helmitURI("/harbor/{barge}/{shipment}/{env}",
+		param("barge", barge),
+		param("shipment", shipment),
+		param("env", env))
 
 	_, body, err := gorequest.New().
 		Get(uri).
@@ -199,14 +241,11 @@ func GetLogStreamer(streamer string) (reader *bufio.Reader, err error) {
 // GetShipmentStatus returns the running status of a shipment
 func GetShipmentStatus(barge string, shipment string, env string) *ShipmentStatus {
 
-	var config = GetConfig()
-	//build URI
-	values := make(map[string]interface{})
-	values["barge"] = barge
-	values["shipment"] = shipment
-	values["env"] = env
-	template, _ := uritemplates.Parse(config.HelmitURI + "/shipment/status/{barge}/{shipment}/{env}")
-	uri, _ := template.Expand(values)
+	uri := helmitURI("/shipment/status/{barge}/{shipment}/{env}",
+		param("barge", barge),
+		param("shipment", shipment),
+		param("env", env))
+
 	if Verbose {
 		fmt.Println("fetching: " + uri)
 	}
@@ -237,12 +276,10 @@ func GetShipmentStatus(barge string, shipment string, env string) *ShipmentStatu
 func Trigger(shipment string, env string) (bool, []string) {
 
 	//build URI
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = env
-	template, _ := uritemplates.Parse(config.TriggerURI + "/{shipment}/{env}/ec2")
-	uri, _ := template.Expand(values)
+	uri := triggerURI("/{shipment}/{env}/ec2",
+		param("shipment", shipment),
+		param("env", env))
+
 	if Verbose {
 		log.Printf("triggering shipment: " + uri)
 	}
@@ -312,7 +349,6 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 	templateStringEnvLevelNew := config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/envvars/"
 	templateStringContainerLevelNew := config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/container/{container}/envvars/"
 
-	// /v1/shipment/%s/environment/%s/envVar
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
 	values["env"] = composeShipment.Env
@@ -324,7 +360,6 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 	if len(container) > 0 {
 		templateString = templateStringContainerLevelExisting
 	}
-
 	template, _ := uritemplates.Parse(templateString)
 	uri, _ := template.Expand(values)
 
@@ -405,41 +440,44 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 
 // UpdateContainerImage updates a container version on a shipment
 func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, image string) {
-	if Verbose {
-		log.Printf("updating container settings")
-	}
 
 	//build url
-	var config = GetConfig()
-	//PUT /v1/shipment/%s/environment/%s/container/%s
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = composeShipment.Env
-	values["container"] = container
-	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}/container/{container}")
-	url, _ := template.Expand(values)
+	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/container/{container}",
+		param("shipment", shipment),
+		param("env", composeShipment.Env),
+		param("container", container))
 
 	var payload = ContainerPayload{
 		Name:  container,
 		Image: image,
 	}
 
+	if Verbose {
+		log.Printf("updating container settings")
+	}
+
 	//call api
-	update(username, token, url, payload)
+	r, _, err := update(username, token, uri, payload)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		check(errors.New("update failed"))
+	}
 }
 
 // SaveNewShipmentEnvironment bulk saves a new shipment/environment
-func SaveNewShipmentEnvironment(username string, token string, shipment NewShipmentEnvironment) bool {
+func SaveNewShipmentEnvironment(username string, token string, shipment ShipmentEnvironment) bool {
 
 	var config = GetConfig()
 	shipment.Username = username
 	shipment.Token = token
 
 	//POST /api/v1/shipments
-	res, body, err := create(username, token, config.HarborURI+"/api/v1/shipments", shipment)
+	res, body, err := create(username, token, config.ShipitURI+"/v1/bulk/shipments", shipment)
 
-	if err != nil || res.StatusCode != http.StatusOK {
-		fmt.Printf("creating shipment was not successful: %v \n", body)
+	if err != nil || res.StatusCode != http.StatusCreated {
+		fmt.Printf("creating shipment was not successful: %v\ncode: %v\n", body, res.StatusCode)
 		return false
 	}
 
@@ -454,13 +492,12 @@ func SaveNewShipmentEnvironment(username string, token string, shipment NewShipm
 
 // DeleteShipmentEnvironment deletes a shipment/environment from harbor
 func DeleteShipmentEnvironment(username string, token string, shipment string, env string) {
+
 	//build URI
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = env
-	template, _ := uritemplates.Parse(config.ShipitURI + "/v1/shipment/{shipment}/environment/{env}")
-	uri, _ := template.Expand(values)
+	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}",
+		param("shipment", shipment),
+		param("env", env))
+
 	if Verbose {
 		log.Printf("deleting: " + uri)
 	}
@@ -499,12 +536,10 @@ func Catalogit(container CatalogitContainer) (string, []error) {
 func IsContainerVersionCataloged(name string, version string) bool {
 
 	//build URI
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["name"] = name
-	values["version"] = version
-	template, _ := uritemplates.Parse(config.CustomsURI + "/catalog/{name}/{version}/")
-	uri, _ := template.Expand(values)
+	uri := customsURI("/catalog/{name}/{version}/",
+		param("name", name),
+		param("version", version))
+
 	if Verbose {
 		log.Println("fetching: " + uri)
 	}
@@ -533,13 +568,11 @@ func IsContainerVersionCataloged(name string, version string) bool {
 func Deploy(shipment string, env string, buildToken string, deployRequest DeployRequest, provider string) {
 
 	//build URI
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = env
-	values["provider"] = provider
-	template, _ := uritemplates.Parse(config.CustomsURI + "/deploy/{shipment}/{env}/{provider}")
-	uri, _ := template.Expand(values)
+	uri := customsURI("/deploy/{shipment}/{env}/{provider}",
+		param("shipment", shipment),
+		param("env", env),
+		param("provider", provider))
+
 	request := gorequest.New().Get(uri)
 
 	if Verbose {
@@ -573,14 +606,11 @@ func Deploy(shipment string, env string, buildToken string, deployRequest Deploy
 // CatalogCustoms catalogs a container using the customs catalog api
 func CatalogCustoms(shipment string, env string, buildToken string, catalogRequest CatalogitContainer, provider string) {
 
-	//POST /catalog/:shipment/:environment/:provider
-	var config = GetConfig()
-	values := make(map[string]interface{})
-	values["shipment"] = shipment
-	values["env"] = env
-	values["provider"] = provider
-	template, _ := uritemplates.Parse(config.CustomsURI + "/catalog/{shipment}/{env}/{provider}")
-	uri, _ := template.Expand(values)
+	uri := customsURI("/catalog/{shipment}/{env}/{provider}",
+		param("shipment", shipment),
+		param("env", env),
+		param("provider", provider))
+
 	request := gorequest.New().Get(uri)
 
 	if Verbose {

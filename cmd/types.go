@@ -12,7 +12,12 @@ type AuthResponse struct {
 	Token   string
 }
 
-// ComposeShipment represents a harbor shipment
+// HarborCompose represents a harbor-compose.yml file
+type HarborCompose struct {
+	Shipments map[string]ComposeShipment `yaml:"shipments"`
+}
+
+// ComposeShipment represents a harbor shipment in a harbor-compose.yml file
 type ComposeShipment struct {
 	Env                string            `yaml:"env"`
 	Barge              string            `yaml:"barge"`
@@ -24,11 +29,7 @@ type ComposeShipment struct {
 	Product            string            `yaml:"product"`
 	Environment        map[string]string `yaml:"environment,omitempty"`
 	IgnoreImageVersion bool              `yaml:"ignoreImageVersion,omitempty"`
-}
-
-// HarborCompose represents a harbor-compose.yml file
-type HarborCompose struct {
-	Shipments map[string]ComposeShipment `yaml:"shipments"`
+	EnableMonitoring   *bool             `yaml:"enableMonitoring,omitempty"`
 }
 
 // DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
@@ -48,17 +49,23 @@ type DockerComposeService struct {
 
 // ShipmentEnvironment represents a shipment/environment combination
 type ShipmentEnvironment struct {
-	Name           string             `json:"name,omitempty"`
-	EnvVars        []EnvVarPayload    `json:"envVars,omitempty"`
-	Ports          []PortPayload      `json:"ports,omitempty"`
-	Containers     []ContainerPayload `json:"containers,omitempty"`
-	Providers      []ProviderPayload  `json:"providers,omitempty"`
-	ParentShipment struct {
-		Name    string          `json:"name,omitempty"`
-		EnvVars []EnvVarPayload `json:"envVars,omitempty"`
-		Group   string          `json:"group,omitempty"`
-	}
-	BuildToken string `json:"buildToken,omitempty"`
+	Username         string             `json:"username"`
+	Token            string             `json:"token"`
+	Name             string             `json:"name"`
+	EnvVars          []EnvVarPayload    `json:"envVars"`
+	Ports            []PortPayload      `json:"ports"`
+	Containers       []ContainerPayload `json:"containers"`
+	Providers        []ProviderPayload  `json:"providers"`
+	ParentShipment   ParentShipment     `json:"parentShipment"`
+	BuildToken       string             `json:"buildToken,omitempty"`
+	EnableMonitoring bool               `json:"enableMonitoring"`
+}
+
+// The ParentShipment of the shipmentModel
+type ParentShipment struct {
+	Name    string          `json:"name"`
+	EnvVars []EnvVarPayload `json:"envVars"`
+	Group   string          `json:"group"`
 }
 
 // EnvVarPayload represents EnvVar
@@ -109,46 +116,6 @@ type TriggerResponseMultiple struct {
 	Messages []string `json:"message,omitempty"`
 }
 
-// NewShipmentEnvironment is used for bulk-creating a new shipment
-type NewShipmentEnvironment struct {
-	Username    string          `json:"username"`
-	Token       string          `json:"token"`
-	Info        NewShipmentInfo `json:"main"`
-	Environment NewEnvironment  `json:"environment"`
-	Containers  []NewContainer  `json:"containers"`
-	Providers   []NewProvider   `json:"providers"`
-}
-
-// NewShipmentInfo represents new shipment info
-type NewShipmentInfo struct {
-	Name  string          `json:"name"`
-	Group string          `json:"group"`
-	Vars  []EnvVarPayload `json:"vars"`
-}
-
-// NewEnvironment represents new environment
-type NewEnvironment struct {
-	Name string          `json:"name"`
-	Vars []EnvVarPayload `json:"vars"`
-}
-
-// NewContainer respresents a new container
-type NewContainer struct {
-	Name    string          `json:"name"`
-	Version string          `json:"version"`
-	Image   string          `json:"image"`
-	Vars    []EnvVarPayload `json:"vars"`
-	Ports   []PortPayload   `json:"ports"`
-}
-
-// NewProvider represents a new provider
-type NewProvider struct {
-	Name     string          `json:"name"`
-	Replicas int             `json:"replicas"`
-	Vars     []EnvVarPayload `json:"vars,omitempty"`
-	Barge    string          `json:"barge,omitempty"`
-}
-
 // ContainerStatusOutput represents an object that can be written to stdout and formatted
 type ContainerStatusOutput struct {
 	ID        string
@@ -182,4 +149,9 @@ type DeployRequest struct {
 	Image   string `json:"image"`
 	Version string `json:"version"`
 	Catalog bool   `json:"catalog"`
+}
+
+// UpdateShipmentEnvironmentRequest represents a request to update a shipment/environment
+type UpdateShipmentEnvironmentRequest struct {
+	EnableMonitoring bool `json:"enableMonitoring"`
 }

@@ -353,6 +353,7 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 	assert.Equal(t, property, composeShipment.Property)
 	assert.Equal(t, product, composeShipment.Product)
 	assert.Equal(t, 1, len(composeShipment.Containers))
+	assert.Equal(t, true, *composeShipment.EnableMonitoring)
 
 	//IgnoreImageVersion should default to false
 	assert.Equal(t, false, composeShipment.IgnoreImageVersion)
@@ -367,6 +368,7 @@ func getSampleShipmentJSON() string {
 	return `
 {
   "name": "${env}",
+  "enableMonitoring": true,
   "parentShipment": {
     "name": "${name}",
     "group": "${group}",

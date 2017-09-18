@@ -61,7 +61,7 @@ func up(cmd *cobra.Command, args []string) {
 		existingShipment := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
 
 		//transform compose yaml into a desired NewShipmentEnvironment object
-		desiredShipment := transformComposeToNewShipment(shipmentName, shipment, dockerCompose)
+		desiredShipment := transformComposeToShipmentEnvironment(shipmentName, shipment, dockerCompose)
 
 		//validate desired state
 		err := validateUp(&desiredShipment, existingShipment)
@@ -90,7 +90,7 @@ func up(cmd *cobra.Command, args []string) {
 }
 
 //validates desire shipment against existing
-func validateUp(desired *NewShipmentEnvironment, existing *ShipmentEnvironment) error {
+func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) error {
 
 	if Verbose {
 		fmt.Println("existing:")
@@ -105,14 +105,14 @@ func validateUp(desired *NewShipmentEnvironment, existing *ShipmentEnvironment) 
 	}
 
 	//env name
-	if strings.Contains(desired.Environment.Name, "_") {
+	if strings.Contains(desired.Name, "_") {
 		if Verbose {
-			fmt.Println(desired.Environment.Name)
+			fmt.Println(desired.Name)
 		}
 		return errors.New("environment can not contain underscores ('_')")
 	}
 
-	provider := ec2ProviderNewProvider(desired.Providers)
+	provider := ec2Provider(desired.Providers)
 
 	//barge
 	if provider.Barge == "" {
@@ -141,7 +141,7 @@ func validateUp(desired *NewShipmentEnvironment, existing *ShipmentEnvironment) 
 
 		//validate health check
 		foundHealthCheck := false
-		for _, v := range container.Vars {
+		for _, v := range container.EnvVars {
 			if v.Name == healthCheckEnvVarName {
 				foundHealthCheck = true
 				break
@@ -208,38 +208,40 @@ func getPrimaryPort(ports []PortPayload) PortPayload {
 	return PortPayload{}
 }
 
-func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) NewShipmentEnvironment {
+func transformComposeToShipmentEnvironment(shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject) ShipmentEnvironment {
 
 	//create object used to create a new shipment environment from scratch
-	newShipment := NewShipmentEnvironment{
-		Info: NewShipmentInfo{
-			Name:  shipmentName,
-			Group: shipment.Group,
+	newShipment := ShipmentEnvironment{
+		Name:    shipment.Env,
+		EnvVars: make([]EnvVarPayload, 0),
+		ParentShipment: ParentShipment{
+			Name:    shipmentName,
+			EnvVars: make([]EnvVarPayload, 0),
+			Group:   shipment.Group,
 		},
 	}
 
 	//add shipment-level env vars
-	newShipment.Info.Vars = make([]EnvVarPayload, 0)
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("CUSTOMER", shipment.Group))
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("PROPERTY", shipment.Property))
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("PROJECT", shipment.Project))
-	newShipment.Info.Vars = append(newShipment.Info.Vars, envVar("PRODUCT", shipment.Product))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("CUSTOMER", shipment.Group))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PROPERTY", shipment.Property))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PROJECT", shipment.Project))
+	newShipment.ParentShipment.EnvVars = append(newShipment.ParentShipment.EnvVars, envVar("PRODUCT", shipment.Product))
 
-	//create environment
-	newShipment.Environment = NewEnvironment{
-		Name: shipment.Env,
-		Vars: make([]EnvVarPayload, 0),
+	//default enableMonitoring to true if not specified in yaml
+	enableMonitoring := true
+	if shipment.EnableMonitoring != nil {
+		enableMonitoring = *shipment.EnableMonitoring
 	}
+	newShipment.EnableMonitoring = enableMonitoring
 
 	//add environment-level env vars
 	for name, value := range shipment.Environment {
-		newShipment.Environment.Vars = append(newShipment.Environment.Vars, envVar(name, value))
+		newShipment.EnvVars = append(newShipment.EnvVars, envVar(name, value))
 	}
 
 	//containers
-
 	//iterate defined containers and apply container level updates
-	newShipment.Containers = make([]NewContainer, 0)
+	newShipment.Containers = make([]ContainerPayload, 0)
 	for containerIndex, container := range shipment.Containers {
 
 		if Verbose {
@@ -254,19 +256,15 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			log.Fatalln("'image' is required in docker compose file")
 		}
 
-		//parse image:tag and map to name/version
-		parsedImage := strings.Split(image, ":")
-
-		newContainer := NewContainer{
+		newContainer := ContainerPayload{
 			Name:    container,
 			Image:   image,
-			Version: parsedImage[1],
-			Vars:    make([]EnvVarPayload, 0),
+			EnvVars: make([]EnvVarPayload, 0),
 			Ports:   make([]PortPayload, 0),
 		}
 
 		//map docker-compose envvars to harbor env vars
-		newContainer.Vars = transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
+		newContainer.EnvVars = transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
 
 		//map the docker compose service ports to harbor ports
 		if len(serviceConfig.Ports) == 0 {
@@ -292,7 +290,7 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 			Primary:     (containerIndex == 0),
 			Protocol:    "http",
 			External:    false,
-			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.Vars).Value,
+			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.EnvVars).Value,
 		}
 
 		//add port to list
@@ -303,11 +301,11 @@ func transformComposeToNewShipment(shipmentName string, shipment ComposeShipment
 	}
 
 	//add default ec2 provider
-	provider := NewProvider{
+	provider := ProviderPayload{
 		Name:     "ec2",
 		Barge:    shipment.Barge,
 		Replicas: shipment.Replicas,
-		Vars:     make([]EnvVarPayload, 0),
+		EnvVars:  make([]EnvVarPayload, 0),
 	}
 
 	//add provider
@@ -337,7 +335,7 @@ func parseEnvVarNames(envFile string) []string {
 	return keys
 }
 
-func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject, newShipment NewShipmentEnvironment) {
+func createShipment(username string, token string, shipmentName string, shipment ComposeShipment, dockerComposeProject project.APIProject, newShipment ShipmentEnvironment) {
 
 	if Verbose {
 		log.Println("creating shipment environment")
@@ -414,7 +412,6 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	//update shipment/environment-level envvars
 	for evName, evValue := range shipment.Environment {
-
 		if Verbose {
 			log.Println("processing " + evName)
 		}
@@ -426,6 +423,17 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
 
 	} //envvars
+
+	//update shipment/environment configuration
+
+	//if user specified a value for enableMonitoring that's
+	//different from current, then update
+	if shipment.EnableMonitoring != nil && *shipment.EnableMonitoring != currentShipment.EnableMonitoring {
+		if Verbose {
+			fmt.Println("updating shipment/environment configuration (enableMonitoring)")
+		}
+		UpdateShipmentEnvironment(username, token, shipmentName, shipment)
+	}
 
 	//update shipment level configuration
 	UpdateShipment(username, token, shipmentName, shipment)

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -66,6 +67,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	property := "turner"
 	project := "turner"
 	product := "turner"
+	enableMonitoring := "true"
 
 	//if docker-compose.yml doesn't exist, then create one
 	var dockerCompose DockerCompose
@@ -110,6 +112,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
 		project = promptAndGetResponse("project: ")
 		product = promptAndGetResponse("product: ")
+		enableMonitoring = promptAndGetResponse("enableMonitoring (true|false): ")
 	}
 
 	//create a harbor compose object
@@ -117,12 +120,18 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		Shipments: make(map[string]ComposeShipment),
 	}
 
+	monitoring, err := strconv.ParseBool(enableMonitoring)
+	if err != nil {
+		check(errors.New("please enter true or false for enableMonitoring"))
+	}
+
 	composeShipment := ComposeShipment{
-		Env:      env,
-		Group:    group,
-		Property: property,
-		Project:  project,
-		Product:  product,
+		Env:              env,
+		Group:            group,
+		Property:         property,
+		Project:          project,
+		Product:          product,
+		EnableMonitoring: &monitoring,
 	}
 
 	composeShipment.Barge = barge
