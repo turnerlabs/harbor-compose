@@ -293,6 +293,14 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.EnvVars).Value,
 		}
 
+		//set the healthcheck values if they are defined in the yaml
+		if shipment.HealthcheckTimeoutSeconds != nil {
+			primaryPort.HealthcheckTimeout = shipment.HealthcheckTimeoutSeconds
+		}
+		if shipment.HealthcheckIntervalSeconds != nil {
+			primaryPort.HealthcheckInterval = shipment.HealthcheckIntervalSeconds
+		}
+
 		//add port to list
 		newContainer.Ports = append(newContainer.Ports, primaryPort)
 
@@ -423,6 +431,11 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
 
 	} //envvars
+
+	//if healthcheck settings are specified in yaml, update them
+	if shipment.HealthcheckTimeoutSeconds != nil {
+		updatePortHealthcheckSettings(currentShipment, shipment, username, token)
+	}
 
 	//update shipment/environment configuration
 

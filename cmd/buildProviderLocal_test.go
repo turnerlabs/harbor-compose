@@ -40,6 +40,8 @@ func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
 	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthcheckTimeout}", "1", 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthcheckInterval}", "10", 1)
 	t.Log(shipmentJSON)
 
 	//deserialize shipit json

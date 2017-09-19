@@ -18,9 +18,9 @@ func TestTransformShipmentToDockerCompose(t *testing.T) {
 
 	//define a ShipmentEnvironment
 	shipmentJSON := `
-{
-  "enableMonitoring": true,
+{  
   "name": "dev",
+  "enableMonitoring": true,
   "parentShipment": {
     "name": "mss-poc-app",
     "group": "mss",
@@ -86,7 +86,9 @@ func TestTransformShipmentToDockerCompose(t *testing.T) {
           "healthcheck_timeout": 1,
           "public_port": ${publicPort},
           "value": ${containerPort},
-          "name": "PORT"
+          "name": "PORT",
+          "healthcheck_timeout": 1,
+          "healthcheck_interval": 10
         }
       ]
     }
@@ -305,6 +307,8 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 	envLevel := "ENV_LEVEL"
 	containerLevel := "CONTAINER_LEVEL"
 	container := "web"
+	healthcheckTimeout := 10
+	healthcheckInterval := 100
 
 	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
@@ -318,6 +322,8 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthcheckTimeout}", strconv.Itoa(healthcheckTimeout), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthcheckInterval}", strconv.Itoa(healthcheckInterval), 1)
 	t.Log(shipmentJSON)
 
 	//deserialize shipit json
@@ -354,6 +360,8 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 	assert.Equal(t, product, composeShipment.Product)
 	assert.Equal(t, 1, len(composeShipment.Containers))
 	assert.Equal(t, true, *composeShipment.EnableMonitoring)
+	assert.Equal(t, healthcheckTimeout, *composeShipment.HealthcheckTimeoutSeconds)
+	assert.Equal(t, healthcheckInterval, *composeShipment.HealthcheckIntervalSeconds)
 
 	//IgnoreImageVersion should default to false
 	assert.Equal(t, false, composeShipment.IgnoreImageVersion)
@@ -439,7 +447,9 @@ func getSampleShipmentJSON() string {
           "healthcheck_timeout": 1,
           "public_port": 80,
           "value": 5000,
-          "name": "PORT"
+          "name": "PORT",
+          "healthcheck_timeout": ${healthcheckTimeout},
+          "healthcheck_interval": ${healthcheckInterval}
         }
       ]
     }

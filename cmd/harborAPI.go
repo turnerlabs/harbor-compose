@@ -640,3 +640,39 @@ func CatalogCustoms(shipment string, env string, buildToken string, catalogReque
 		log.Fatal("customs/catalog failed")
 	}
 }
+
+//update all ports on all containers
+func updatePortHealthcheckSettings(existingShipment *ShipmentEnvironment, desiredShipment ComposeShipment, username string, token string) {
+
+	for _, container := range existingShipment.Containers {
+		for _, port := range container.Ports {
+
+			//need update?
+			if (*port.HealthcheckTimeout != *desiredShipment.HealthcheckTimeoutSeconds) || (*port.HealthcheckInterval != *desiredShipment.HealthcheckIntervalSeconds) {
+
+				//build url
+				uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/container/{container}/port/{port}",
+					param("shipment", existingShipment.ParentShipment.Name),
+					param("env", existingShipment.Name),
+					param("container", container.Name),
+					param("port", port.Name))
+
+				portPayload := PortPayload{
+					HealthcheckTimeout:  desiredShipment.HealthcheckTimeoutSeconds,
+					HealthcheckInterval: desiredShipment.HealthcheckIntervalSeconds,
+				}
+
+				//make the api call
+				r, _, e := update(username, token, uri, portPayload)
+				if e != nil {
+					log.Fatal(e)
+				}
+				if r.StatusCode != http.StatusOK {
+					check(errors.New("update port failed"))
+				}
+			} else if Verbose {
+				log.Printf("container: %s port: %s hasn't changed, skipping \n", container.Name, port.Name)
+			}
+		}
+	}
+}
