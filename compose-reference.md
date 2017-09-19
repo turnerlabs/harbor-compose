@@ -124,6 +124,29 @@ shipments:
     enableMonitoring: true
 ```
 
+### healthcheckIntervalSeconds
+
+This value determines how often (in seconds) the platform health check (or liveness probe) is performed. Default is 10 seconds.  *Use caution when increasing this value as it could cause increased application downtime in the case of container crashes.
+
+```yaml
+shipments:
+  my-shipment:
+    env: prod
+    healthcheckIntervalSeconds: 10
+```
+
+### healthcheckTimeoutSeconds
+
+This value determines the number of seconds after which the platform health check (or liveness probe) times out. Default is 1 second.  *Use caution when increasing this value as it could cause increased application downtime in the case of container crashes.
+
+```yaml
+shipments:
+  my-shipment:
+    env: prod
+    healthcheckTimeoutSeconds: 1
+```
+
+
 ### property
 
 This value defines which property your shipment serves.
