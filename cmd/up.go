@@ -432,10 +432,8 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	} //envvars
 
-	//if healthcheck settings are specified in yaml, update them
-	if shipment.HealthcheckTimeoutSeconds != nil {
-		updatePortHealthcheckSettings(currentShipment, shipment, username, token)
-	}
+	//update settings related to ports
+	updatePorts(currentShipment, shipment, username, token)
 
 	//update shipment/environment configuration
 
@@ -461,6 +459,38 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 	//if replicas is changing from 0, then show wait messages
 	if ec2Provider(currentShipment.Providers).Replicas == 0 {
 		fmt.Println(successMessage)
+	}
+}
+
+//update container ports
+func updatePorts(existingShipment *ShipmentEnvironment, desiredShipment ComposeShipment, username string, token string) {
+
+	//inspect container ports
+	for _, container := range existingShipment.Containers {
+		for _, port := range container.Ports {
+
+			portPayload := UpdatePortRequest{
+				Name: port.Name,
+			}
+
+			//only update the props that have been specified and changed
+
+			if desiredShipment.HealthcheckTimeoutSeconds != nil && *desiredShipment.HealthcheckTimeoutSeconds != *port.HealthcheckTimeout {
+				portPayload.HealthcheckTimeout = desiredShipment.HealthcheckTimeoutSeconds
+			}
+
+			if desiredShipment.HealthcheckIntervalSeconds != nil && *desiredShipment.HealthcheckIntervalSeconds != *port.HealthcheckInterval {
+				portPayload.HealthcheckInterval = desiredShipment.HealthcheckIntervalSeconds
+			}
+
+			//do we need to send updates to the server?
+			if portPayload.HealthcheckTimeout != nil || portPayload.HealthcheckInterval != nil {
+				if Verbose {
+					log.Printf("updating port: %s on container: %s\n", port.Name, container.Name)
+				}
+				updatePort(username, token, existingShipment.ParentShipment.Name, existingShipment.Name, container.Name, portPayload)
+			}
+		}
 	}
 }
 

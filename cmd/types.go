@@ -159,3 +159,10 @@ type DeployRequest struct {
 type UpdateShipmentEnvironmentRequest struct {
 	EnableMonitoring bool `json:"enableMonitoring"`
 }
+
+// UpdatePortRequest represents a request to update a port
+type UpdatePortRequest struct {
+	Name                string `json:"name"`
+	HealthcheckTimeout  *int   `json:"healthcheck_timeout,omitempty"`
+	HealthcheckInterval *int   `json:"healthcheck_interval,omitempty"`
+}

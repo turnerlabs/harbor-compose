@@ -157,6 +157,9 @@ func update(username string, token string, url string, data interface{}) (*http.
 
 	if Verbose {
 		log.Printf("PUT %v", url)
+		if b, e := json.Marshal(data); e == nil {
+			log.Println(string(b))
+		}
 	}
 
 	res, body, err := gorequest.New().
@@ -171,8 +174,8 @@ func update(username string, token string, url string, data interface{}) (*http.
 	}
 
 	if Verbose {
-		log.Printf("status code = %v", res.StatusCode)
 		log.Println(body)
+		log.Printf("status code = %v", res.StatusCode)
 	}
 
 	return res, body, err
@@ -642,37 +645,21 @@ func CatalogCustoms(shipment string, env string, buildToken string, catalogReque
 }
 
 //update all ports on all containers
-func updatePortHealthcheckSettings(existingShipment *ShipmentEnvironment, desiredShipment ComposeShipment, username string, token string) {
+func updatePort(username string, token string, shipment string, env string, container string, port UpdatePortRequest) {
 
-	for _, container := range existingShipment.Containers {
-		for _, port := range container.Ports {
+	//build url
+	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/container/{container}/port/{port}",
+		param("shipment", shipment),
+		param("env", env),
+		param("container", container),
+		param("port", port.Name))
 
-			//need update?
-			if (*port.HealthcheckTimeout != *desiredShipment.HealthcheckTimeoutSeconds) || (*port.HealthcheckInterval != *desiredShipment.HealthcheckIntervalSeconds) {
-
-				//build url
-				uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/container/{container}/port/{port}",
-					param("shipment", existingShipment.ParentShipment.Name),
-					param("env", existingShipment.Name),
-					param("container", container.Name),
-					param("port", port.Name))
-
-				portPayload := PortPayload{
-					HealthcheckTimeout:  desiredShipment.HealthcheckTimeoutSeconds,
-					HealthcheckInterval: desiredShipment.HealthcheckIntervalSeconds,
-				}
-
-				//make the api call
-				r, _, e := update(username, token, uri, portPayload)
-				if e != nil {
-					log.Fatal(e)
-				}
-				if r.StatusCode != http.StatusOK {
-					check(errors.New("update port failed"))
-				}
-			} else if Verbose {
-				log.Printf("container: %s port: %s hasn't changed, skipping \n", container.Name, port.Name)
-			}
-		}
+	//make the api call
+	r, _, e := update(username, token, uri, port)
+	if e != nil {
+		log.Fatal(e)
+	}
+	if r.StatusCode != http.StatusOK {
+		check(errors.New("update port failed"))
 	}
 }
