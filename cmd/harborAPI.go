@@ -634,7 +634,7 @@ func CatalogCustoms(shipment string, env string, buildToken string, catalogReque
 	}
 }
 
-//update all ports on all containers
+//update a port
 func updatePort(username string, token string, shipment string, env string, container string, port UpdatePortRequest) {
 
 	//build url
