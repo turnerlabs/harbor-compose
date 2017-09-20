@@ -139,6 +139,14 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			return errors.New("At least one port is required.")
 		}
 
+		for _, port := range container.Ports {
+			if port.HealthcheckInterval != nil && port.HealthcheckTimeout != nil {
+				if !(*port.HealthcheckInterval >= *port.HealthcheckTimeout) {
+					return errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds")
+				}
+			}
+		}
+
 		//validate health check
 		foundHealthCheck := false
 		for _, v := range container.EnvVars {

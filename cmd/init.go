@@ -137,6 +137,10 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		if err != nil {
 			check(errors.New("please enter a valid number for healthcheckIntervalSeconds"))
 		}
+		//healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds
+		if !(healthcheckIntervalSeconds >= healthcheckTimeoutSeconds) {
+			check(errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds"))
+		}
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
 		project = promptAndGetResponse("project: ")
 		product = promptAndGetResponse("product: ")

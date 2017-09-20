@@ -126,7 +126,7 @@ shipments:
 
 ### healthcheckIntervalSeconds
 
-This value determines how often (in seconds) the platform health check (or liveness probe) is performed. Default is 10 seconds.  *Use caution when increasing this value as it could cause increased application downtime in the case of container crashes.
+This value determines how often (in seconds) the platform health check (or liveness probe) is performed. Default is 10 seconds.  Value must be >= healthcheckTimeoutSeconds.  *Use caution when increasing this value as it could cause increased application downtime in the case of container crashes.
 
 ```yaml
 shipments:
