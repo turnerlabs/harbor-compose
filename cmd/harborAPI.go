@@ -76,24 +76,19 @@ func GetShipmentEnvironment(username string, token string, shipment string, env 
 	return &result
 }
 
-//UpdateShipment updates shipment-level configuration
-func UpdateShipment(username string, token string, shipment string, composeShipment ComposeShipment) {
+//UpdateProvider updates provider configuration
+func UpdateProvider(username string, token string, shipment string, env string, provider ProviderPayload) {
 
 	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/provider/ec2",
 		param("shipment", shipment),
-		param("env", composeShipment.Env))
+		param("env", env))
 
 	if Verbose {
 		log.Printf("updating replicas on shipment provider: " + uri)
 	}
 
-	providerPayload := ProviderPayload{
-		Name:     "ec2",
-		Replicas: composeShipment.Replicas,
-	}
-
 	//call the API
-	r, _, e := update(username, token, uri, providerPayload)
+	r, _, e := update(username, token, uri, provider)
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -442,25 +437,20 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 }
 
 // UpdateContainerImage updates a container version on a shipment
-func UpdateContainerImage(username string, token string, shipment string, composeShipment ComposeShipment, container string, image string) {
+func UpdateContainerImage(username string, token string, shipment string, env string, container ContainerPayload) {
 
 	//build url
 	uri := shipitURI("/v1/shipment/{shipment}/environment/{env}/container/{container}",
 		param("shipment", shipment),
-		param("env", composeShipment.Env),
-		param("container", container))
-
-	var payload = ContainerPayload{
-		Name:  container,
-		Image: image,
-	}
+		param("env", env),
+		param("container", container.Name))
 
 	if Verbose {
 		log.Printf("updating container settings")
 	}
 
 	//call api
-	r, _, err := update(username, token, uri, payload)
+	r, _, err := update(username, token, uri, container)
 	if err != nil {
 		log.Fatal(err)
 	}

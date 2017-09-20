@@ -69,3 +69,12 @@ func buildURI(baseURI string, template string, params ...tuple) string {
 	check(err)
 	return uri
 }
+
+func findContainer(container string, containers []ContainerPayload) *ContainerPayload {
+	for _, c := range containers {
+		if c.Name == container {
+			return &c
+		}
+	}
+	return nil
+}

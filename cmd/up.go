@@ -384,12 +384,32 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		//lookup the container in the list of services in the docker-compose file
 		serviceConfig := getDockerComposeService(dockerComposeProject, container)
 
-		// catalog containers
-		catalogContainer(container, serviceConfig.Image)
-
-		//update the shipment/container with the new image
+		//should we process the image?
 		if !shipment.IgnoreImageVersion {
-			UpdateContainerImage(username, token, shipmentName, shipment, container, serviceConfig.Image)
+
+			// catalog container image
+			catalogContainer(container, serviceConfig.Image)
+
+			//find the existing container
+			currentContainer := findContainer(container, currentShipment.Containers)
+			if currentContainer == nil {
+				check(errors.New("Cannot find container. Adding new containers is not supported"))
+			}
+
+			//has the image changed?
+			if serviceConfig.Image != currentContainer.Image {
+
+				var payload = ContainerPayload{
+					Name:  container,
+					Image: serviceConfig.Image,
+				}
+
+				//update the shipment/container with the new image
+				UpdateContainerImage(username, token, shipmentName, currentShipment.Name, payload)
+
+			} else if Verbose {
+				log.Println("image has not changed, skipping")
+			}
 		}
 
 		//map docker-compose envvars to harbor env vars
@@ -399,6 +419,9 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 				if Verbose {
 					log.Printf("processing %s (%s)", envvar.Name, envvar.Type)
 				}
+
+				//TODO: check for delta against envvars in currentShipment
+				//rather than doing additional GETs
 
 				//save the envvar
 				SaveEnvVar(username, token, shipmentName, shipment, envvar, container)
@@ -435,8 +458,6 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 	//update settings related to ports
 	updatePorts(currentShipment, shipment, username, token)
 
-	//update shipment/environment configuration
-
 	//if user specified a value for enableMonitoring that's
 	//different from current, then update
 	if shipment.EnableMonitoring != nil && *shipment.EnableMonitoring != currentShipment.EnableMonitoring {
@@ -446,8 +467,17 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		UpdateShipmentEnvironment(username, token, shipmentName, shipment)
 	}
 
-	//update shipment level configuration
-	UpdateShipment(username, token, shipmentName, shipment)
+	//update provider configuration, if changed
+	ec2 := ec2Provider(currentShipment.Providers)
+	if shipment.Replicas != ec2.Replicas {
+
+		providerPayload := ProviderPayload{
+			Name:     ec2.Name,
+			Replicas: shipment.Replicas,
+		}
+
+		UpdateProvider(username, token, shipmentName, currentShipment.Name, providerPayload)
+	}
 
 	//trigger shipment
 	_, messages := Trigger(shipmentName, shipment.Env)
