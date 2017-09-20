@@ -19,17 +19,19 @@ type HarborCompose struct {
 
 // ComposeShipment represents a harbor shipment in a harbor-compose.yml file
 type ComposeShipment struct {
-	Env                string            `yaml:"env"`
-	Barge              string            `yaml:"barge"`
-	Containers         []string          `yaml:"containers"`
-	Replicas           int               `yaml:"replicas"`
-	Group              string            `yaml:"group"`
-	Property           string            `yaml:"property"`
-	Project            string            `yaml:"project"`
-	Product            string            `yaml:"product"`
-	Environment        map[string]string `yaml:"environment,omitempty"`
-	IgnoreImageVersion bool              `yaml:"ignoreImageVersion,omitempty"`
-	EnableMonitoring   *bool             `yaml:"enableMonitoring,omitempty"`
+	Env                        string            `yaml:"env"`
+	Barge                      string            `yaml:"barge"`
+	Containers                 []string          `yaml:"containers"`
+	Replicas                   int               `yaml:"replicas"`
+	Group                      string            `yaml:"group"`
+	Property                   string            `yaml:"property"`
+	Project                    string            `yaml:"project"`
+	Product                    string            `yaml:"product"`
+	Environment                map[string]string `yaml:"environment,omitempty"`
+	IgnoreImageVersion         bool              `yaml:"ignoreImageVersion,omitempty"`
+	EnableMonitoring           *bool             `yaml:"enableMonitoring,omitempty"`
+	HealthcheckTimeoutSeconds  *int              `yaml:"healthcheckTimeoutSeconds,omitempty"`
+	HealthcheckIntervalSeconds *int              `yaml:"healthcheckIntervalSeconds,omitempty"`
 }
 
 // DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
@@ -88,6 +90,8 @@ type PortPayload struct {
 	EnableProxyProtocol bool   `json:"enable_proxy_protocol,omitempty"`
 	SslArn              string `json:"ssl_arn,omitempty"`
 	SslManagementType   string `json:"ssl_management_type,omitempty"`
+	HealthcheckTimeout  *int   `json:"healthcheck_timeout,omitempty"`
+	HealthcheckInterval *int   `json:"healthcheck_interval,omitempty"`
 }
 
 // ContainerPayload represents a container payload
@@ -154,4 +158,11 @@ type DeployRequest struct {
 // UpdateShipmentEnvironmentRequest represents a request to update a shipment/environment
 type UpdateShipmentEnvironmentRequest struct {
 	EnableMonitoring bool `json:"enableMonitoring"`
+}
+
+// UpdatePortRequest represents a request to update a port
+type UpdatePortRequest struct {
+	Name                string `json:"name"`
+	HealthcheckTimeout  *int   `json:"healthcheck_timeout,omitempty"`
+	HealthcheckInterval *int   `json:"healthcheck_interval,omitempty"`
 }

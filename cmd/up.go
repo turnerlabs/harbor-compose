@@ -139,6 +139,14 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			return errors.New("At least one port is required.")
 		}
 
+		for _, port := range container.Ports {
+			if port.HealthcheckInterval != nil && port.HealthcheckTimeout != nil {
+				if !(*port.HealthcheckInterval >= *port.HealthcheckTimeout) {
+					return errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds")
+				}
+			}
+		}
+
 		//validate health check
 		foundHealthCheck := false
 		for _, v := range container.EnvVars {
@@ -293,6 +301,14 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.EnvVars).Value,
 		}
 
+		//set the healthcheck values if they are defined in the yaml
+		if shipment.HealthcheckTimeoutSeconds != nil {
+			primaryPort.HealthcheckTimeout = shipment.HealthcheckTimeoutSeconds
+		}
+		if shipment.HealthcheckIntervalSeconds != nil {
+			primaryPort.HealthcheckInterval = shipment.HealthcheckIntervalSeconds
+		}
+
 		//add port to list
 		newContainer.Ports = append(newContainer.Ports, primaryPort)
 
@@ -376,12 +392,32 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		//lookup the container in the list of services in the docker-compose file
 		serviceConfig := getDockerComposeService(dockerComposeProject, container)
 
-		// catalog containers
-		catalogContainer(container, serviceConfig.Image)
-
-		//update the shipment/container with the new image
+		//should we process the image?
 		if !shipment.IgnoreImageVersion {
-			UpdateContainerImage(username, token, shipmentName, shipment, container, serviceConfig.Image)
+
+			// catalog container image
+			catalogContainer(container, serviceConfig.Image)
+
+			//find the existing container
+			currentContainer := findContainer(container, currentShipment.Containers)
+			if currentContainer == nil {
+				check(errors.New("Cannot find container. Adding new containers is not supported"))
+			}
+
+			//has the image changed?
+			if serviceConfig.Image != currentContainer.Image {
+
+				var payload = ContainerPayload{
+					Name:  container,
+					Image: serviceConfig.Image,
+				}
+
+				//update the shipment/container with the new image
+				UpdateContainerImage(username, token, shipmentName, currentShipment.Name, payload)
+
+			} else if Verbose {
+				log.Println("image has not changed, skipping")
+			}
 		}
 
 		//map docker-compose envvars to harbor env vars
@@ -391,6 +427,9 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 				if Verbose {
 					log.Printf("processing %s (%s)", envvar.Name, envvar.Type)
 				}
+
+				//TODO: check for delta against envvars in currentShipment
+				//rather than doing additional GETs
 
 				//save the envvar
 				SaveEnvVar(username, token, shipmentName, shipment, envvar, container)
@@ -424,7 +463,8 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 
 	} //envvars
 
-	//update shipment/environment configuration
+	//update settings related to ports
+	updatePorts(currentShipment, shipment, username, token)
 
 	//if user specified a value for enableMonitoring that's
 	//different from current, then update
@@ -435,8 +475,17 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		UpdateShipmentEnvironment(username, token, shipmentName, shipment)
 	}
 
-	//update shipment level configuration
-	UpdateShipment(username, token, shipmentName, shipment)
+	//update provider configuration, if changed
+	ec2 := ec2Provider(currentShipment.Providers)
+	if shipment.Replicas != ec2.Replicas {
+
+		providerPayload := ProviderPayload{
+			Name:     ec2.Name,
+			Replicas: shipment.Replicas,
+		}
+
+		UpdateProvider(username, token, shipmentName, currentShipment.Name, providerPayload)
+	}
 
 	//trigger shipment
 	_, messages := Trigger(shipmentName, shipment.Env)
@@ -448,6 +497,38 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 	//if replicas is changing from 0, then show wait messages
 	if ec2Provider(currentShipment.Providers).Replicas == 0 {
 		fmt.Println(successMessage)
+	}
+}
+
+//update container ports
+func updatePorts(existingShipment *ShipmentEnvironment, desiredShipment ComposeShipment, username string, token string) {
+
+	//inspect container ports
+	for _, container := range existingShipment.Containers {
+		for _, port := range container.Ports {
+
+			portPayload := UpdatePortRequest{
+				Name: port.Name,
+			}
+
+			//only update the props that have been specified and changed
+
+			if desiredShipment.HealthcheckTimeoutSeconds != nil && *desiredShipment.HealthcheckTimeoutSeconds != *port.HealthcheckTimeout {
+				portPayload.HealthcheckTimeout = desiredShipment.HealthcheckTimeoutSeconds
+			}
+
+			if desiredShipment.HealthcheckIntervalSeconds != nil && *desiredShipment.HealthcheckIntervalSeconds != *port.HealthcheckInterval {
+				portPayload.HealthcheckInterval = desiredShipment.HealthcheckIntervalSeconds
+			}
+
+			//do we need to send updates to the server?
+			if portPayload.HealthcheckTimeout != nil || portPayload.HealthcheckInterval != nil {
+				if Verbose {
+					log.Printf("updating port: %s on container: %s\n", port.Name, container.Name)
+				}
+				updatePort(username, token, existingShipment.ParentShipment.Name, existingShipment.Name, container.Name, portPayload)
+			}
+		}
 	}
 }
 
