@@ -134,6 +134,7 @@ type ContainerStatusOutput struct {
 type ShipmentStatusOutput struct {
 	Shipment    string
 	Environment string
+	Barge       string
 	Status      string
 	Containers  string
 	Replicas    string
