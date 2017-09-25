@@ -1,3 +1,22 @@
+## 0.14.0 (2017-9-25)
+
+Features:
+
+- Support for `hidden` environment variables ([#19](https://github.com/turnerlabs/harbor-compose/issues/19))
+
+- Output a `hidden.env` in the `init` command ([#125](https://github.com/turnerlabs/harbor-compose/issues/125))
+
+- More efficient environment variable updates in `up` ([#126](https://github.com/turnerlabs/harbor-compose/issues/126))
+
+- Support for `enableMonitoring` ([#79](https://github.com/turnerlabs/harbor-compose/issues/79))
+
+- Support for `healthcheckIntervalSeconds` ([#129](https://github.com/turnerlabs/harbor-compose/issues/129))
+
+- Support for `healthcheckTimeoutSeconds` ([#78](https://github.com/turnerlabs/harbor-compose/issues/78))
+
+- Adds `barge` to `ps` command output ([#134](https://github.com/turnerlabs/harbor-compose/issues/134))
+
+
 ## 0.13.1 (2017-8-31)
 
 Bug fixes:
