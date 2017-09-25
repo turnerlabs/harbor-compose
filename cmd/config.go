@@ -16,7 +16,6 @@ type Config struct {
 	TriggerURI   string `json:"trigger"`
 	AuthURI      string `json:"authn"`
 	HelmitURI    string `json:"helmit"`
-	HarborURI    string `json:"harbor"`
 	CustomsURI   string `json:"customs"`
 }
 
@@ -98,10 +97,6 @@ func GetConfig() *Config {
 
 	if config.HelmitURI == "" {
 		config.HelmitURI = "http://helmit.services.dmtio.net"
-	}
-
-	if config.HarborURI == "" {
-		config.HarborURI = "http://harbor.services.dmtio.net"
 	}
 
 	if config.CustomsURI == "" {

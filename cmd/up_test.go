@@ -30,7 +30,7 @@ services:
 	assert.Equal(t, "foo=bar", proj.Environment.ToMap()["CHAR_EQUAL"])
 }
 
-func TestTransformComposeToNewShipment(t *testing.T) {
+func TestTransformComposeToShipmentEnvironment(t *testing.T) {
 
 	//test compose yaml transformation to a new harbor shipment
 	dockerComposeYaml := `
@@ -68,7 +68,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
 	if !success {
@@ -81,10 +81,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -93,10 +93,10 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 }
 
-func TestTransformComposeToNewShipmentEnvFile(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentEnvFile(t *testing.T) {
 	//test compose yaml transformation to a new harbor shipment using env_file
 
 	dockerComposeYaml := `
@@ -143,7 +143,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//lookup container service
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
@@ -157,10 +157,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -169,7 +169,7 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(envFileName)
@@ -178,7 +178,7 @@ shipments:
 	}
 }
 
-func TestTransformComposeToNewShipmentDotEnv(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentDotEnv(t *testing.T) {
 	//test compose yaml transformation to a new harbor shipment using .env file
 
 	dockerComposeYaml := `
@@ -222,7 +222,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//lookup container service
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
@@ -236,10 +236,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -248,7 +248,7 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(".env")
@@ -257,7 +257,7 @@ shipments:
 	}
 }
 
-func TestTransformComposeToNewShipmentEnvFileHealthCheck(t *testing.T) {
+func TestTransformComposeToShipmentEnvironmentEnvFileHealthCheck(t *testing.T) {
 	//test use of health check in env_file
 
 	dockerComposeYaml := `
@@ -303,7 +303,7 @@ shipments:
 	composeShipment := harborCompose.Shipments[shipmentName]
 
 	//test func
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//lookup container service
 	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
@@ -317,10 +317,10 @@ shipments:
 	//assertions
 
 	//shipment transformations
-	assert.Equal(t, shipmentName, newShipment.Info.Name)
-	assert.Equal(t, composeShipment.Env, newShipment.Environment.Name)
-	assert.Equal(t, composeShipment.Group, newShipment.Info.Group)
-	assert.Equal(t, 0, len(newShipment.Environment.Vars))
+	assert.Equal(t, shipmentName, newShipment.ParentShipment.Name)
+	assert.Equal(t, composeShipment.Env, newShipment.Name)
+	assert.Equal(t, composeShipment.Group, newShipment.ParentShipment.Group)
+	assert.Equal(t, 0, len(newShipment.EnvVars))
 
 	//container transformations
 	assert.Equal(t, composeServiceName, shipmentContainer.Name)
@@ -329,7 +329,7 @@ shipments:
 	assert.Equal(t, serviceConfig.Environment.ToMap()["HEALTHCHECK"], shipmentContainer.Ports[0].Healthcheck)
 
 	//all environment variables specified in docker-compose should get tranformed to shipment container vars
-	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.Vars))
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), shipmentContainer.EnvVars))
 
 	//clean up
 	err = os.Remove(envFileName)
@@ -402,7 +402,7 @@ shipments:
 	t.Log(dockerComposeYaml)
 
 	//get a new shipment
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//test func
 	err := validateUp(&newShipment, nil)
@@ -445,7 +445,7 @@ shipments:
 	t.Log(dockerComposeYaml)
 
 	//get a new shipment
-	newShipment := transformComposeToNewShipment(shipmentName, composeShipment, dockerCompose)
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
 
 	//test func
 	err := validateUp(&newShipment, nil)
@@ -514,7 +514,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -588,7 +588,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -664,7 +664,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -741,7 +741,7 @@ shipments:
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -817,7 +817,7 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	t.Log(harborComposeYaml)
 
 	//make changes to shipment
-	desiredShipment := transformComposeToNewShipment(name, composeShipment, dockerCompose)
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
 
 	//test func
 	err = validateUp(&desiredShipment, &existingShipment)
@@ -826,4 +826,352 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	t.Log(err)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Healthcheck changes")
+}
+
+func TestTransformComposeToShipmentEnvironmentHiddenEnvFile(t *testing.T) {
+	//test compose yaml transformation to a new harbor shipment using env_file
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+    env_file: 
+    - ${envFileName}
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: corp-sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//write hidden.env file containing env vars
+	envFileName := "/tmp/hidden.env"
+	err := ioutil.WriteFile(envFileName, []byte("HIDDEN=foo"), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
+	dockerCompose, _ := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+
+	//lookup container service
+	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
+	if !success {
+		log.Fatal("error getting service config")
+	}
+
+	harborEnvVars := transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
+
+	//assertions
+
+	//all environment variables specified in docker-compose should get tranformed to shipment container vars
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), harborEnvVars))
+
+	//vars in hidden.env should be set to type=hidden
+	hiddenVar := getEnvVar("HIDDEN", harborEnvVars)
+	assert.Equal(t, "hidden", hiddenVar.Type)
+
+	//clean up
+	err = os.Remove(envFileName)
+	if err != nil {
+		t.Fail()
+	}
+}
+
+func TestTransformComposeToShipmentEnvironmentHiddenEnvFileWithAnotherEnvFile(t *testing.T) {
+	//test compose yaml transformation to a new harbor shipment using env_file
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+    env_file: 
+    - ${envFileName}
+    - ${envFileName2}
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: corp-sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//write hidden.env file containing env vars
+	envFileName := "/tmp/hidden.env"
+	err := ioutil.WriteFile(envFileName, []byte("HIDDEN=foo"), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	//also, write another env_file
+	envFileName2 := "/tmp/vars.env"
+	err = ioutil.WriteFile(envFileName2, []byte("FOOBAR=foo"), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName2}", envFileName2, 1)
+	dockerCompose, _ := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+
+	//lookup container service
+	serviceConfig, success := dockerCompose.GetServiceConfig(composeServiceName)
+	if !success {
+		log.Fatal("error getting service config")
+	}
+
+	//test
+	harborEnvVars := transformDockerServiceEnvVarsToHarborEnvVars(serviceConfig)
+
+	//assertions
+
+	//all environment variables specified in docker-compose should get tranformed to shipment container vars
+	assert.True(t, assertEnvVarsMatch(t, serviceConfig.Environment.ToMap(), harborEnvVars))
+
+	//vars in hidden.env should be set to type=hidden
+	hiddenVar := getEnvVar("HIDDEN", harborEnvVars)
+	assert.Equal(t, "hidden", hiddenVar.Type)
+
+	anotherVar := getEnvVar("FOOBAR", harborEnvVars)
+	assert.Equal(t, "basic", anotherVar.Type)
+
+	//clean up
+	err = os.Remove(envFileName)
+	if err != nil {
+		t.Fail()
+	}
+	err = os.Remove(envFileName2)
+	if err != nil {
+		t.Fail()
+	}
+}
+
+//ensures up correctly translates enableMonitoring
+func TestUpEnableMonitoringDefault(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+
+	//enableMonitoring should default to true if not specified in yaml
+	assert.True(t, newShipment.EnableMonitoring, "expecting enableMonitoring to default to true")
+}
+
+//ensures up correctly translates enableMonitoring
+func TestUpEnableMonitoring(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+    enableMonitoring: false
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+
+	//enableMonitoring should get mapped from yaml
+	assert.False(t, newShipment.EnableMonitoring, "expecting enableMonitoring to be false")
+}
+
+func TestUpHealthcheckSettings(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+    enableMonitoring: true
+    healthcheckTimeoutSeconds: 10
+    healthcheckIntervalSeconds: 100
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	fmt.Println(harborCompose.Shipments[shipmentName].HealthcheckTimeoutSeconds)
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+
+	//lookup transformed shipment container
+	shipmentContainer := newShipment.Containers[0]
+
+	//assertions
+	assert.Equal(t, 10, *shipmentContainer.Ports[0].HealthcheckTimeout)
+	assert.Equal(t, 100, *shipmentContainer.Ports[0].HealthcheckInterval)
+}
+
+//test interval > timeout
+func TestUpHealthcheckSettingsInterval(t *testing.T) {
+
+	//test compose yaml transformation to a new harbor shipment
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000    
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+    enableMonitoring: true
+    healthcheckTimeoutSeconds: 10
+    healthcheckIntervalSeconds: 9
+`
+
+	//parse the compose yaml into objects that we can work with
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	fmt.Println(harborCompose.Shipments[shipmentName].HealthcheckTimeoutSeconds)
+
+	//test func
+	newShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+	err := validateUp(&newShipment, nil)
+
+	t.Log(err)
+	assert.NotNil(t, err)
 }

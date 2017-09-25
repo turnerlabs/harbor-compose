@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -29,6 +31,25 @@ func init() {
 
 func initHarborCompose(cmd *cobra.Command, args []string) {
 
+	//write a gitignored/dockerignored hidden.env as a placeholder for users to add secrets
+	//if it already exists, prompt to overwrite
+	//note that this file needs to be written before reference is added/parsed in docker-compose.yml
+	write := false
+	if _, err := os.Stat(hiddenEnvFileName); err == nil {
+		fmt.Print(hiddenEnvFileName + " already exists. Overwrite? ")
+		write = askForConfirmation()
+	} else { //not exists
+		write = true
+	}
+	if write {
+		sampleContents := "#FOO=bar\n"
+		err := ioutil.WriteFile(hiddenEnvFileName, []byte(sampleContents), 0644)
+		check(err)
+		sensitiveFiles := []string{hiddenEnvFileName}
+		appendToFile(".gitignore", sensitiveFiles)
+		appendToFile(".dockerignore", sensitiveFiles)
+	}
+
 	//docker-compose
 	registry := "quay.io/turner"
 	container := "mss-harbor-compose-app"
@@ -46,6 +67,9 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	property := "turner"
 	project := "turner"
 	product := "turner"
+	enableMonitoring := "true"
+	hcTimeout := "1"
+	hcInterval := "10"
 
 	//if docker-compose.yml doesn't exist, then create one
 	var dockerCompose DockerCompose
@@ -72,6 +96,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 			Environment: map[string]string{
 				"HEALTHCHECK": healthCheck,
 			},
+			EnvFile: []string{hiddenEnvFileName},
 		}
 		dockerCompose.Services[container] = &service
 
@@ -80,15 +105,46 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	}
 
 	//ask questions for harbor-compose.yml
+	var (
+		intReplicas                int
+		monitoring                 bool
+		healthcheckTimeoutSeconds  int
+		healthcheckIntervalSeconds int
+		err                        error
+	)
 	if !yesUseDefaults {
 		name = promptAndGetResponse("shipment name: (e.g., mss-my-app) ")
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ")
 		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ")
 		replicas = promptAndGetResponse("replicas (how many container instances): ")
+		intReplicas, err = strconv.Atoi(replicas)
+		if err != nil {
+			log.Fatalln("replicas must be a number")
+		}
 		group = promptAndGetResponse("group (mss, cnn, nba, ams, etc.): ")
+		enableMonitoring = promptAndGetResponse("enableMonitoring (true|false): ")
+		monitoring, err = strconv.ParseBool(enableMonitoring)
+		if err != nil {
+			check(errors.New("please enter true or false for enableMonitoring"))
+		}
+		hcTimeout = promptAndGetResponse("healthcheckTimeoutSeconds (1): ")
+		healthcheckTimeoutSeconds, err = strconv.Atoi(hcTimeout)
+		if err != nil {
+			check(errors.New("please enter a valid number for healthcheckTimeoutSeconds"))
+		}
+		hcInterval = promptAndGetResponse("healthcheckIntervalSeconds (10): ")
+		healthcheckIntervalSeconds, err = strconv.Atoi(hcInterval)
+		if err != nil {
+			check(errors.New("please enter a valid number for healthcheckIntervalSeconds"))
+		}
+		//healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds
+		if !(healthcheckIntervalSeconds >= healthcheckTimeoutSeconds) {
+			check(errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds"))
+		}
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
 		project = promptAndGetResponse("project: ")
 		product = promptAndGetResponse("product: ")
+		enableMonitoring = promptAndGetResponse("enableMonitoring (true|false): ")
 	}
 
 	//create a harbor compose object
@@ -96,19 +152,23 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		Shipments: make(map[string]ComposeShipment),
 	}
 
+	monitoring, err = strconv.ParseBool(enableMonitoring)
+	if err != nil {
+		check(errors.New("please enter true or false for enableMonitoring"))
+	}
+
 	composeShipment := ComposeShipment{
-		Env:      env,
-		Group:    group,
-		Property: property,
-		Project:  project,
-		Product:  product,
+		Env:                        env,
+		Group:                      group,
+		Property:                   property,
+		Project:                    project,
+		Product:                    product,
+		EnableMonitoring:           &monitoring,
+		HealthcheckTimeoutSeconds:  &healthcheckTimeoutSeconds,
+		HealthcheckIntervalSeconds: &healthcheckIntervalSeconds,
 	}
 
 	composeShipment.Barge = barge
-	intReplicas, err := strconv.Atoi(replicas)
-	if err != nil {
-		log.Fatalln("replicas must be a number")
-	}
 	composeShipment.Replicas = intReplicas
 
 	//look for existing docker-compose.yml to get containers
@@ -128,7 +188,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	harborCompose.Shipments[name] = composeShipment
 
 	//if harbor-compose.yml exists, ask to overwrite
-	write := false
+	write = false
 	if _, err := os.Stat(HarborComposeFile); err == nil {
 		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
 		write = askForConfirmation()
@@ -139,8 +199,9 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if write {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
 		fmt.Println("remember to docker build/push your image before running the up command")
-		fmt.Println("done")
 	}
+
+	fmt.Println("done")
 }
 
 func promptAndGetResponse(question string) string {

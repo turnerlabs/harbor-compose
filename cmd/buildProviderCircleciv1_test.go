@@ -41,6 +41,8 @@ func TestBuildProviderCircleCI(t *testing.T) {
 	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
 	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthcheckTimeout}", "1", 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthcheckInterval}", "10", 1)
 	t.Log(shipmentJSON)
 
 	//deserialize shipit json
@@ -50,15 +52,15 @@ func TestBuildProviderCircleCI(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	//first convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment)
+	//convert shipit model to harbor-compose
+	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+
+	//convert shipit model to docker-compose
+	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
 	t.Log(string(data))
-
-	//test
-	harborCompose := transformShipmentToHarborCompose(&shipment, &dockerCompose)
 
 	//debug
 	data, _ = yaml.Marshal(harborCompose)

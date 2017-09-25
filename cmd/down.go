@@ -41,11 +41,12 @@ func down(cmd *cobra.Command, args []string) {
 			log.Println(shipment.Containers)
 		}
 
-		//override replicas
-		shipment.Replicas = 0
-
-		//update shipment level configuration
-		UpdateShipment(username, token, shipmentName, shipment)
+		//set replicas to 0 and trigger
+		provider := ProviderPayload{
+			Name:     providerEc2,
+			Replicas: 0,
+		}
+		UpdateProvider(username, token, shipmentName, shipment.Env, provider)
 
 		//trigger shipment
 		Trigger(shipmentName, shipment.Env)

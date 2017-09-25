@@ -64,7 +64,7 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.DiscardEmptyColumns)
 
 	//create a formatted template
-	tmpl, err := template.New("shipment").Parse("SHIPMENT:\t{{.Shipment}}\t\nENVIRONMENT:\t{{.Environment}}\t\nENDPOINT:\t{{.Endpoint}}\t\nSTATUS:\t{{.Status}}\t\nCONTAINERS:\t{{.Containers}}\t\nREPLICAS:\t{{.Replicas}}\t")
+	tmpl, err := template.New("shipment").Parse("SHIPMENT:\t{{.Shipment}}\t\nENVIRONMENT:\t{{.Environment}}\nBARGE:\t{{.Barge}}\t\nENDPOINT:\t{{.Endpoint}}\t\nSTATUS:\t{{.Status}}\t\nCONTAINERS:\t{{.Containers}}\t\nREPLICAS:\t{{.Replicas}}\t")
 
 	fmt.Fprintln(w)
 
@@ -76,6 +76,7 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 	shipmentOutput := ShipmentStatusOutput{
 		Shipment:    name,
 		Environment: shipment.Env,
+		Barge:       shipment.Barge,
 		Endpoint:    endpoint,
 		Status:      shipmentStatus.Status.Phase,
 		Containers:  strconv.Itoa(len(shipment.Containers)),
