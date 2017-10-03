@@ -95,19 +95,19 @@ There are currently two installation options for Harbor Compose.
 - You can use the following script to download and install (update the URL for your desired platform and version).
 
 ```
-$ sudo curl -sSLo /usr/local/bin/harbor-compose https://github.com/turnerlabs/harbor-compose/releases/download/v0.14.0/ncd_darwin_amd64 &&  sudo chmod +x /usr/local/bin/harbor-compose
+curl -sSL https://raw.githubusercontent.com/turnerlabs/harbor-compose/master/install.sh | sh
 ```
 
 2) Run as a docker container
 
 ```
-$ docker run -it --rm -v `pwd`:/work quay.io/turner/harbor-compose up
+docker run -it --rm -v `pwd`:/work quay.io/turner/harbor-compose up
 ```
 
 - or if you want to reuse your session:
 
 ```
-$ docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose up
+docker run -it —rm -v `pwd`:/work -v ${HOME}/.harbor:/root/.harbor quay.io/turner/harbor-compose up
 ```
 
 
