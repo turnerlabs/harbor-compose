@@ -231,7 +231,7 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hidde
 		//create a docker service based on this container
 		service := DockerComposeService{
 			Image:       container.Image,
-			Ports:       make([]string, len(shipmentObject.Ports)),
+			Ports:       []string{},
 			Environment: make(map[string]string),
 		}
 

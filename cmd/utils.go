@@ -78,3 +78,12 @@ func findContainer(container string, containers []ContainerPayload) *ContainerPa
 	}
 	return nil
 }
+
+func findEnvVar(name string, envVars []EnvVarPayload) EnvVarPayload {
+	for _, e := range envVars {
+		if e.Name == name {
+			return e
+		}
+	}
+	return EnvVarPayload{}
+}
