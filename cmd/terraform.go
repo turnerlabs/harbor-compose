@@ -71,8 +71,16 @@ func terraform(cmd *cobra.Command, args []string) {
 	//convert a Shipment object into a HarborCompose object
 	harborCompose, _ := transformShipmentToHarborCompose(shipmentObject)
 
+	//generate a main.tf and write it to disk
+	generateAndWriteTerraformSource(shipmentObject, &harborCompose)
+
+	fmt.Println("done")
+}
+
+func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose) {
+
 	//package the data to make it easy for rendering
-	data := getTerraformData(shipmentObject, &harborCompose)
+	data := getTerraformData(shipmentEnvironment, harborCompose)
 
 	//translate a shipit shipment environment into terraform source
 	tfCode := generateTerraformSourceCode(data)
@@ -84,18 +92,17 @@ func terraform(cmd *cobra.Command, args []string) {
 		yes = askForConfirmation()
 	}
 	if yes {
-		err = ioutil.WriteFile(tfFile, []byte(tfCode), 0644)
+		err := ioutil.WriteFile(tfFile, []byte(tfCode), 0644)
 		check(err)
-		fmt.Println("wrote main.tf")
+		fmt.Println("wrote " + tfFile)
 		fmt.Println()
-		fmt.Println("to start using terraform, run the following commands to import current state")
+		fmt.Println("to start using terraform, run the following commands to import current state:")
 		fmt.Println()
-		fmt.Printf("terraform import harbor_shipment.app %v\n", shipmentObject.ParentShipment.Name)
-		fmt.Printf("terraform import harbor_shipment_env.%v %v::%v\n", shipmentObject.Name, shipmentObject.ParentShipment.Name, shipmentObject.Name)
+		fmt.Println("terraform init")
+		fmt.Printf("terraform import harbor_shipment.app %v\n", shipmentEnvironment.ParentShipment.Name)
+		fmt.Printf("terraform import harbor_shipment_env.%v %v::%v\n", shipmentEnvironment.Name, shipmentEnvironment.ParentShipment.Name, shipmentEnvironment.Name)
 		fmt.Println()
 	}
-
-	fmt.Println("done")
 }
 
 func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose) *terraformShipmentEnvironment {
@@ -226,8 +233,8 @@ resource "harbor_shipment_env" "{{ .Env }}" {
 			external              = {{ .External }}
 			public                = {{ .PublicVip }}
 			enable_proxy_protocol = {{ .EnableProxyProtocol }}
-			ssl_arn               = "{{ .SslArn }}"
 			ssl_management_type   = "{{ .SslManagementType }}"
+			ssl_arn               = "{{ .SslArn }}"			
 		}{{ end }}
 	}{{ end }}
 	{{ if .LogShipping.IsSpecified }}
