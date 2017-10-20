@@ -34,6 +34,50 @@ type ComposeShipment struct {
 	HealthcheckIntervalSeconds *int              `yaml:"healthcheckIntervalSeconds,omitempty"`
 }
 
+// data used for rendering terraform source
+type terraformShipmentEnvironment struct {
+	Shipment    string
+	Env         string
+	Group       string
+	Barge       string
+	Replicas    int
+	Monitored   bool
+	Containers  []terraformContainer
+	LogShipping terraformLogShipping
+}
+
+type terraformContainer struct {
+	Name    string
+	Primary bool
+	Ports   []terraformPort
+}
+
+type terraformPort struct {
+	Name                string
+	Value               int
+	Protocol            string
+	Healthcheck         string
+	External            bool
+	PublicVip           bool
+	PublicPort          int
+	EnableProxyProtocol bool
+	SslArn              string
+	SslManagementType   string
+	HealthcheckTimeout  int
+	HealthcheckInterval int
+}
+
+type terraformLogShipping struct {
+	IsSpecified                bool
+	Provider                   string
+	Endpoint                   string
+	AwsElasticsearchDomainName string
+	AwsRegion                  string
+	AwsAccessKey               string
+	AwsSecretKey               string
+	SqsQueueName               string
+}
+
 // DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
 type DockerCompose struct {
 	Version  string                           `yaml:"version"`
@@ -55,7 +99,6 @@ type ShipmentEnvironment struct {
 	Token            string             `json:"token"`
 	Name             string             `json:"name"`
 	EnvVars          []EnvVarPayload    `json:"envVars"`
-	Ports            []PortPayload      `json:"ports"`
 	Containers       []ContainerPayload `json:"containers"`
 	Providers        []ProviderPayload  `json:"providers"`
 	ParentShipment   ParentShipment     `json:"parentShipment"`
