@@ -150,7 +150,7 @@ func generate(cmd *cobra.Command, args []string) {
 
 	//if the --terraform flag is specified, output a main.tf file
 	if generateTerraform {
-		generateAndWriteTerraformSource(shipmentObject, &harborCompose)
+		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
 	}
 
 	fmt.Println("done")

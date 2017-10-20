@@ -72,12 +72,12 @@ func terraform(cmd *cobra.Command, args []string) {
 	harborCompose, _ := transformShipmentToHarborCompose(shipmentObject)
 
 	//generate a main.tf and write it to disk
-	generateAndWriteTerraformSource(shipmentObject, &harborCompose)
+	generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
 
 	fmt.Println("done")
 }
 
-func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose) {
+func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, printUsage bool) {
 
 	//package the data to make it easy for rendering
 	data := getTerraformData(shipmentEnvironment, harborCompose)
@@ -95,13 +95,15 @@ func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, h
 		err := ioutil.WriteFile(tfFile, []byte(tfCode), 0644)
 		check(err)
 		fmt.Println("wrote " + tfFile)
-		fmt.Println()
-		fmt.Println("to start using terraform, run the following commands to import current state:")
-		fmt.Println()
-		fmt.Println("terraform init")
-		fmt.Printf("terraform import harbor_shipment.app %v\n", shipmentEnvironment.ParentShipment.Name)
-		fmt.Printf("terraform import harbor_shipment_env.%v %v::%v\n", shipmentEnvironment.Name, shipmentEnvironment.ParentShipment.Name, shipmentEnvironment.Name)
-		fmt.Println()
+		if printUsage {
+			fmt.Println()
+			fmt.Println("to start using terraform, run the following commands to import current state:")
+			fmt.Println()
+			fmt.Println("terraform init")
+			fmt.Printf("terraform import harbor_shipment.app %v\n", shipmentEnvironment.ParentShipment.Name)
+			fmt.Printf("terraform import harbor_shipment_env.%v %v::%v\n", shipmentEnvironment.Name, shipmentEnvironment.ParentShipment.Name, shipmentEnvironment.Name)
+			fmt.Println()
+		}
 	}
 }
 
@@ -234,7 +236,7 @@ resource "harbor_shipment_env" "{{ .Env }}" {
 			public                = {{ .PublicVip }}
 			enable_proxy_protocol = {{ .EnableProxyProtocol }}
 			ssl_management_type   = "{{ .SslManagementType }}"
-			ssl_arn               = "{{ .SslArn }}"			
+			ssl_arn               = "{{ .SslArn }}"
 		}{{ end }}
 	}{{ end }}
 	{{ if .LogShipping.IsSpecified }}
