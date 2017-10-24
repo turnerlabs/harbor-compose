@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
+	"time"
 
 	dockerProject "github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
@@ -28,6 +30,10 @@ func init() {
 	initCmd.PersistentFlags().BoolVarP(&yesUseDefaults, "yes", "y", false, "don't ask questions and use defaults")
 	RootCmd.AddCommand(initCmd)
 }
+
+const (
+	defaultBackendImage = "quay.io/turner/turner-defaultbackend:0.2.0"
+)
 
 func initHarborCompose(cmd *cobra.Command, args []string) {
 
@@ -71,13 +77,23 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	hcTimeout := "1"
 	hcInterval := "10"
 
+	//generate a randomly generated human-readable name for defaults
+	rand.Seed(time.Now().UTC().UnixNano())
+	randomName := GetRandomName(0)
+
+	//when -y is specified, use random shipment/container name
+	if yesUseDefaults {
+		name = randomName
+		container = randomName
+	}
+
 	//if docker-compose.yml doesn't exist, then create one
 	var dockerCompose DockerCompose
 	if _, err := os.Stat(DockerComposeFile); err != nil {
 
 		if !yesUseDefaults {
 			registry = promptAndGetResponse("docker registry: (e.g., quay.io/turner) ", registry)
-			container = promptAndGetResponse("docker container name: (e.g., mss-harbor-app) ", container)
+			container = promptAndGetResponse("docker container name: (e.g., mss-harbor-app) ", randomName)
 			tag = promptAndGetResponse("version tag: (e.g., 0.1.0) ", tag)
 			publicPort = promptAndGetResponse("public port: (e.g., 80) ", publicPort)
 			internalPort = promptAndGetResponse("internal port: (e.g., 5000) ", internalPort)
@@ -92,11 +108,12 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 
 		image := fmt.Sprintf("%v/%v:%v", registry, container, tag)
 
-		//substitute default with default backend
-		if image == "quay.io/turner/mss-harbor-app:0.1.0" {
-			image = "quay.io/turner/turner-defaultbackend:0.2.0"
+		//swap default image with default backend image
+		if image == "quay.io/turner/mss-harbor-app:0.1.0" || image == fmt.Sprintf("%v/%v:%v", registry, randomName, tag) {
+			image = defaultBackendImage
 		}
 
+		//build a docker-compose object
 		service := DockerComposeService{
 			Build: ".",
 			Image: image,
@@ -106,22 +123,27 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 			},
 			EnvFile: []string{hiddenEnvFileName},
 		}
+
+		//add PORT env var if using default backend image
+		if image == defaultBackendImage {
+			service.Environment["PORT"] = internalPort
+		}
+
 		dockerCompose.Services[container] = &service
 
 		//write docker-compose.yml
 		SerializeDockerCompose(dockerCompose, DockerComposeFile)
 	}
 
+	intReplicas, _ := strconv.Atoi(replicas)
+	monitoring, _ := strconv.ParseBool(enableMonitoring)
+	healthcheckTimeoutSeconds, _ := strconv.Atoi(hcTimeout)
+	healthcheckIntervalSeconds, _ := strconv.Atoi(hcInterval)
+	var err error
+
 	//ask questions for harbor-compose.yml
-	var (
-		intReplicas                int
-		monitoring                 bool
-		healthcheckTimeoutSeconds  int
-		healthcheckIntervalSeconds int
-		err                        error
-	)
 	if !yesUseDefaults {
-		name = promptAndGetResponse("shipment name: (e.g., mss-harbor-app) ", name)
+		name = promptAndGetResponse("shipment name: (e.g., mss-harbor-app) ", randomName)
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ", env)
 		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ", barge)
 		replicas = promptAndGetResponse("how many container instances: (e.g., 4) ", replicas)
