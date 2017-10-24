@@ -62,7 +62,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	name := "mss-harbor-app"
 	env := "dev"
 	barge := "digital-sandbox"
-	replicas := "2"
+	replicas := "4"
 	group := "mss"
 	property := "turner"
 	project := "turner"
@@ -76,12 +76,12 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if _, err := os.Stat(DockerComposeFile); err != nil {
 
 		if !yesUseDefaults {
-			registry = promptAndGetResponse("docker registry: (e.g., quay.io/turner) ")
-			container = promptAndGetResponse("docker container name: (e.g., mss-harbor-app) ")
-			tag = promptAndGetResponse("version tag: (e.g., 0.1.0) ")
-			publicPort = promptAndGetResponse("public port: (e.g., 80) ")
-			internalPort = promptAndGetResponse("internal port: (e.g., 5000) ")
-			healthCheck = promptAndGetResponse("health check: (e.g., /health) ")
+			registry = promptAndGetResponse("docker registry: (e.g., quay.io/turner) ", registry)
+			container = promptAndGetResponse("docker container name: (e.g., mss-harbor-app) ", container)
+			tag = promptAndGetResponse("version tag: (e.g., 0.1.0) ", tag)
+			publicPort = promptAndGetResponse("public port: (e.g., 80) ", publicPort)
+			internalPort = promptAndGetResponse("internal port: (e.g., 5000) ", internalPort)
+			healthCheck = promptAndGetResponse("health check: (e.g., /health) ", healthCheck)
 		}
 
 		//create a DockerCompose object
@@ -89,9 +89,17 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 			Version:  "2",
 			Services: map[string]*DockerComposeService{},
 		}
+
+		image := fmt.Sprintf("%v/%v:%v", registry, container, tag)
+
+		//substitute default with default backend
+		if image == "quay.io/turner/mss-harbor-app:0.1.0" {
+			image = "quay.io/turner/turner-defaultbackend:0.2.0"
+		}
+
 		service := DockerComposeService{
 			Build: ".",
-			Image: fmt.Sprintf("%v/%v:%v", registry, container, tag),
+			Image: image,
 			Ports: []string{fmt.Sprintf("%v:%v", publicPort, internalPort)},
 			Environment: map[string]string{
 				"HEALTHCHECK": healthCheck,
@@ -113,26 +121,26 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		err                        error
 	)
 	if !yesUseDefaults {
-		name = promptAndGetResponse("shipment name: (e.g., mss-harbor-app) ")
-		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ")
-		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ")
-		replicas = promptAndGetResponse("replicas (how many container instances): ")
+		name = promptAndGetResponse("shipment name: (e.g., mss-harbor-app) ", name)
+		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ", env)
+		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ", barge)
+		replicas = promptAndGetResponse("how many container instances: (e.g., 4) ", replicas)
 		intReplicas, err = strconv.Atoi(replicas)
 		if err != nil {
 			log.Fatalln("replicas must be a number")
 		}
-		group = promptAndGetResponse("group (mss, cnn, nba, ams, etc.): ")
-		enableMonitoring = promptAndGetResponse("enable monitoring (true|false): ")
+		group = promptAndGetResponse("group (mss, news, nba, ams, etc.): ", group)
+		enableMonitoring = promptAndGetResponse("enable monitoring (true|false): ", enableMonitoring)
 		monitoring, err = strconv.ParseBool(enableMonitoring)
 		if err != nil {
 			check(errors.New("please enter true or false for enableMonitoring"))
 		}
-		hcTimeout = promptAndGetResponse("healthcheck timeout seconds (1): ")
+		hcTimeout = promptAndGetResponse("healthcheck timeout seconds (1): ", hcTimeout)
 		healthcheckTimeoutSeconds, err = strconv.Atoi(hcTimeout)
 		if err != nil {
 			check(errors.New("please enter a valid number for healthcheckTimeoutSeconds"))
 		}
-		hcInterval = promptAndGetResponse("healthcheck interval seconds (10): ")
+		hcInterval = promptAndGetResponse("healthcheck interval seconds (10): ", hcInterval)
 		healthcheckIntervalSeconds, err = strconv.Atoi(hcInterval)
 		if err != nil {
 			check(errors.New("please enter a valid number for healthcheckIntervalSeconds"))
@@ -141,9 +149,9 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		if !(healthcheckIntervalSeconds >= healthcheckTimeoutSeconds) {
 			check(errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds"))
 		}
-		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ")
-		project = promptAndGetResponse("project: ")
-		product = promptAndGetResponse("product: ")
+		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ", property)
+		project = promptAndGetResponse("project: ", project)
+		product = promptAndGetResponse("product: ", product)
 	}
 
 	//create a harbor compose object
@@ -204,12 +212,15 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	fmt.Println("use docker-compose build/push, harbor-compose up/deploy to manage your application")
 }
 
-func promptAndGetResponse(question string) string {
+func promptAndGetResponse(question string, defaultResponse string) string {
 	fmt.Print(question)
 	var response string
 	_, err := fmt.Scanln(&response)
-	if err != nil {
+	if err != nil && err.Error() != "unexpected newline" {
 		log.Fatal(err)
+	}
+	if response == "" {
+		response = defaultResponse
 	}
 	return response
 }
