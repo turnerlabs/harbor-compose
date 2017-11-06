@@ -90,12 +90,10 @@ See the [full harbor-compose.yml reference](compose-reference.md) along with whi
 
 There are currently two installation options for Harbor Compose.
 
-1) Download the binary from the [Github releases section](https://github.com/turnerlabs/harbor-compose/releases).
-
-- You can use the following script to download and install (update the URL for your desired platform and version).
+1) Download the latest binary from [Github releases](https://github.com/turnerlabs/harbor-compose/releases).
 
 ```
-curl -sSL https://raw.githubusercontent.com/turnerlabs/harbor-compose/master/install.sh | sh
+curl -s get-cli.harbor.turnerlabs.io | sh
 ```
 
 2) Run as a docker container
