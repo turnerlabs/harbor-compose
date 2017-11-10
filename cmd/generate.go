@@ -143,7 +143,7 @@ func generate(cmd *cobra.Command, args []string) {
 		}
 
 		//add hidden env_file to .gitignore and .dockerignore (to avoid checking secrets)
-		sensitiveFiles := []string{hiddenEnvFileName}
+		sensitiveFiles := []string{hiddenEnvFileName, ".terraform"}
 		appendToFile(".gitignore", sensitiveFiles)
 		appendToFile(".dockerignore", sensitiveFiles)
 	}
