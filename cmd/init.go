@@ -51,7 +51,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		sampleContents := "#FOO=bar\n"
 		err := ioutil.WriteFile(hiddenEnvFileName, []byte(sampleContents), 0644)
 		check(err)
-		sensitiveFiles := []string{hiddenEnvFileName}
+		sensitiveFiles := []string{hiddenEnvFileName, ".terraform"}
 		appendToFile(".gitignore", sensitiveFiles)
 		appendToFile(".dockerignore", sensitiveFiles)
 	}
