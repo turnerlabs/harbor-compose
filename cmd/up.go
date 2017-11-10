@@ -292,13 +292,14 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 		}
 
 		primaryPort := PortPayload{
-			Name:        "PORT",
-			Value:       internal,
-			PublicPort:  external,
-			Primary:     (containerIndex == 0),
-			Protocol:    "http",
-			External:    false,
-			Healthcheck: getEnvVar(healthCheckEnvVarName, newContainer.EnvVars).Value,
+			Name:              "PORT",
+			Value:             internal,
+			PublicPort:        external,
+			Primary:           (containerIndex == 0),
+			Protocol:          "http",
+			Healthcheck:       getEnvVar(healthCheckEnvVarName, newContainer.EnvVars).Value,
+			External:          true,
+			SslManagementType: "iam",
 		}
 
 		//set the healthcheck values if they are defined in the yaml

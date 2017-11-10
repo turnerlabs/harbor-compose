@@ -14,10 +14,10 @@ import (
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Generate compose files and build artifacts from an existing shipment",
-	Long: `Generate compose files and build artifacts from an existing shipment
+	Short: "Generate compose files, build artifacts, and terraform source from an existing shipment",
+	Long: `Generate compose files, build artifacts, and terraform source from an existing shipment
 
-The generate command outputs compose files and build artifacts that allow you to build and run your app locally in Docker, do CI/CD in Harbor, and make changes in Harbor using the up command.
+The generate command outputs compose files, build artifacts, and terraform source that allow you to build and run your app locally in Docker, manage your Harbor infrastructure using Terraform, do CI/CD, and deploy images and environment variables.
 
 Example:
 harbor-compose generate my-shipment dev
@@ -25,15 +25,18 @@ harbor-compose generate my-shipment dev
 The generate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD with Harbor.
 
 Examples:
+harbor-compose generate my-shipment dev
 harbor-compose generate my-shipment dev --build-provider local
 harbor-compose generate my-shipment dev -b circleciv1
 harbor-compose generate my-shipment dev -b circleciv2
 harbor-compose generate my-shipment dev -b codeship
+harbor-compose generate my-shipment dev --terraform
 `,
 	Run: generate,
 }
 
 var buildProvider string
+var generateTerraform bool
 
 const (
 	providerEc2       = "ec2"
@@ -42,6 +45,9 @@ const (
 
 func init() {
 	generateCmd.PersistentFlags().StringVarP(&buildProvider, "build-provider", "b", "", "generate build provider-specific files that allow you to build Docker images do CI/CD with Harbor")
+
+	generateCmd.PersistentFlags().BoolVarP(&generateTerraform, "terraform", "t", false, "generate a Terraform source file (main.tf) that allows you to start managing your shipment using Terraform")
+
 	RootCmd.AddCommand(generateCmd)
 }
 
@@ -103,47 +109,48 @@ func generate(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	//prompt if the file already exist
+	//prompt if the file already exists
+	yes := true
 	if _, err := os.Stat(DockerComposeFile); err == nil {
-		//exists
 		fmt.Print("docker-compose.yml already exists. Overwrite? ")
-		if askForConfirmation() {
-			SerializeDockerCompose(dockerCompose, DockerComposeFile)
-		}
-	} else {
-		//doesn't exist
+		yes = askForConfirmation()
+	}
+	if yes {
 		SerializeDockerCompose(dockerCompose, DockerComposeFile)
+		fmt.Println("wrote " + DockerComposeFile)
 	}
 
 	//prompt if the file already exist
 	if _, err := os.Stat(HarborComposeFile); err == nil {
-		//exists
 		fmt.Print("harbor-compose.yml already exists. Overwrite? ")
-		if askForConfirmation() {
-			SerializeHarborCompose(harborCompose, HarborComposeFile)
-		}
-	} else {
-		//doesn't exist
+		yes = askForConfirmation()
+	}
+	if yes {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
+		fmt.Println("wrote " + HarborComposeFile)
 	}
 
 	if len(hiddenEnvVars) > 0 {
+
 		//prompt to override hidden env file
 		if _, err := os.Stat(hiddenEnvFileName); err == nil {
-			//exists
 			fmt.Print(hiddenEnvFileName + " already exists. Overwrite? ")
-			if askForConfirmation() {
-				writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
-			}
-		} else {
-			//doesn't exist
+			yes = askForConfirmation()
+		}
+		if yes {
 			writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+			fmt.Println("wrote " + hiddenEnvFileName)
 		}
 
 		//add hidden env_file to .gitignore and .dockerignore (to avoid checking secrets)
-		sensitiveFiles := []string{hiddenEnvFileName}
+		sensitiveFiles := []string{hiddenEnvFileName, ".terraform"}
 		appendToFile(".gitignore", sensitiveFiles)
 		appendToFile(".dockerignore", sensitiveFiles)
+	}
+
+	//if the --terraform flag is specified, output a main.tf file
+	if generateTerraform {
+		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
 	}
 
 	fmt.Println("done")
@@ -231,7 +238,7 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hidde
 		//create a docker service based on this container
 		service := DockerComposeService{
 			Image:       container.Image,
-			Ports:       make([]string, len(shipmentObject.Ports)),
+			Ports:       []string{},
 			Environment: make(map[string]string),
 		}
 
