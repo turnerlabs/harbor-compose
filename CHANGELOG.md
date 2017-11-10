@@ -1,3 +1,14 @@
+## 0.15.0 (2017-11-10)
+
+Features:
+
+- Add support for generating terraform source files ([#142](https://github.com/turnerlabs/harbor-compose/issues/142))
+
+- Generate a terraform main.tf from 'init' command ([#143](https://github.com/turnerlabs/harbor-compose/issues/143))
+
+- friendly dns install ([#149](https://github.com/turnerlabs/harbor-compose/issues/149))
+
+
 ## 0.14.0 (2017-9-25)
 
 Features:
