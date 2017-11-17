@@ -31,7 +31,8 @@ The up command applies changes from your docker/harbor compose files and brings 
 - Updates container replicas
 - Triggers your shipments
 	`,
-	Run: up,
+	Run:    up,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -136,7 +137,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 
 		//ports
 		if len(container.Ports) == 0 {
-			return errors.New("At least one port is required.")
+			return errors.New("at least one port is required")
 		}
 
 		for _, port := range container.Ports {
@@ -156,7 +157,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			}
 		}
 		if !foundHealthCheck {
-			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
+			return errors.New("a container-level 'HEALTHCHECK' environment variable is required")
 		}
 	}
 
@@ -170,7 +171,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			fmt.Println("desired barge: " + provider.Barge)
 		}
 		if provider.Barge != existingProvider.Barge {
-			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
+			return errors.New("changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again")
 		}
 
 		//don't allow container name changes
@@ -184,12 +185,12 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 					existingPort := getPrimaryPort(existingContainer.Ports)
 					desiredPort := getPrimaryPort(desiredContainer.Ports)
 					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
-						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
+						return errors.New("port changes involve downtime.  Please run the 'down --delete' command first")
 					}
 
 					//don't allow health check changes
 					if existingPort.Healthcheck != desiredPort.Healthcheck {
-						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
+						return errors.New("healthcheck changes involve downtime.  Please run the 'down --delete' command first")
 					}
 
 					//return container match
@@ -198,7 +199,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 				}
 			}
 			if !found {
-				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
+				return errors.New("container changes involve downtime.  Please run the 'down --delete' command first")
 			}
 		}
 	}
@@ -261,7 +262,7 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 		image := serviceConfig.Image
 		if image == "" {
-			log.Fatalln("'image' is required in docker compose file")
+			check(errors.New("'image' is required in docker compose file"))
 		}
 
 		newContainer := ContainerPayload{
@@ -276,7 +277,7 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 		//map the docker compose service ports to harbor ports
 		if len(serviceConfig.Ports) == 0 {
-			log.Fatalln("At least one port mapping is required in docker compose file.")
+			check(errors.New("at least one port mapping is required in docker compose file"))
 		}
 
 		//map first port in docker compose to default primary HTTP "PORT"
@@ -284,7 +285,7 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 		external, err := strconv.Atoi(parsedPort[0])
 		if err != nil {
-			log.Fatalln("invalid port")
+			check(errors.New("invalid port"))
 		}
 		internal, err := strconv.Atoi(parsedPort[1])
 		if err != nil {
@@ -558,7 +559,7 @@ func catalogContainer(name string, image string) {
 			fmt.Println(message)
 		}
 		if err != nil {
-			log.Fatal(err)
+			check(err[0])
 		}
 
 	} else {

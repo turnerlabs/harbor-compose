@@ -33,6 +33,7 @@ harbor-compose generate my-shipment dev -b codeship
 harbor-compose generate my-shipment dev --terraform
 `,
 	Run: generate,
+	PreRun: preRunHook,
 }
 
 var buildProvider string

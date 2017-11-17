@@ -27,6 +27,7 @@ var loginCmd = &cobra.Command{
 	Short: "Login to harbor",
 	Long:  `The login command prompts for your credentials, obtains a temporary token, and stores it your machine so that you don't have to authenticate when running each command.  You can run the logout command to remove your temporary token.`,
 	Run:   login,
+	PreRun: preRunHook,
 }
 
 var authURL = "https://auth.services.dmtio.net"

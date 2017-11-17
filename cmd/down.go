@@ -11,10 +11,11 @@ var deleteShipmentEnvironment bool
 
 // downCmd represents the down command
 var downCmd = &cobra.Command{
-	Use:   "down",
-	Short: "Stop your application",
-	Long:  `The down command brings your application down and optionally deletes your shipment environment.`,
-	Run:   down,
+	Use:    "down",
+	Short:  "Stop your application",
+	Long:   `The down command brings your application down and optionally deletes your shipment environment.`,
+	Run:    down,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -25,9 +26,7 @@ func init() {
 func down(cmd *cobra.Command, args []string) {
 
 	username, token, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	//read the harbor compose file
 	var harborCompose = DeserializeHarborCompose(HarborComposeFile)

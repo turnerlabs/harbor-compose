@@ -4,12 +4,17 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jtacoma/uritemplates"
 )
 
 func check(e error) {
 	if e != nil {
+		writeMetricError(currentCommand, e)
+		//pause here to allow async telemetry call to go through
+		time.Sleep(2 * time.Second)
+
 		log.Fatal("ERROR: ", e)
 	}
 }
