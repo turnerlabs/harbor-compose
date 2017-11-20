@@ -840,3 +840,128 @@ func TestTransformShipmentToDockerComposeWithHiddenEnvVar(t *testing.T) {
 	envFileName := composeService.EnvFile[0]
 	assert.Equal(t, "hidden.env", envFileName, "env_file should contain hidden.env")
 }
+
+//tests generating a docker-compose.yml with envvars containing $
+func TestGenerateWithDollarSigns(t *testing.T) {
+
+	//define a ShipmentEnvironment
+	shipmentJSON := `
+  {  
+    "name": "dev",
+    "enableMonitoring": true,
+    "parentShipment": {
+      "name": "mss-poc-app",
+      "group": "mss",
+      "envVars": [
+        {
+          "type": "basic",
+          "value": "adds",
+          "name": "CUSTOMER"
+        },
+        {
+          "type": "basic",
+          "value": "mss-poc-app",
+          "name": "PRODUCT"
+        },
+        {
+          "type": "basic",
+          "value": "mss-poc-app",
+          "name": "PROJECT"
+        },
+        {
+          "type": "basic",
+          "value": "mss",
+          "name": "PROPERTY"
+        }
+      ]
+    },
+    "envVars": [
+      {
+        "type": "basic",
+        "value": "bar$",
+        "name": "FOO_ENV"
+      }
+    ],
+    "providers": [
+      {
+        "replicas": 2,
+        "barge": "corp-sandbox",
+        "name": "ec2",
+        "envVars": []
+      }
+    ],
+    "containers": [
+      {
+        "image": "${image}",
+        "name": "${service}",
+        "envVars": [
+          {
+            "type": "basic",
+            "value": "${healthCheck}",
+            "name": "HEALTHCHECK"
+          },
+          {
+            "type": "basic",
+            "value": "$bar",
+            "name": "FOO_CONTAINER"
+          }
+        ],
+        "ports": [
+          {
+            "protocol": "http",
+            "healthcheck": "${healthCheck}",
+            "external": true,
+            "primary": true,
+            "public_vip": false,
+            "enable_proxy_protocol": false,
+            "ssl_arn": "",
+            "ssl_management_type": "iam",
+            "healthcheck_timeout": 1,
+            "public_port": ${publicPort},
+            "value": ${containerPort},
+            "name": "PORT",
+            "healthcheck_timeout": 1,
+            "healthcheck_interval": 10
+          }
+        ]
+      }
+    ]
+  }	
+  `
+
+	//update json with test values
+	service := "mss-poc-app"
+	image := "quay.io/turner/mss-poc-app:1.0.0"
+	publicPort := "80"
+	containerPort := "3000"
+	healthCheck := "/hc"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${service}", service, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${image}", image, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${publicPort}", publicPort, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${containerPort}", containerPort, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthCheck}", healthCheck, 1)
+
+	//deserialize json
+	var shipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//test
+	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
+
+	//debug
+	data, _ := yaml.Marshal(dockerCompose)
+	t.Log(string(data))
+
+	//assertions
+	assert.Equal(t, 1, len(dockerCompose.Services))
+	composeService := dockerCompose.Services[service]
+	assert.NotNil(t, composeService)
+
+	//test that $ are properly escaped
+	assert.Equal(t, "bar$$", composeService.Environment["FOO_ENV"])
+	assert.Equal(t, "$$bar", composeService.Environment["FOO_CONTAINER"])
+}

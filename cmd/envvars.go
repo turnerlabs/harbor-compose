@@ -31,6 +31,9 @@ func copyEnvVars(source []EnvVarPayload, destination map[string]string, special 
 		//is this a special envvar?
 		if specialEnvVars()[strings.ToUpper(envvar.Name)] == "" { //no
 
+			//escape `$` characters with `$$`
+			envvar.Value = strings.Replace(envvar.Value, "$", "$$", -1)
+
 			//hidden?
 			if envvar.Type == "hidden" && hidden != nil {
 				//copy to hidden
