@@ -150,27 +150,27 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		replicas = promptAndGetResponse("how many container instances: (e.g., 4) ", replicas)
 		intReplicas, err = strconv.Atoi(replicas)
 		if err != nil {
-			check(errors.New("replicas must be a number"))
+			check(errors.New(messageReplicasMustBeNumber))
 		}
 		group = promptAndGetResponse("group (mss, news, nba, ams, etc.): ", group)
 		enableMonitoring = promptAndGetResponse("enable monitoring (true|false): ", enableMonitoring)
 		monitoring, err = strconv.ParseBool(enableMonitoring)
 		if err != nil {
-			check(errors.New("please enter true or false for enableMonitoring"))
+			check(errors.New(messageEnableMonitoringTrueFalse))
 		}
 		hcTimeout = promptAndGetResponse("healthcheck timeout seconds (1): ", hcTimeout)
 		healthcheckTimeoutSeconds, err = strconv.Atoi(hcTimeout)
 		if err != nil {
-			check(errors.New("please enter a valid number for healthcheckTimeoutSeconds"))
+			check(errors.New(messageTimeoutValidNumber))
 		}
 		hcInterval = promptAndGetResponse("healthcheck interval seconds (10): ", hcInterval)
 		healthcheckIntervalSeconds, err = strconv.Atoi(hcInterval)
 		if err != nil {
-			check(errors.New("please enter a valid number for healthcheckIntervalSeconds"))
+			check(errors.New(messageIntervalValidNumber))
 		}
 		//healthcheckIntervalSeconds must be > healthcheckTimeoutSeconds
 		if !(healthcheckIntervalSeconds > healthcheckTimeoutSeconds) {
-			check(errors.New("healthcheckIntervalSeconds must be > healthcheckTimeoutSeconds"))
+			check(errors.New(messageIntervalGreaterThanTimeout))
 		}
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ", property)
 		project = promptAndGetResponse("project: ", project)
@@ -184,7 +184,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 
 	monitoring, err = strconv.ParseBool(enableMonitoring)
 	if err != nil {
-		check(errors.New("please enter true or false for enableMonitoring"))
+		check(errors.New(messageEnableMonitoringTrueFalse))
 	}
 
 	composeShipment := ComposeShipment{

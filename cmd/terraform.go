@@ -26,7 +26,7 @@ harbor-compose terraform my-shipment dev
 terraform import harbor_shipment.app my-app
 terraform import harbor_shipment_env.dev my-app::dev
 `,
-	Run: terraform,
+	Run:    terraform,
 	PreRun: preRunHook,
 }
 
@@ -65,7 +65,7 @@ func terraform(cmd *cobra.Command, args []string) {
 	}
 	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
 	if shipmentObject == nil {
-		fmt.Println("shipment not found")
+		fmt.Println(messageShipmentEnvironmentNotFound)
 		return
 	}
 

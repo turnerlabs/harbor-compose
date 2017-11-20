@@ -32,7 +32,7 @@ harbor-compose generate my-shipment dev -b circleciv2
 harbor-compose generate my-shipment dev -b codeship
 harbor-compose generate my-shipment dev --terraform
 `,
-	Run: generate,
+	Run:    generate,
 	PreRun: preRunHook,
 }
 
@@ -68,7 +68,7 @@ func generate(cmd *cobra.Command, args []string) {
 	}
 	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
 	if shipmentObject == nil {
-		fmt.Println("shipment not found")
+		fmt.Println(messageShipmentEnvironmentNotFound)
 		return
 	}
 
