@@ -39,3 +39,4 @@ create.json
 node_modules
 .glide
 build-debug.sh
+package-lock.json
