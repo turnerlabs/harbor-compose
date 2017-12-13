@@ -70,7 +70,7 @@ func terraform(cmd *cobra.Command, args []string) {
 	}
 
 	//convert a Shipment object into a HarborCompose object
-	harborCompose, _ := transformShipmentToHarborCompose(shipmentObject)
+	harborCompose := transformShipmentToHarborCompose(shipmentObject)
 
 	//generate a main.tf and write it to disk
 	generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)

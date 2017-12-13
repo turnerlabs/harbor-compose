@@ -118,7 +118,7 @@ func TestTransformShipmentToDockerCompose(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -264,7 +264,7 @@ func TestTransformShipmentToDockerComposeMultiContainer(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -334,10 +334,10 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 	}
 
 	//convert shipit model to harbor-compose
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+	harborCompose := transformShipmentToHarborCompose(&shipment)
 
 	//convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -674,10 +674,10 @@ func TestTransformShipmentToHarborComposeRestartEnv(t *testing.T) {
 	}
 
 	//convert shipit model to harbor-compose
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+	harborCompose := transformShipmentToHarborCompose(&shipment)
 
 	//convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -823,8 +823,7 @@ func TestTransformShipmentToDockerComposeWithHiddenEnvVar(t *testing.T) {
 	}
 
 	//test
-	hiddenEnvVars := map[string]string{}
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -950,7 +949,7 @@ func TestGenerateWithDollarSigns(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
