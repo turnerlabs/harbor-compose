@@ -18,8 +18,6 @@ type metric struct {
 }
 
 const (
-	telemetryURI = "https://telemetry.harbor.turnerlabs.io/v1/api/metric"
-
 	metricInit       = "init"
 	metricPs         = "ps"
 	metricLogs       = "logs"
@@ -65,9 +63,13 @@ func writeMetricErrorString(action string, err string) {
 	}
 }
 
+func getTelemetryEndpoint() string {
+	return GetConfig().TelemetryURI + "/v1/api/metric"
+}
+
 func postTelemetryData(m metric) {
 	json, _ := json.Marshal(m)
-	req, err := http.NewRequest("POST", telemetryURI, bytes.NewBuffer(json))
+	req, err := http.NewRequest("POST", getTelemetryEndpoint(), bytes.NewBuffer(json))
 	req.Header.Set("X-key", "0vgKlex4EUckdHYCJq2BPBCyJ5E")
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
