@@ -187,7 +187,9 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) Harbo
 
 	//extract special envvars (for product/project/property and log shipping)
 	special := map[string]string{}
-	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, nil)
+	logShipping := map[string]string{}
+	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, nil, logShipping)
+	copyEnvVars(shipmentObject.EnvVars, nil, special, nil, logShipping)
 
 	//now populate other harbor-compose metadata
 	composeShipment.Product = special["PRODUCT"]
@@ -195,7 +197,9 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) Harbo
 	composeShipment.Property = special["PROPERTY"]
 
 	//log shipping
-	//composeShipment.Environment
+	if logShipping != nil {
+		composeShipment.Environment = logShipping
+	}
 
 	//use the barge setting on the provider, otherwise use the envvar
 	provider := ec2Provider(shipmentObject.Providers)
@@ -259,13 +263,13 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) (Dock
 		//container level so that they can be used in docker-compose
 
 		//shipment
-		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//environment
-		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//container
-		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//write hidden env vars to file specified in env_file
 		if len(hiddenEnvVars) > 0 {

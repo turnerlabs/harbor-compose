@@ -1,14 +1,27 @@
 package cmd
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
+
+	//special
 	envVarNameCustomer = "CUSTOMER"
 	envVarNameProduct  = "PRODUCT"
 	envVarNameProject  = "PROJECT"
 	envVarNameProperty = "PROPERTY"
 	envVarNameBarge    = "BARGE"
 	envVarNameRestart  = "HC_RESTART"
+
+	//log shipping
+	envVarNameShipLogs     = "SHIP_LOGS"
+	envVarNameLogsEndpoint = "LOGS_ENDPOINT"
+	envVarNameAccessKey    = "LOGS_ACCESS_KEY"
+	envVarNameSecretKey    = "LOGS_SECRET_KEY"
+	envVarNameDomainName   = "LOGS_DOMAIN_NAME"
+	envVarNameRegion       = "LOGS_REGION"
+	envVarNameQueueName    = "LOGS_QUEUE_NAME"
 )
 
 func specialEnvVars() map[string]string {
@@ -22,8 +35,20 @@ func specialEnvVars() map[string]string {
 	}
 }
 
+func logShippingEnvVars() map[string]string {
+	return map[string]string{
+		envVarNameShipLogs:     envVarNameShipLogs,
+		envVarNameLogsEndpoint: envVarNameLogsEndpoint,
+		envVarNameAccessKey:    envVarNameAccessKey,
+		envVarNameSecretKey:    envVarNameSecretKey,
+		envVarNameDomainName:   envVarNameDomainName,
+		envVarNameRegion:       envVarNameRegion,
+		envVarNameQueueName:    envVarNameQueueName,
+	}
+}
+
 //processes envvars by copying them to a destination and filtering out special and hidden envvars
-func copyEnvVars(source []EnvVarPayload, destination map[string]string, special map[string]string, hidden map[string]string) {
+func copyEnvVars(source []EnvVarPayload, destination map[string]string, special map[string]string, hidden map[string]string, logShipping map[string]string) {
 
 	//iterate all envvars
 	for _, envvar := range source {
@@ -34,8 +59,11 @@ func copyEnvVars(source []EnvVarPayload, destination map[string]string, special 
 			//escape `$` characters with `$$`
 			envvar.Value = strings.Replace(envvar.Value, "$", "$$", -1)
 
-			//hidden?
-			if envvar.Type == "hidden" && hidden != nil {
+			if logShippingEnvVars()[strings.ToUpper(envvar.Name)] != "" {
+				if logShipping != nil {
+					logShipping[envvar.Name] = envvar.Value
+				}
+			} else if envvar.Type == "hidden" && hidden != nil {
 				//copy to hidden
 				hidden[envvar.Name] = envvar.Value
 
