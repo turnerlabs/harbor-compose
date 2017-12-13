@@ -76,7 +76,7 @@ func up(cmd *cobra.Command, args []string) {
 		//creating a shipment is a different workflow than updating
 		if existingShipment == nil {
 			if Verbose {
-				log.Println("shipment environment not found")
+				log.Println(messageShipmentEnvironmentNotFound)
 			}
 			createShipment(username, token, shipmentName, shipment, dockerCompose, desiredShipment)
 
@@ -110,14 +110,14 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 		if Verbose {
 			fmt.Println(desired.Name)
 		}
-		return errors.New("environment can not contain underscores ('_')")
+		return errors.New(messageEnvironmentUnderscores)
 	}
 
 	provider := ec2Provider(desired.Providers)
 
 	//barge
 	if provider.Barge == "" {
-		return errors.New("barge is required for a shipment")
+		return errors.New(messageBargeRequired)
 	}
 
 	//replicas
@@ -125,25 +125,25 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 		fmt.Println(provider.Replicas)
 	}
 	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
-		return errors.New("replicas must be between 1 and 1000")
+		return errors.New(messageReplicaValidation)
 	}
 
 	//containers
 	if len(desired.Containers) == 0 {
-		return errors.New("at least 1 container is required")
+		return errors.New(messageContainerRequired)
 	}
 
 	for _, container := range desired.Containers {
 
 		//ports
 		if len(container.Ports) == 0 {
-			return errors.New("at least one port is required")
+			return errors.New(messagePortRequired)
 		}
 
 		for _, port := range container.Ports {
 			if port.HealthcheckInterval != nil && port.HealthcheckTimeout != nil {
 				if !(*port.HealthcheckInterval > *port.HealthcheckTimeout) {
-					return errors.New("healthcheckIntervalSeconds must be > healthcheckTimeoutSeconds")
+					return errors.New(messageIntervalGreaterThanTimeout)
 				}
 			}
 		}
@@ -157,7 +157,14 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			}
 		}
 		if !foundHealthCheck {
-			return errors.New("a container-level 'HEALTHCHECK' environment variable is required")
+			return errors.New(messageHealthCheckRequired)
+		}
+
+		//envvars
+		for _, envvar := range container.EnvVars {
+			if envvar.Name == "" || envvar.Value == "" {
+				return errors.New(messageEnvvarsCannotBeEmpty)
+			}
 		}
 	}
 
@@ -171,7 +178,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			fmt.Println("desired barge: " + provider.Barge)
 		}
 		if provider.Barge != existingProvider.Barge {
-			return errors.New("changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again")
+			return errors.New(messageChangeBarge)
 		}
 
 		//don't allow container name changes
@@ -185,12 +192,12 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 					existingPort := getPrimaryPort(existingContainer.Ports)
 					desiredPort := getPrimaryPort(desiredContainer.Ports)
 					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
-						return errors.New("port changes involve downtime.  Please run the 'down --delete' command first")
+						return errors.New(messageChangePort)
 					}
 
 					//don't allow health check changes
 					if existingPort.Healthcheck != desiredPort.Healthcheck {
-						return errors.New("healthcheck changes involve downtime.  Please run the 'down --delete' command first")
+						return errors.New(messageChangeHealthCheck)
 					}
 
 					//return container match
@@ -199,7 +206,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 				}
 			}
 			if !found {
-				return errors.New("container changes involve downtime.  Please run the 'down --delete' command first")
+				return errors.New(messageChangeContainer)
 			}
 		}
 	}

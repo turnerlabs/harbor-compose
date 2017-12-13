@@ -115,8 +115,8 @@ type ParentShipment struct {
 
 // EnvVarPayload represents EnvVar
 type EnvVarPayload struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
 	Type  string `json:"type,omitempty"`
 }
 
