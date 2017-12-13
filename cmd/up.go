@@ -142,8 +142,8 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 
 		for _, port := range container.Ports {
 			if port.HealthcheckInterval != nil && port.HealthcheckTimeout != nil {
-				if !(*port.HealthcheckInterval >= *port.HealthcheckTimeout) {
-					return errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds")
+				if !(*port.HealthcheckInterval > *port.HealthcheckTimeout) {
+					return errors.New("healthcheckIntervalSeconds must be > healthcheckTimeoutSeconds")
 				}
 			}
 		}
