@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -22,7 +23,8 @@ Example (shipment = mss-app-web):
 
 MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose catalog
 `,
-	Run: catalog,
+	Run:    catalog,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -40,7 +42,7 @@ func catalog(cmd *cobra.Command, args []string) {
 	//validate the compose file
 	_, err := dockerCompose.Config()
 	if err != nil {
-		log.Fatal("error parsing compose file" + err.Error())
+		check(errors.New("error parsing compose file" + err.Error()))
 	}
 
 	//iterate shipments
@@ -53,7 +55,7 @@ func catalog(cmd *cobra.Command, args []string) {
 			//lookup the container in the list of services in the docker-compose file
 			serviceConfig, found := dockerCompose.GetServiceConfig(containerName)
 			if !found {
-				log.Fatal("could not find service in docker compose file")
+				check(errors.New("could not find service in docker compose file"))
 			}
 
 			//parse image:tag

@@ -23,7 +23,8 @@ var initCmd = &cobra.Command{
 	Long: `This will ask you a bunch of questions, and then write a main.tf, docker-compose.yml, and harbor-compose.yml for you.
 
 If you invoke it with -y or --yes it will use only defaults and not prompt you for any options.`,
-	Run: initHarborCompose,
+	Run:    initHarborCompose,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -149,7 +150,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		replicas = promptAndGetResponse("how many container instances: (e.g., 4) ", replicas)
 		intReplicas, err = strconv.Atoi(replicas)
 		if err != nil {
-			log.Fatalln("replicas must be a number")
+			check(errors.New("replicas must be a number"))
 		}
 		group = promptAndGetResponse("group (mss, news, nba, ams, etc.): ", group)
 		enableMonitoring = promptAndGetResponse("enable monitoring (true|false): ", enableMonitoring)

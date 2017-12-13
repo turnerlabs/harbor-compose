@@ -596,7 +596,7 @@ shipments:
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Container changes")
+	assert.Contains(t, err.Error(), "container changes")
 }
 
 //tests up with port change
@@ -672,7 +672,7 @@ shipments:
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Port changes")
+	assert.Contains(t, err.Error(), "port changes")
 }
 
 //tests up with adding a port
@@ -749,7 +749,7 @@ shipments:
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Port changes")
+	assert.Contains(t, err.Error(), "port changes")
 }
 
 //tests up with health check change
@@ -825,7 +825,7 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Healthcheck changes")
+	assert.Contains(t, err.Error(), "healthcheck changes")
 }
 
 func TestTransformComposeToShipmentEnvironmentHiddenEnvFile(t *testing.T) {

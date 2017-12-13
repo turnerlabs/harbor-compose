@@ -38,6 +38,7 @@ var buildTokenCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
+	PreRun: preRunHook,
 }
 
 // listBuildTokensCmd represents the buildtoken command
@@ -94,11 +95,7 @@ func listBuildTokens(cmd *cobra.Command, args []string) {
 
 	//ensure user is logged in
 	username, authToken, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//read the harbor compose file
+	check(err)
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 	if harborCompose.Shipments == nil || len(harborCompose.Shipments) == 0 {
 		fmt.Println("no shipments found")
@@ -119,9 +116,7 @@ func internalListBuildTokens(shipmentMap map[string]ComposeShipment, username st
 
 	//create a formatted template
 	tmpl, err := template.New("shipment-token").Parse("{{.Shipment}}\t{{.Environment}}\t{{.CiCdEnvVar}}\t{{.Token}}")
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	//iterate shipments
 	for shipmentName, shipment := range shipmentMap {
@@ -148,9 +143,7 @@ func internalListBuildTokens(shipmentMap map[string]ComposeShipment, username st
 
 		//execute the template with the data
 		err = tmpl.Execute(w, output)
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 		fmt.Fprintln(w)
 	}
 
@@ -163,9 +156,7 @@ func getBuildToken(cmd *cobra.Command, args []string) {
 
 	//ensure user is logged in
 	username, authToken, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	var shipment string
 	var env string
@@ -204,7 +195,7 @@ func getBuildTokenEnvVar(shipment string, environment string) string {
 
 	//validate build token
 	if len(buildTokenEnvVar) == 0 {
-		log.Fatalf("A shipment/environment build token is required. Please specify an environment variable named, %v", envvar)
+		check(fmt.Errorf("A shipment/environment build token is required. Please specify an environment variable named, %v", envvar))
 	}
 
 	return buildTokenEnvVar

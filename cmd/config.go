@@ -17,6 +17,7 @@ type Config struct {
 	AuthURI      string `json:"authn"`
 	HelmitURI    string `json:"helmit"`
 	CustomsURI   string `json:"customs"`
+	TelemetryURI string `json:"telemetry"`
 }
 
 func readConfig() (*Config, error) {
@@ -101,6 +102,10 @@ func GetConfig() *Config {
 
 	if config.CustomsURI == "" {
 		config.CustomsURI = "https://customs.services.dmtio.net"
+	}
+
+	if config.TelemetryURI == "" {
+		config.TelemetryURI = "https://telemetry.harbor.turnerlabs.io"
 	}
 
 	return config

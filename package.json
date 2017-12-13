@@ -5,7 +5,8 @@
   "main": "main.go",
   "scripts": {
     "test": "go test ./cmd",
-    "watch": "watch 'npm test' cmd"
+    "watch": "watch 'npm test' cmd",
+    "integration-test": "go test ./cmd -integrationTest"
   },
   "repository": {
     "type": "git",

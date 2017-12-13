@@ -9,8 +9,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"log"
-
 	"github.com/docker/libcompose/project"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
@@ -18,10 +16,11 @@ import (
 
 // psCmd represents the ps command
 var psCmd = &cobra.Command{
-	Use:   "ps",
-	Short: "Lists shipment and container status",
-	Long:  ``,
-	Run:   ps,
+	Use:    "ps",
+	Short:  "Lists shipment and container status",
+	Long:   ``,
+	Run:    ps,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -46,9 +45,7 @@ func doPs(dockerCompose project.APIProject, harborCompose HarborCompose) {
 
 		//get shipment's primary port
 		primaryPort, err := getShipmentPrimaryPort(dockerCompose, shipment)
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 
 		//get shipment endpoint
 		endpoint := getShipmentEndpoint(shipmentName, shipment.Env, "ec2", primaryPort)
@@ -67,10 +64,7 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 	tmpl, err := template.New("shipment").Parse("SHIPMENT:\t{{.Shipment}}\t\nENVIRONMENT:\t{{.Environment}}\nBARGE:\t{{.Barge}}\t\nENDPOINT:\t{{.Endpoint}}\t\nSTATUS:\t{{.Status}}\t\nCONTAINERS:\t{{.Containers}}\t\nREPLICAS:\t{{.Replicas}}\t")
 
 	fmt.Fprintln(w)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	//build an object to pass to the template
 	shipmentOutput := ShipmentStatusOutput{
@@ -85,9 +79,7 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 
 	//execute the template with the data
 	err = tmpl.Execute(w, shipmentOutput)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	w.Flush()
 
 	//format containers
@@ -128,17 +120,11 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 
 		//create a formatted template
 		tmpl, err := template.New("replicas").Parse("{{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Started}}\t{{.Restarts}}\t{{.LastState}}\t")
-
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 
 		//execute the template with the data
 		err = tmpl.Execute(w, output)
-
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 
 		fmt.Fprintln(w)
 	}

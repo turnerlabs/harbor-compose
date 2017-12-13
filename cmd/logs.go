@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"time"
@@ -27,7 +26,8 @@ var logsCmd = &cobra.Command{
 
     This will query for only those 3 containers. You can pass in any number of container IDs
 	`,
-	Run: logs,
+	Run:    logs,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -197,17 +197,10 @@ func printMergedLogs(shipment HelmitResponse, ids []string) {
 func followStream(streamObj logsObject) {
 	stream := strings.Replace(streamObj.Logstream, "tail=500", "tail=0", -1)
 	streamer, err := GetLogStreamer(stream)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	for {
 		line, streamErr := streamer.ReadBytes('\n')
-
-		if streamErr != nil {
-			log.Fatal(streamErr)
-		}
-
+		check(streamErr)
 		logObj, err := parseContainerLog(string(line)[8:])
 
 		if err != "" {

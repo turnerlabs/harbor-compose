@@ -27,6 +27,7 @@ terraform import harbor_shipment.app my-app
 terraform import harbor_shipment_env.dev my-app::dev
 `,
 	Run: terraform,
+	PreRun: preRunHook,
 }
 
 const (
