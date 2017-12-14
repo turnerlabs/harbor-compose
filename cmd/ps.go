@@ -14,14 +14,22 @@ import (
 
 // psCmd represents the ps command
 var psCmd = &cobra.Command{
-	Use:    "ps",
-	Short:  "Lists shipment and container status",
-	Long:   ``,
+	Use:   "ps",
+	Short: "Lists shipment and container status",
+	Long:  "Lists shipment and container status for shipment environments listed in a harbor-compose.yml file or using the flags.",
+	Example: `harbor-compose ps
+harbor-compose ps --shipment my-shipment --environment dev
+harbor-compose ps -s my-shipment -e dev`,
 	Run:    ps,
 	PreRun: preRunHook,
 }
 
+var psShipment string
+var psEnvironment string
+
 func init() {
+	psCmd.PersistentFlags().StringVarP(&psShipment, "shipment", "s", "", "shipment name")
+	psCmd.PersistentFlags().StringVarP(&psEnvironment, "environment", "e", "", "environment name")
 	RootCmd.AddCommand(psCmd)
 }
 
@@ -31,30 +39,47 @@ func ps(cmd *cobra.Command, args []string) {
 	username, token, err := Login()
 	check(err)
 
-	//read the compose files to get the shipmentenvironment list
-	_, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
+	//determine list of shipment/environments to query
+	inputShipmentEnvironments := []tuple{}
 
-	//iterate Shipments
-	for shipmentName, shipment := range harborCompose.Shipments {
+	//either use the shipment/environment flags or the yaml file
+	if psShipment != "" && psEnvironment != "" {
+		inputShipmentEnvironments = append(inputShipmentEnvironments, tuple{Item1: psShipment, Item2: psEnvironment})
+	} else if psShipment != "" && psEnvironment == "" {
+		check(errors.New(messageShipmentEnvironmentFlagsRequired))
+	} else if psShipment == "" && psEnvironment != "" {
+		check(errors.New(messageShipmentEnvironmentFlagsRequired))
+	} else {
+		//read the compose file to get the shipment/environment list
+		_, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
+		for shipmentName, shipment := range harborCompose.Shipments {
+			inputShipmentEnvironments = append(inputShipmentEnvironments, tuple{Item1: shipmentName, Item2: shipment.Env})
+		}
+	}
+
+	//iterate shipment/environments
+	for _, t := range inputShipmentEnvironments {
+		shipment := t.Item1
+		env := t.Item2
 
 		//lookup the shipment environment
-		shipmentEnvironment := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
+		shipmentEnvironment := GetShipmentEnvironment(username, token, shipment, env)
 
 		//lookup the provider
 		provider := ec2Provider(shipmentEnvironment.Providers)
 
 		//fetch container status using helmit api
-		shipmentStatus := GetShipmentStatus(provider.Barge, shipmentName, shipment.Env)
+		shipmentStatus := GetShipmentStatus(provider.Barge, shipment, env)
 
 		//get shipment's primary port
 		primaryPort, err := getShipmentPrimaryPort(shipmentEnvironment)
 		check(err)
 
 		//get shipment endpoint
-		endpoint := getShipmentEndpoint(shipmentName, shipment.Env, provider.Name, primaryPort)
+		endpoint := getShipmentEndpoint(shipment, env, provider.Name, primaryPort)
 
 		//print status to console
-		printShipmentStatus(shipmentName, shipmentEnvironment, provider, shipmentStatus, endpoint)
+		printShipmentStatus(shipment, shipmentEnvironment, provider, shipmentStatus, endpoint)
 	}
 }
 
