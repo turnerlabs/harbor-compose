@@ -73,10 +73,10 @@ func generate(cmd *cobra.Command, args []string) {
 	}
 
 	//convert a Shipment object into a HarborCompose object
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(shipmentObject)
+	harborCompose := transformShipmentToHarborCompose(shipmentObject)
 
 	//convert a Shipment object into a DockerCompose object, with hidden envvars
-	dockerCompose := transformShipmentToDockerCompose(shipmentObject, hiddenEnvVars)
+	dockerCompose, hiddenEnvVars := transformShipmentToDockerCompose(shipmentObject)
 
 	//if build provider is specified, allow it modify the compose objects and do its thing
 	if len(buildProvider) > 0 {
@@ -166,7 +166,7 @@ func writeHiddenEnvFile(envvars map[string]string, file string) {
 	check(err)
 }
 
-func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (HarborCompose, map[string]string) {
+func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) HarborCompose {
 
 	//convert a Shipment object into a HarborCompose object with a single shipment
 	harborCompose := HarborCompose{
@@ -185,26 +185,24 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (Harb
 		HealthcheckIntervalSeconds: primaryPort.HealthcheckInterval,
 	}
 
-	//track special envvars
+	//extract special envvars (for product/project/property and log shipping)
 	special := map[string]string{}
-
-	//track hidden envvars
-	hiddenEnvVars := map[string]string{}
-
-	//shipment
-	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, hiddenEnvVars)
-
-	//environment
-	copyEnvVars(shipmentObject.EnvVars, nil, special, hiddenEnvVars)
-
-	provider := ec2Provider(shipmentObject.Providers)
+	logShipping := map[string]string{}
+	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, nil, logShipping)
+	copyEnvVars(shipmentObject.EnvVars, nil, special, nil, logShipping)
 
 	//now populate other harbor-compose metadata
 	composeShipment.Product = special["PRODUCT"]
 	composeShipment.Project = special["PROJECT"]
 	composeShipment.Property = special["PROPERTY"]
 
+	//log shipping
+	if logShipping != nil {
+		composeShipment.Environment = logShipping
+	}
+
 	//use the barge setting on the provider, otherwise use the envvar
+	provider := ec2Provider(shipmentObject.Providers)
 	composeShipment.Barge = provider.Barge
 	if composeShipment.Barge == "" {
 		composeShipment.Barge = special["BARGE"]
@@ -221,12 +219,14 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (Harb
 	//add single shipment to list
 	harborCompose.Shipments[shipmentObject.ParentShipment.Name] = composeShipment
 
-	return harborCompose, hiddenEnvVars
+	return harborCompose
 }
 
 //transforms a ShipmentEnvironment object to its DockerCompose representation
 //(along with hidden env vars)
-func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hiddenEnvVars map[string]string) DockerCompose {
+func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) (DockerCompose, map[string]string) {
+
+	hiddenEnvVars := map[string]string{}
 
 	dockerCompose := DockerCompose{
 		Version:  "2",
@@ -263,13 +263,13 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hidde
 		//container level so that they can be used in docker-compose
 
 		//shipment
-		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//environment
-		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//container
-		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//write hidden env vars to file specified in env_file
 		if len(hiddenEnvVars) > 0 {
@@ -280,5 +280,5 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hidde
 		dockerCompose.Services[container.Name] = &service
 	}
 
-	return dockerCompose
+	return dockerCompose, hiddenEnvVars
 }

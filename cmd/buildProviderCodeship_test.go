@@ -52,10 +52,10 @@ func TestBuildProviderCodeship(t *testing.T) {
 	check(err)
 
 	//convert shipit model to harbor-compose
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+	harborCompose := transformShipmentToHarborCompose(&shipment)
 
 	//convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)

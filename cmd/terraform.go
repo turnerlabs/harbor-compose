@@ -34,17 +34,6 @@ const (
 	tfFile = "main.tf"
 )
 
-//log shipping env vars
-const (
-	envVarNameShipLogs     = "SHIP_LOGS"
-	envVarNameLogsEndpoint = "LOGS_ENDPOINT"
-	envVarNameAccessKey    = "LOGS_ACCESS_KEY"
-	envVarNameSecretKey    = "LOGS_SECRET_KEY"
-	envVarNameDomainName   = "LOGS_DOMAIN_NAME"
-	envVarNameRegion       = "LOGS_REGION"
-	envVarNameQueueName    = "LOGS_QUEUE_NAME"
-)
-
 func init() {
 	RootCmd.AddCommand(terraformCmd)
 }
@@ -70,7 +59,7 @@ func terraform(cmd *cobra.Command, args []string) {
 	}
 
 	//convert a Shipment object into a HarborCompose object
-	harborCompose, _ := transformShipmentToHarborCompose(shipmentObject)
+	harborCompose := transformShipmentToHarborCompose(shipmentObject)
 
 	//generate a main.tf and write it to disk
 	generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)

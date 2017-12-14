@@ -173,7 +173,7 @@ func TestGenerateTerraformSourceCodeBasic(t *testing.T) {
 	}
 
 	//package the data to make it easy for rendering
-	harborCompose, _ := transformShipmentToHarborCompose(&shipmentEnv)
+	harborCompose := transformShipmentToHarborCompose(&shipmentEnv)
 	data := getTerraformData(&shipmentEnv, &harborCompose)
 
 	//generate code
@@ -259,7 +259,7 @@ func TestGenerateTerraformSourceCodeLogShipping(t *testing.T) {
 	}
 
 	//package the data to make it easy for rendering
-	harborCompose, _ := transformShipmentToHarborCompose(&shipmentEnv)
+	harborCompose := transformShipmentToHarborCompose(&shipmentEnv)
 	data := getTerraformData(&shipmentEnv, &harborCompose)
 
 	//generate code
