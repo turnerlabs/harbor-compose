@@ -6,10 +6,8 @@ import (
 	"html/template"
 	"os"
 	"strconv"
-	"strings"
 	"text/tabwriter"
 
-	"github.com/docker/libcompose/project"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
@@ -29,33 +27,38 @@ func init() {
 
 func ps(cmd *cobra.Command, args []string) {
 
-	//read the compose files
-	dockerCompose, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
+	//make sure user is authenticated
+	username, token, err := Login()
+	check(err)
 
-	doPs(dockerCompose, harborCompose)
-}
-
-func doPs(dockerCompose project.APIProject, harborCompose HarborCompose) {
+	//read the compose files to get the shipmentenvironment list
+	_, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
 
 	//iterate Shipments
 	for shipmentName, shipment := range harborCompose.Shipments {
 
+		//lookup the shipment environment
+		shipmentEnvironment := GetShipmentEnvironment(username, token, shipmentName, shipment.Env)
+
+		//lookup the provider
+		provider := ec2Provider(shipmentEnvironment.Providers)
+
 		//fetch container status using helmit api
-		shipmentStatus := GetShipmentStatus(shipment.Barge, shipmentName, shipment.Env)
+		shipmentStatus := GetShipmentStatus(provider.Barge, shipmentName, shipment.Env)
 
 		//get shipment's primary port
-		primaryPort, err := getShipmentPrimaryPort(dockerCompose, shipment)
+		primaryPort, err := getShipmentPrimaryPort(shipmentEnvironment)
 		check(err)
 
 		//get shipment endpoint
-		endpoint := getShipmentEndpoint(shipmentName, shipment.Env, "ec2", primaryPort)
+		endpoint := getShipmentEndpoint(shipmentName, shipment.Env, provider.Name, primaryPort)
 
 		//print status to console
-		printShipmentStatus(shipmentName, shipment, shipmentStatus, endpoint)
+		printShipmentStatus(shipmentName, shipmentEnvironment, provider, shipmentStatus, endpoint)
 	}
 }
 
-func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *ShipmentStatus, endpoint string) {
+func printShipmentStatus(name string, shipment *ShipmentEnvironment, provider *ProviderPayload, shipmentStatus *ShipmentStatus, endpoint string) {
 
 	const padding = 3
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.DiscardEmptyColumns)
@@ -69,12 +72,12 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 	//build an object to pass to the template
 	shipmentOutput := ShipmentStatusOutput{
 		Shipment:    name,
-		Environment: shipment.Env,
-		Barge:       shipment.Barge,
+		Environment: shipment.Name,
+		Barge:       provider.Barge,
 		Endpoint:    endpoint,
 		Status:      shipmentStatus.Status.Phase,
 		Containers:  strconv.Itoa(len(shipment.Containers)),
-		Replicas:    strconv.Itoa(shipment.Replicas),
+		Replicas:    strconv.Itoa(provider.Replicas),
 	}
 
 	//execute the template with the data
@@ -134,37 +137,17 @@ func printShipmentStatus(name string, shipment ComposeShipment, shipmentStatus *
 }
 
 //returns the primary port of a shipment
-func getShipmentPrimaryPort(dockerCompose project.APIProject, shipment ComposeShipment) (string, error) {
-
-	//get primary port of 1st service
-	for _, container := range shipment.Containers {
-		serviceConfig, success := dockerCompose.GetServiceConfig(container)
-		if !success {
-			return "", errors.New("unabled to find container in docker-compose.yml")
+func getShipmentPrimaryPort(shipmentEnvironment *ShipmentEnvironment) (PortPayload, error) {
+	for _, container := range shipmentEnvironment.Containers {
+		for _, port := range container.Ports {
+			if port.Primary {
+				return port, nil
+			}
 		}
-
-		if serviceConfig.Ports == nil {
-			return "", errors.New("no ports found")
-		}
-
-		parsedPort := strings.Split(serviceConfig.Ports[0], ":")
-		return parsedPort[0], nil
 	}
-	return "", errors.New("no shipment port found")
+	return PortPayload{}, errors.New("no shipment port found")
 }
 
-//returns a shipment endpoint
-func getShipmentEndpoint(shipment string, environment string, provider string, port string) string {
-	//80 -> http://xxx
-	//443 -> https://xxx
-	//? -> http://xxx:?
-	protocol := "http"
-	portString := ""
-	if port == "443" {
-		protocol = "https"
-	}
-	if port != "80" && port != "443" {
-		portString = ":" + port
-	}
-	return fmt.Sprintf("%s://%s.%s.services.%s.dmtio.net%s", protocol, shipment, environment, provider, portString)
+func getShipmentEndpoint(shipment string, environment string, provider string, port PortPayload) string {
+	return fmt.Sprintf("%s://%s.%s.services.%s.dmtio.net:%v", port.Protocol, shipment, environment, provider, port.PublicPort)
 }
