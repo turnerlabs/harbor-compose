@@ -11,7 +11,7 @@ import (
 var restartCmd = &cobra.Command{
 	Use:    "restart",
 	Short:  "Restart your application",
-	Long:   `Adds a dummy variable to the shipment and triggers it.`,
+	Long:   "Forces a new deployment, even if nothing has changed",
 	Run:    restart,
 	PreRun: preRunHook,
 }

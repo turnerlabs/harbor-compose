@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -91,4 +92,26 @@ func findEnvVar(name string, envVars []EnvVarPayload) EnvVarPayload {
 		}
 	}
 	return EnvVarPayload{}
+}
+
+//returns a tuple slice containing shipment/environments from user input (cli flags or compose file)
+func getShipmentEnvironmentsFromInput(shipmentFlag string, envFlag string) []tuple {
+	result := []tuple{}
+
+	//either use the shipment/environment flags or the yaml file
+	if shipmentFlag != "" && envFlag != "" {
+		result = append(result, tuple{Item1: shipmentFlag, Item2: envFlag})
+	} else if psShipment != "" && psEnvironment == "" {
+		check(errors.New(messageShipmentEnvironmentFlagsRequired))
+	} else if shipmentFlag == "" && envFlag != "" {
+		check(errors.New(messageShipmentEnvironmentFlagsRequired))
+	} else {
+		//read the compose file to get the shipment/environment list
+		hc := DeserializeHarborCompose(HarborComposeFile)
+		for shipmentName, shipment := range hc.Shipments {
+			result = append(result, tuple{Item1: shipmentName, Item2: shipment.Env})
+		}
+	}
+
+	return result
 }
