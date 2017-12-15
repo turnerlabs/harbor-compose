@@ -23,6 +23,7 @@ var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start your application",
 	Long: `Start your application
+
 The up command applies changes from your docker/harbor compose files and brings your application up on Harbor.  The up command:
 
 - Creates Harbor shipments if needed

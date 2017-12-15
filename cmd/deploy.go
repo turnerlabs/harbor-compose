@@ -17,12 +17,9 @@ var deployCmd = &cobra.Command{
 	
 Note that the deploy command is a subset of the up command without updates for environment variables, replicas, barge info, etc.
 
-Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.
-
-Example (shipment = mss-app-web):
-
-MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose deploy
-`,
+Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.`,
+	Example: `(shipment = mss-app-web):
+MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose deploy`,
 	Run:    deploy,
 	PreRun: preRunHook,
 }

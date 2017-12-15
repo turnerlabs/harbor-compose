@@ -35,6 +35,8 @@ var buildTokenCmd = &cobra.Command{
 	Use:   "buildtoken",
 	Short: "manage harbor build tokens",
 	Long:  `manage harbor build tokens`,
+	Example: `harbor-compose buildtoken ls
+harbor-compose buildtoken get my-shipment dev`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
@@ -44,10 +46,9 @@ var buildTokenCmd = &cobra.Command{
 // listBuildTokensCmd represents the buildtoken command
 var listBuildTokensCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list harbor build tokens for shipments in harbor-compose.yml",
-	Long:  `list harbor build tokens for shipments in harbor-compose.yml`,
-	Example: `
-harbor-compose buildtoken ls
+	Short: "list harbor build tokens for shipment environments",
+	Long:  `list harbor build tokens for shipment environments`,
+	Example: `harbor-compose buildtoken ls
 
 SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
 mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
@@ -65,7 +66,7 @@ mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_QA_TOKEN    Y3Jk0DmMaUsoWO
 	Aliases: []string{"ls"}}
 
 var getBuildTokenCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "get [shipment] [environment]",
 	Short: "displays a build token for the requested shipment and environment",
 	Long: `
 displays a build token for the requested shipment and environment

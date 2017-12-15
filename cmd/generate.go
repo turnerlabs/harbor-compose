@@ -13,19 +13,16 @@ import (
 
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
-	Use:   "generate",
+	Use:   "generate [shipment] [environment]",
 	Short: "Generate compose files, build artifacts, and terraform source from an existing shipment",
 	Long: `Generate compose files, build artifacts, and terraform source from an existing shipment
 
-The generate command outputs compose files, build artifacts, and terraform source that allow you to build and run your app locally in Docker, manage your Harbor infrastructure using Terraform, do CI/CD, and deploy images and environment variables.
+The generate command outputs compose files, build artifacts, and terraform source that allow you to build and run your app locally in Docker, manage your Harbor infrastructure using Terraform, do CI/CD, and deploy images and environment variables.`,
+	Example: `harbor-compose generate my-shipment dev
 
-Example:
-harbor-compose generate my-shipment dev
-
-The generate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD with Harbor.
+The generate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD with Harbor.  The --terraform flag outputs a .tf file that represents the shipment/environment.
 
 Examples:
-harbor-compose generate my-shipment dev
 harbor-compose generate my-shipment dev --build-provider local
 harbor-compose generate my-shipment dev -b circleciv1
 harbor-compose generate my-shipment dev -b circleciv2

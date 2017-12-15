@@ -11,9 +11,12 @@ var deleteShipmentEnvironment bool
 
 // downCmd represents the down command
 var downCmd = &cobra.Command{
-	Use:    "down",
-	Short:  "Stop your application",
-	Long:   `The down command brings your application down and optionally deletes your shipment environment.`,
+	Use:   "down",
+	Short: "Stop your application",
+	Long:  `The down command brings your application down and optionally deletes your shipment environment.`,
+	Example: `harbor-compose down
+harbor-compose down --delete
+harbor-compose down -d`,
 	Run:    down,
 	PreRun: preRunHook,
 }

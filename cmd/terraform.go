@@ -19,10 +19,8 @@ var terraformCmd = &cobra.Command{
 	Long: `generates terraform source code from an existing shipment
 
 The terraform command outputs terraform files (main.tf) from an existing shipment environment.
-After you have a main.tf, you can use terraform to import the existing state.
-
-Example:
-harbor-compose terraform my-shipment dev
+After you have a main.tf, you can use terraform to import the existing state in order to start managing it with terraform.`,
+	Example: `harbor-compose terraform
 terraform import harbor_shipment.app my-app
 terraform import harbor_shipment_env.dev my-app::dev
 `,

@@ -19,10 +19,18 @@ var yesUseDefaults bool
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Interactively create main.tf, docker-compose.yml, and harbor-compose.yml files",
-	Long: `This will ask you a bunch of questions, and then write a main.tf, docker-compose.yml, and harbor-compose.yml for you.
+	Short: "Interactively create docker-compose.yml, harbor-compose.yml, and main.tf files",
+	Long: `This will ask you a bunch of questions, and then write a bunch of useful files for you.
 
-If you invoke it with -y or --yes it will use only defaults and not prompt you for any options.`,
+docker-compose.yml = used to run locally in docker
+hidden.env = used to store hidden environment variables that works in docker and in harbor
+harbor-compose.yml = used to run remotely in harbor
+main.tf = used to manage harbor infrastructure
+
+If you invoke init with -y or --yes it will use only defaults and not prompt you for any options.`,
+	Example: `harbor-compose init
+harbor-compose init --yes
+harbor-compose init -y`,
 	Run:    initHarborCompose,
 	PreRun: preRunHook,
 }
