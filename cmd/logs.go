@@ -11,28 +11,46 @@ import (
 )
 
 var logTime bool
-var separate bool
+var separateLogs bool
 var tail bool
 
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
 	Use:   "logs [logid ...]",
 	Short: "View output from containers",
-	Long: `
-    View output of containers. There are few options available to make this easier to view.
+	Long:  "View output of containers. There are few options available to make this easier to view.",
+	Example: `harbor-compose logs
 
-    You can also pass in arguments to the function, to allow for n number of specific queries.
-    eg. logs $id $id1 $id2
+Print logs for specified shipment environment
+Examples:
+harbor-compose logs --shipment my-shipment --environment dev
+harbor-compose logs --s my-shipment --e dev
 
-    This will query for only those 3 containers. You can pass in any number of container IDs
-	`,
+Stream the logs from all of your replicas
+Examples:
+harbor-compose logs --tail
+harbor-compose logs -t
+
+Print the logs by each container
+Examples:
+harbor-compose logs --separate
+harbor-compose logs -S -T
+
+You can also pass in arguments to the function to allow for n number of specific queries.
+Examples:
+harbor-compose logs 9e70dc6 14ffbf5`,
 	Run:    logs,
 	PreRun: preRunHook,
 }
 
+var logsShipment string
+var logsEnvironment string
+
 func init() {
+	logsCmd.PersistentFlags().StringVarP(&logsShipment, "shipment", "s", "", "shipment name")
+	logsCmd.PersistentFlags().StringVarP(&logsEnvironment, "environment", "e", "", "environment name")
 	logsCmd.PersistentFlags().BoolVarP(&logTime, "time", "T", false, "append time to logs")
-	logsCmd.PersistentFlags().BoolVarP(&separate, "separate", "s", false, "print logs by each container")
+	logsCmd.PersistentFlags().BoolVarP(&separateLogs, "separate", "S", false, "print logs by each container")
 	logsCmd.PersistentFlags().BoolVarP(&tail, "tail", "t", false, "continue to stream log output to stdout.")
 	RootCmd.AddCommand(logsCmd)
 }
@@ -42,21 +60,36 @@ func init() {
 // Flags: -t: adds time to the logs
 // TODO: add the rest of the flags to match docker-compose
 func logs(cmd *cobra.Command, args []string) {
-	//read the harbor compose file
-	var harborCompose = DeserializeHarborCompose(HarborComposeFile)
-	//iterate shipments
-	for shipmentName, shipment := range harborCompose.Shipments {
-		fmt.Printf("Logs For:  %s %s\n", shipmentName, shipment.Env)
 
+	//make sure user is authenticated
+	username, token, err := Login()
+	check(err)
+
+	//determine which shipment/environments user wants logs for
+	inputShipmentEnvironments := getShipmentEnvironmentsFromInput(logsShipment, logsEnvironment)
+
+	//iterate shipment/environments
+	for _, t := range inputShipmentEnvironments {
+		shipment := t.Item1
+		env := t.Item2
+
+		//lookup the shipment environment
+		shipmentEnvironment := GetShipmentEnvironment(username, token, shipment, env)
+
+		//lookup the provider
+		provider := ec2Provider(shipmentEnvironment.Providers)
+
+		fmt.Printf("Logs For:  %s %s\n", shipment, env)
 		if len(args) > 0 && Verbose == true {
 			fmt.Println("Make sure the ID is either the 7 char shortstring of the container or the entire ID")
 			for _, arg := range args {
 				fmt.Printf("Getting Logs for Container:  %s\n", arg)
 			}
-
 		}
+
 		helmitObject := HelmitResponse{}
-		var response = GetLogs(shipment.Barge, shipmentName, shipment.Env)
+
+		var response = GetLogs(provider.Barge, shipment, env)
 		err := json.Unmarshal([]byte(response), &helmitObject)
 		if err != nil {
 			fmt.Println(err)
@@ -64,7 +97,7 @@ func logs(cmd *cobra.Command, args []string) {
 
 		fmt.Println(args)
 
-		if separate == true {
+		if separateLogs {
 			printSeparateLogs(helmitObject, args)
 		} else {
 			printMergedLogs(helmitObject, args)

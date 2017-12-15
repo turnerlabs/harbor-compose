@@ -39,23 +39,8 @@ func ps(cmd *cobra.Command, args []string) {
 	username, token, err := Login()
 	check(err)
 
-	//determine list of shipment/environments to query
-	inputShipmentEnvironments := []tuple{}
-
-	//either use the shipment/environment flags or the yaml file
-	if psShipment != "" && psEnvironment != "" {
-		inputShipmentEnvironments = append(inputShipmentEnvironments, tuple{Item1: psShipment, Item2: psEnvironment})
-	} else if psShipment != "" && psEnvironment == "" {
-		check(errors.New(messageShipmentEnvironmentFlagsRequired))
-	} else if psShipment == "" && psEnvironment != "" {
-		check(errors.New(messageShipmentEnvironmentFlagsRequired))
-	} else {
-		//read the compose file to get the shipment/environment list
-		_, harborCompose := unmarshalComposeFiles(DockerComposeFile, HarborComposeFile)
-		for shipmentName, shipment := range harborCompose.Shipments {
-			inputShipmentEnvironments = append(inputShipmentEnvironments, tuple{Item1: shipmentName, Item2: shipment.Env})
-		}
-	}
+	//determine which shipment/environments user wants status for
+	inputShipmentEnvironments := getShipmentEnvironmentsFromInput(psShipment, psEnvironment)
 
 	//iterate shipment/environments
 	for _, t := range inputShipmentEnvironments {
