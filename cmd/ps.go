@@ -40,7 +40,7 @@ func ps(cmd *cobra.Command, args []string) {
 	check(err)
 
 	//determine which shipment/environments user wants status for
-	inputShipmentEnvironments := getShipmentEnvironmentsFromInput(psShipment, psEnvironment)
+	inputShipmentEnvironments, _ := getShipmentEnvironmentsFromInput(psShipment, psEnvironment)
 
 	//iterate shipment/environments
 	for _, t := range inputShipmentEnvironments {

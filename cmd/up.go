@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/docker/libcompose/config"
 	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 
@@ -442,7 +441,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 				//rather than doing additional GETs
 
 				//save the envvar
-				SaveEnvVar(username, token, shipmentName, shipment, envvar, container)
+				SaveEnvVar(username, token, shipmentName, shipment.Env, envvar, container)
 			}
 		}
 	}
@@ -469,7 +468,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		envVarPayload := envVar(evName, evValue)
 
 		//save the envvar
-		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
+		SaveEnvVar(username, token, shipmentName, shipment.Env, envVarPayload, "")
 
 	} //envvars
 
@@ -575,58 +574,4 @@ func catalogContainer(name string, image string) {
 			log.Printf("container %v already cataloged", name)
 		}
 	}
-}
-
-//transform a docker service's environment variables into harbor-specific env var objects
-func transformDockerServiceEnvVarsToHarborEnvVars(dockerService *config.ServiceConfig) []EnvVarPayload {
-
-	//docker-compose.yml
-	//env_file:
-	//- hidden.env
-	//
-	//gets mapped to type=hidden
-	//everything else type=basic
-
-	harborEnvVars := []EnvVarPayload{}
-
-	//container-level env vars (note that these are parsed by libcompose which supports:
-	//environment, env_file, and variable substitution with .env)
-	containerEnvVars := dockerService.Environment.ToMap()
-
-	//has the user specified hidden env vars in a hidden.env?
-	hiddenEnvVars := false
-	hiddenEnvVarFile := ""
-	for _, envFileName := range dockerService.EnvFile {
-		if strings.HasSuffix(envFileName, hiddenEnvFileName) {
-			hiddenEnvVars = true
-			hiddenEnvVarFile = envFileName
-			break
-		}
-	}
-
-	//iterate/process hidden envvars and remove them from the list
-	if hiddenEnvVars {
-		if Verbose {
-			log.Println("found hidden env vars")
-		}
-		for _, name := range parseEnvVarNames(hiddenEnvVarFile) {
-			if Verbose {
-				log.Println("processing " + name)
-			}
-			harborEnvVars = append(harborEnvVars, envVarHidden(name, containerEnvVars[name]))
-			delete(containerEnvVars, name)
-		}
-	}
-
-	//iterate/process envvars (hidden have already filtered out)
-	for name, value := range containerEnvVars {
-		if name != "" {
-			if Verbose {
-				log.Println("processing " + name)
-			}
-			harborEnvVars = append(harborEnvVars, envVar(name, value))
-		}
-	}
-
-	return harborEnvVars
 }

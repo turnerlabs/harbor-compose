@@ -325,7 +325,7 @@ func Trigger(shipment string, env string) (bool, []string) {
 }
 
 // SaveEnvVar updates an environment variable in harbor (supports both environment and container levels)
-func SaveEnvVar(username string, token string, shipment string, composeShipment ComposeShipment, envVarPayload EnvVarPayload, container string) {
+func SaveEnvVar(username string, token string, shipment string, environment string, envVarPayload EnvVarPayload, container string) {
 	var config = GetConfig()
 
 	//first, issue a GET to check if the var exists
@@ -340,7 +340,7 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
-	values["env"] = composeShipment.Env
+	values["env"] = environment
 	values["envvar"] = envVarPayload.Name
 	values["container"] = container
 

@@ -66,7 +66,7 @@ func logs(cmd *cobra.Command, args []string) {
 	check(err)
 
 	//determine which shipment/environments user wants logs for
-	inputShipmentEnvironments := getShipmentEnvironmentsFromInput(logsShipment, logsEnvironment)
+	inputShipmentEnvironments, _ := getShipmentEnvironmentsFromInput(logsShipment, logsEnvironment)
 
 	//iterate shipment/environments
 	for _, t := range inputShipmentEnvironments {
