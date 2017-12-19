@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"sort"
 	"strings"
 
 	"github.com/docker/libcompose/config"
@@ -65,6 +68,13 @@ func init() {
 	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
 	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvarsEnvironment, "environment", "e", "", "environment name")
 	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvvarsHiddenFile, "hidden", "", hiddenEnvFileName, "The location of the docker compose environment file that contains hidden environment variables")
+
+	//pull
+	envvarsCmd.AddCommand(pullEnvvarsCmd)
+	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
+	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvarsEnvironment, "environment", "e", "", "environment name")
+	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvvarsHiddenFile, "hidden", "", hiddenEnvFileName, "The location of the docker compose environment file that contains hidden environment variables")
+	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvvarsEnvFile, "env-file", "", "", "Specify a docker compose env_file to write to rather than writing directly to the docker-compose.yml environment section")
 }
 
 // envvarsCmd represents the envvars command
@@ -86,15 +96,44 @@ var pushEnvvarsCmd = &cobra.Command{
 	Short: "push docker compose environment variables to harbor",
 	Long: `push docker compose environment variables to harbor
 
+The push command takes all of the environment variables accessible by docker-compose and uploads them to Harbor.  Note that this command does not trigger a deployment.
+
 The push command works with a harbor-compose.yml file to push environment variables for one or many shipment/environment/containers, as well as for a single shipment environment using the --shipment and --environment flags.
 `,
-	Example: `harbor-compose push
-harbor-compose push -s my-shipment -e dev
+	Example: `harbor-compose envvars push
+harbor-compose envvars push -s my-shipment -e dev
 
 You can specify which env file contains your hidden environment variables using the --hidden flag (defaults to hidden.env)
-harbor-compose push --hidden my-hidden.env
+harbor-compose envvars push --hidden secrets.env
 `,
-	Run: pushEnvVars,
+	Run:    pushEnvVars,
+	PreRun: preRunHook,
+}
+
+// pullEnvvarsCmd represents the envvars pull command
+var pullEnvvarsCmd = &cobra.Command{
+	Use:   "pull",
+	Short: "pull harbor environment variables into docker compose",
+	Long: `pull harbor environment variables into docker compose
+
+The pull command fetches environment variables from harbor for each of the shipment/environment/containers specified in harbor-compose.yml and write them to docker compose files.
+
+By default, non-hidden env vars are written directly to the environment section of docker-compose.yml and hidden env vars are written to hidden.env. The optional --env-file flag indicates that non-hidden env vars should be written to this file and reflected in the env_file section of docker-compose.yml.  Similarly, the --hidden flag indicates that hidden env vars should be written to this file and reflected in the env_file section of docker-compose.yml.
+
+The pull command also takes optional --shipment and --environment flags.
+`,
+	Example: `harbor-compose envvars pull 
+harbor-compose envvars pull -s my-app -e dev
+
+You can use the optional --env-file and --hidden flags to specify where the environment variables get written to.
+harbor-compose envvars pull --env-file public.env --hidden private.env
+
+Specify the shipment/environment using the --shipment and --environment flags instead of a harbor-compose.yml file
+harbor-compose envvars pull --shipment my-app --environment dev
+harbor-compose envvars pull -s my-app -e dev
+`,
+	Run:    pullEnvVars,
+	PreRun: preRunHook,
 }
 
 func pushEnvVars(cmd *cobra.Command, args []string) {
@@ -168,6 +207,194 @@ func pushEnvVars(cmd *cobra.Command, args []string) {
 
 	fmt.Println("done")
 	fmt.Println("run 'up' or 'deploy' for the environment variable changes to take effect")
+}
+
+func pullEnvVars(cmd *cobra.Command, args []string) {
+
+	//make sure user is authenticated
+	username, token, err := Login()
+	check(err)
+
+	//determine which shipment/environments user wants to process
+	inputShipmentEnvironments, localHarborCompose := getShipmentEnvironmentsFromInput(envvarsShipment, envvarsEnvironment)
+
+	//build up a DockerCompose object that we'll use for outputting docker-compose.yml
+	//this object may get services/containers from multiple shipment/environments
+	//(depending on harbor-compose.yml)
+	pulledDockerCompose := DockerCompose{
+		Version:  "2",
+		Services: map[string]*DockerComposeService{},
+	}
+
+	//track env_files that need to be written
+	hiddenEnvVars := make(map[string]string)
+	nonHiddenEnvVars := make(map[string]string)
+
+	//iterate shipment/environments
+	for _, t := range inputShipmentEnvironments {
+		shipment := t.Item1
+		env := t.Item2
+
+		//fetch the shipment environment from the backend
+		shipmentEnvironment := GetShipmentEnvironment(username, token, shipment, env)
+		if shipmentEnvironment == nil {
+			fmt.Println(messageShipmentEnvironmentNotFound)
+			return
+		}
+
+		//convert shipit shipment/env object into a new HarborCompose object
+		//representing the remote state
+		remoteHarborCompose := transformShipmentToHarborCompose(shipmentEnvironment)
+
+		//update local harbor-compose object (used for writing) environment with remote envvars
+		remoteEnvironmentEnvVars := remoteHarborCompose.Shipments[shipment].Environment
+		if localHarborCompose != nil && len(remoteEnvironmentEnvVars) > 0 {
+			if Verbose {
+				fmt.Printf("updating %s with remote environment-level envvars \n", HarborComposeFile)
+			}
+			currentShipment := localHarborCompose.Shipments[shipment]
+			currentShipment.Environment = remoteEnvironmentEnvVars
+			localHarborCompose.Shipments[shipment] = currentShipment
+		}
+
+		//now translate remote harbor shipment/environnment into a DockerCompose object
+		//add the services/containers from this shipment/env to the pulled compose object
+		//non-hidden envvars will get written to docker-compose.yml or --env-file
+		//hidden envvars will get written to --hidden
+		remoteDockerCompose, remoteHiddenEnvVars := transformShipmentToDockerComposeWithEnvFile(shipmentEnvironment, envvvarsHiddenFile)
+
+		//track hidden envvars to be written later
+		for k, v := range remoteHiddenEnvVars {
+			hiddenEnvVars[k] = v
+		}
+
+		//iterate containers
+		for name, service := range remoteDockerCompose.Services {
+
+			//if --env-file is specified, write non-hidden envvars there and update env_file
+			//otherwise, they will get written directly to docker-compose.yml
+			if envvvarsEnvFile != "" {
+				for k, v := range service.Environment {
+					nonHiddenEnvVars[k] = v
+				}
+
+				//clear out environment section and add pointer to env_file
+				service.Environment = make(map[string]string)
+				service.EnvFile = append(service.EnvFile, envvvarsEnvFile)
+			}
+
+			//add this service to master compose file
+			pulledDockerCompose.Services[name] = service
+		}
+	} //shipment/env to process
+
+	//output harbor-compose.yml, if not using -s -e
+	if localHarborCompose != nil {
+		content := marshalHarborCompose(*localHarborCompose)
+		outputFile(string(content), HarborComposeFile)
+	}
+
+	//output docker-compose.yml
+	content := marshalDockerCompose(pulledDockerCompose)
+	outputFile(string(content), DockerComposeFile)
+
+	//write hidden env vars to --hidden
+	outputEnvFile(hiddenEnvVars, envvvarsHiddenFile)
+
+	//write non-hidden envvars to --env-file
+	outputEnvFile(nonHiddenEnvVars, envvvarsEnvFile)
+
+	fmt.Println("done")
+}
+
+func serializeToEnvFile(envvars map[string]string) string {
+	//extract key slice
+	keys := []string{}
+	for key := range envvars {
+		keys = append(keys, key)
+	}
+
+	//sort
+	sort.Strings(keys)
+
+	//write to env_file format (key=value)
+	result := ""
+	for _, key := range keys {
+		result += fmt.Sprintf("%s=%s\n", key, envvars[key])
+	}
+	return result
+}
+
+func outputFile(content string, file string) {
+
+	//does the file already exist?
+	writeFile := true
+	if _, err := os.Stat(file); err == nil {
+
+		//read existing file
+		b, err := ioutil.ReadFile(file)
+		check(err)
+		existingContent := string(b)
+
+		//has the file changed?
+		if content != existingContent {
+			fmt.Print(file + " already exists. Overwrite? ")
+			writeFile = askForConfirmation()
+		} else {
+			writeFile = false
+			if Verbose {
+				fmt.Printf("%s hasn't changed \n", file)
+			}
+		}
+	}
+
+	if writeFile {
+		err := ioutil.WriteFile(file, []byte(content), 0644)
+		check(err)
+		fmt.Println("wrote " + file)
+	}
+}
+
+func outputEnvFile(envvars map[string]string, file string) {
+	if len(envvars) > 0 {
+
+		//serialize envvars map to env_file format (sorted by key)
+		newEnvFile := serializeToEnvFile(envvars)
+
+		//does the file already exist?
+		writeFile := true
+		if _, err := os.Stat(file); err == nil {
+
+			//read existing file
+			b, err := ioutil.ReadFile(file)
+			check(err)
+			oldEnvFile := string(b)
+
+			//do diff and see if the contents have changed
+			if Verbose {
+				fmt.Println("old")
+				fmt.Println(oldEnvFile)
+				fmt.Println("new")
+				fmt.Println(newEnvFile)
+			}
+			if newEnvFile != oldEnvFile {
+				//prompt to override env file
+				fmt.Print(file + " already exists. Overwrite? ")
+				writeFile = askForConfirmation()
+			} else {
+				writeFile = false
+				if Verbose {
+					fmt.Printf("%s hasn't changed \n", file)
+				}
+			}
+		}
+
+		if writeFile {
+			err := ioutil.WriteFile(file, []byte(newEnvFile), 0644)
+			check(err)
+			fmt.Println("wrote " + file)
+		}
+	}
 }
 
 //processes envvars by copying them to a destination and filtering out special and hidden envvars
