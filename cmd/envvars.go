@@ -7,6 +7,8 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"text/tabwriter"
+	"text/template"
 
 	"github.com/docker/libcompose/config"
 	"github.com/spf13/cobra"
@@ -63,6 +65,11 @@ var envvvarsEnvFile string
 func init() {
 	RootCmd.AddCommand(envvarsCmd)
 
+	//list
+	envvarsCmd.AddCommand(listEnvvarsCmd)
+	listEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
+	listEnvvarsCmd.PersistentFlags().StringVarP(&envvarsEnvironment, "environment", "e", "", "environment name")
+
 	//push
 	envvarsCmd.AddCommand(pushEnvvarsCmd)
 	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
@@ -82,11 +89,29 @@ var envvarsCmd = &cobra.Command{
 	Use:   "envvars",
 	Short: "manage environment variables",
 	Long:  "manage environment variables",
-	Example: `harbor-compose envvars push 
+	Example: `harbor-compose envvars list
+harbor-compose envvars push 
 harbor-compose envvars pull`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
+	PreRun: preRunHook,
+}
+
+var listEnvvarsCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "list harbor environment variables",
+	Long: `list harbor environment variables
+
+List environment and container-level environment variables for all shipment/environments in harbor-compose.yml
+
+Use the --shipment and --environment flags to specify a shipment/environment other than what's in the harbor-compose.yml
+`,
+	Example: `harbor-compose envvars ls
+harbor-compose envvars ls -s my-app -e dev
+`,
+	Run:    listEnvVars,
 	PreRun: preRunHook,
 }
 
@@ -134,6 +159,77 @@ harbor-compose envvars pull -s my-app -e dev
 `,
 	Run:    pullEnvVars,
 	PreRun: preRunHook,
+}
+
+func listEnvVars(cmd *cobra.Command, args []string) {
+
+	//make sure user is authenticated
+	username, token, err := Login()
+	check(err)
+
+	//determine which shipment/environments user wants to process
+	inputShipmentEnvironments, _ := getShipmentEnvironmentsFromInput(envvarsShipment, envvarsEnvironment)
+
+	//iterate shipment/environments
+	for _, shipmentEnv := range inputShipmentEnvironments {
+		shipment := shipmentEnv.Item1
+		env := shipmentEnv.Item2
+
+		fmt.Printf("SHIPMENT: %v\n", shipment)
+		fmt.Printf("ENVIRONMENT: %v\n", env)
+
+		//lookup the shipment environment
+		shipmentEnvironment := GetShipmentEnvironment(username, token, shipment, env)
+		if shipmentEnvironment == nil {
+			fmt.Println(messageShipmentEnvironmentNotFound)
+			return
+		}
+
+		//filter out special env vars
+		envvarsToPrint := []EnvVarPayload{}
+		for _, envvar := range shipmentEnvironment.EnvVars {
+			if specialEnvVars()[envvar.Name] == "" {
+				envvarsToPrint = append(envvarsToPrint, envvar)
+			}
+		}
+		if len(envvarsToPrint) > 0 {
+			printEnvVars(envvarsToPrint)
+		} else {
+			fmt.Println()
+		}
+
+		//iterate containers
+		for _, container := range shipmentEnvironment.Containers {
+			fmt.Println("CONTAINER: " + container.Name)
+			printEnvVars(container.EnvVars)
+		}
+	}
+}
+
+func printEnvVars(envvars []EnvVarPayload) {
+	//print table header
+	const padding = 3
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.DiscardEmptyColumns)
+	fmt.Println("")
+	fmt.Fprintln(w, "NAME\tVALUE\tTYPE")
+
+	//create a formatted template
+	tmpl, err := template.New("envvars").Parse("{{.Name}}\t{{.Value}}\t{{.Type}}")
+	check(err)
+
+	//print non-special env vars
+	for _, envvar := range envvars {
+		if specialEnvVars()[envvar.Name] == "" {
+			//execute the template with the data
+			err = tmpl.Execute(w, envvar)
+			check(err)
+			fmt.Fprintln(w)
+		}
+	}
+
+	//flush the writer
+	w.Flush()
+	fmt.Println("")
 }
 
 func pushEnvVars(cmd *cobra.Command, args []string) {
