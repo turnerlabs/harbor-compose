@@ -57,48 +57,48 @@ func logShippingEnvVars() map[string]string {
 	}
 }
 
-var envvarsShipment string
-var envvarsEnvironment string
-var envvvarsHiddenFile string
-var envvvarsEnvFile string
+var envShipment string
+var envEnvironment string
+var envHiddenFile string
+var envEnvFile string
 
 func init() {
-	RootCmd.AddCommand(envvarsCmd)
+	RootCmd.AddCommand(envCmd)
 
 	//list
-	envvarsCmd.AddCommand(listEnvvarsCmd)
-	listEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
-	listEnvvarsCmd.PersistentFlags().StringVarP(&envvarsEnvironment, "environment", "e", "", "environment name")
+	envCmd.AddCommand(listEnvCmd)
+	listEnvCmd.PersistentFlags().StringVarP(&envShipment, "shipment", "s", "", "shipment name")
+	listEnvCmd.PersistentFlags().StringVarP(&envEnvironment, "environment", "e", "", "environment name")
 
 	//push
-	envvarsCmd.AddCommand(pushEnvvarsCmd)
-	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
-	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvarsEnvironment, "environment", "e", "", "environment name")
-	pushEnvvarsCmd.PersistentFlags().StringVarP(&envvvarsHiddenFile, "hidden", "", hiddenEnvFileName, "The location of the docker compose environment file that contains hidden environment variables")
+	envCmd.AddCommand(pushEnvCmd)
+	pushEnvCmd.PersistentFlags().StringVarP(&envShipment, "shipment", "s", "", "shipment name")
+	pushEnvCmd.PersistentFlags().StringVarP(&envEnvironment, "environment", "e", "", "environment name")
+	pushEnvCmd.PersistentFlags().StringVarP(&envHiddenFile, "hidden", "", hiddenEnvFileName, "The location of the docker compose environment file that contains hidden environment variables")
 
 	//pull
-	envvarsCmd.AddCommand(pullEnvvarsCmd)
-	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvarsShipment, "shipment", "s", "", "shipment name")
-	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvarsEnvironment, "environment", "e", "", "environment name")
-	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvvarsHiddenFile, "hidden", "", hiddenEnvFileName, "The location of the docker compose environment file that contains hidden environment variables")
-	pullEnvvarsCmd.PersistentFlags().StringVarP(&envvvarsEnvFile, "env-file", "", "", "Specify a docker compose env_file to write to rather than writing directly to the docker-compose.yml environment section")
+	envCmd.AddCommand(pullEnvCmd)
+	pullEnvCmd.PersistentFlags().StringVarP(&envShipment, "shipment", "s", "", "shipment name")
+	pullEnvCmd.PersistentFlags().StringVarP(&envEnvironment, "environment", "e", "", "environment name")
+	pullEnvCmd.PersistentFlags().StringVarP(&envHiddenFile, "hidden", "", hiddenEnvFileName, "The location of the docker compose environment file that contains hidden environment variables")
+	pullEnvCmd.PersistentFlags().StringVarP(&envEnvFile, "env-file", "", "", "Specify a docker compose env_file to write to rather than writing directly to the docker-compose.yml environment section")
 }
 
-// envvarsCmd represents the envvars command
-var envvarsCmd = &cobra.Command{
-	Use:   "envvars",
+// envCmd represents the env command
+var envCmd = &cobra.Command{
+	Use:   "env",
 	Short: "manage environment variables",
 	Long:  "manage environment variables",
-	Example: `harbor-compose envvars list
-harbor-compose envvars push 
-harbor-compose envvars pull`,
+	Example: `harbor-compose env list
+harbor-compose env push 
+harbor-compose env pull`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
 	PreRun: preRunHook,
 }
 
-var listEnvvarsCmd = &cobra.Command{
+var listEnvCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "list harbor environment variables",
@@ -108,15 +108,15 @@ List environment and container-level environment variables for all shipment/envi
 
 Use the --shipment and --environment flags to specify a shipment/environment other than what's in the harbor-compose.yml
 `,
-	Example: `harbor-compose envvars ls
-harbor-compose envvars ls -s my-app -e dev
+	Example: `harbor-compose env ls
+harbor-compose env ls -s my-app -e dev
 `,
 	Run:    listEnvVars,
 	PreRun: preRunHook,
 }
 
-// pushEnvvarsCmd represents the envvars push command
-var pushEnvvarsCmd = &cobra.Command{
+// pushEnvCmd represents the envvars push command
+var pushEnvCmd = &cobra.Command{
 	Use:   "push",
 	Short: "push docker compose environment variables to harbor",
 	Long: `push docker compose environment variables to harbor
@@ -125,18 +125,18 @@ The push command takes all of the environment variables accessible by docker-com
 
 The push command works with a harbor-compose.yml file to push environment variables for one or many shipment/environment/containers, as well as for a single shipment environment using the --shipment and --environment flags.
 `,
-	Example: `harbor-compose envvars push
-harbor-compose envvars push -s my-shipment -e dev
+	Example: `harbor-compose env push
+harbor-compose env push -s my-shipment -e dev
 
 You can specify which env file contains your hidden environment variables using the --hidden flag (defaults to hidden.env)
-harbor-compose envvars push --hidden secrets.env
+harbor-compose env push --hidden secrets.env
 `,
 	Run:    pushEnvVars,
 	PreRun: preRunHook,
 }
 
-// pullEnvvarsCmd represents the envvars pull command
-var pullEnvvarsCmd = &cobra.Command{
+// pullEnvCmd represents the envvars pull command
+var pullEnvCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "pull harbor environment variables into docker compose",
 	Long: `pull harbor environment variables into docker compose
@@ -147,15 +147,15 @@ By default, non-hidden env vars are written directly to the environment section 
 
 The pull command also takes optional --shipment and --environment flags.
 `,
-	Example: `harbor-compose envvars pull 
-harbor-compose envvars pull -s my-app -e dev
+	Example: `harbor-compose env pull 
+harbor-compose env pull -s my-app -e dev
 
 You can use the optional --env-file and --hidden flags to specify where the environment variables get written to.
-harbor-compose envvars pull --env-file public.env --hidden private.env
+harbor-compose env pull --env-file public.env --hidden private.env
 
 Specify the shipment/environment using the --shipment and --environment flags instead of a harbor-compose.yml file
-harbor-compose envvars pull --shipment my-app --environment dev
-harbor-compose envvars pull -s my-app -e dev
+harbor-compose env pull --shipment my-app --environment dev
+harbor-compose env pull -s my-app -e dev
 `,
 	Run:    pullEnvVars,
 	PreRun: preRunHook,
@@ -168,7 +168,7 @@ func listEnvVars(cmd *cobra.Command, args []string) {
 	check(err)
 
 	//determine which shipment/environments user wants to process
-	inputShipmentEnvironments, _ := getShipmentEnvironmentsFromInput(envvarsShipment, envvarsEnvironment)
+	inputShipmentEnvironments, _ := getShipmentEnvironmentsFromInput(envShipment, envEnvironment)
 
 	//iterate shipment/environments
 	for _, shipmentEnv := range inputShipmentEnvironments {
@@ -239,7 +239,7 @@ func pushEnvVars(cmd *cobra.Command, args []string) {
 	check(err)
 
 	//determine which shipment/environments user wants to process
-	inputShipmentEnvironments, harborComposeConfig := getShipmentEnvironmentsFromInput(envvarsShipment, envvarsEnvironment)
+	inputShipmentEnvironments, harborComposeConfig := getShipmentEnvironmentsFromInput(envShipment, envEnvironment)
 
 	//load docker compose file
 	dc := DeserializeDockerCompose(DockerComposeFile)
@@ -266,7 +266,7 @@ func pushEnvVars(cmd *cobra.Command, args []string) {
 			serviceConfig := getDockerComposeService(dc, container.Name)
 
 			//translate docker envvars to harbor
-			harborEnvVars := transformDockerServiceEnvVarsToHarborEnvVarsHidden(serviceConfig, envvvarsHiddenFile)
+			harborEnvVars := transformDockerServiceEnvVarsToHarborEnvVarsHidden(serviceConfig, envHiddenFile)
 			for _, envvar := range harborEnvVars {
 				if envvar.Name != "" {
 					if Verbose {
@@ -312,7 +312,7 @@ func pullEnvVars(cmd *cobra.Command, args []string) {
 	check(err)
 
 	//determine which shipment/environments user wants to process
-	inputShipmentEnvironments, localHarborCompose := getShipmentEnvironmentsFromInput(envvarsShipment, envvarsEnvironment)
+	inputShipmentEnvironments, localHarborCompose := getShipmentEnvironmentsFromInput(envShipment, envEnvironment)
 
 	//build up a DockerCompose object that we'll use for outputting docker-compose.yml
 	//this object may get services/containers from multiple shipment/environments
@@ -357,7 +357,7 @@ func pullEnvVars(cmd *cobra.Command, args []string) {
 		//add the services/containers from this shipment/env to the pulled compose object
 		//non-hidden envvars will get written to docker-compose.yml or --env-file
 		//hidden envvars will get written to --hidden
-		remoteDockerCompose, remoteHiddenEnvVars := transformShipmentToDockerComposeWithEnvFile(shipmentEnvironment, envvvarsHiddenFile)
+		remoteDockerCompose, remoteHiddenEnvVars := transformShipmentToDockerComposeWithEnvFile(shipmentEnvironment, envHiddenFile)
 
 		//track hidden envvars to be written later
 		for k, v := range remoteHiddenEnvVars {
@@ -369,14 +369,14 @@ func pullEnvVars(cmd *cobra.Command, args []string) {
 
 			//if --env-file is specified, write non-hidden envvars there and update env_file
 			//otherwise, they will get written directly to docker-compose.yml
-			if envvvarsEnvFile != "" {
+			if envEnvFile != "" {
 				for k, v := range service.Environment {
 					nonHiddenEnvVars[k] = v
 				}
 
 				//clear out environment section and add pointer to env_file
 				service.Environment = make(map[string]string)
-				service.EnvFile = append(service.EnvFile, envvvarsEnvFile)
+				service.EnvFile = append(service.EnvFile, envEnvFile)
 			}
 
 			//add this service to master compose file
@@ -395,10 +395,10 @@ func pullEnvVars(cmd *cobra.Command, args []string) {
 	outputFile(string(content), DockerComposeFile)
 
 	//write hidden env vars to --hidden
-	outputEnvFile(hiddenEnvVars, envvvarsHiddenFile)
+	outputEnvFile(hiddenEnvVars, envHiddenFile)
 
 	//write non-hidden envvars to --env-file
-	outputEnvFile(nonHiddenEnvVars, envvvarsEnvFile)
+	outputEnvFile(nonHiddenEnvVars, envEnvFile)
 
 	fmt.Println("done")
 }
