@@ -20,13 +20,13 @@ type HarborCompose struct {
 // ComposeShipment represents a harbor shipment in a harbor-compose.yml file
 type ComposeShipment struct {
 	Env                        string            `yaml:"env"`
-	Barge                      string            `yaml:"barge"`
+	Barge                      string            `yaml:"barge,omitempty"`
 	Containers                 []string          `yaml:"containers"`
-	Replicas                   int               `yaml:"replicas"`
-	Group                      string            `yaml:"group"`
-	Property                   string            `yaml:"property"`
-	Project                    string            `yaml:"project"`
-	Product                    string            `yaml:"product"`
+	Replicas                   int               `yaml:"replicas,omitempty"`
+	Group                      string            `yaml:"group,omitempty"`
+	Property                   string            `yaml:"property,omitempty"`
+	Project                    string            `yaml:"project,omitempty"`
+	Product                    string            `yaml:"product,omitempty"`
 	Environment                map[string]string `yaml:"environment,omitempty"`
 	IgnoreImageVersion         bool              `yaml:"ignoreImageVersion,omitempty"`
 	EnableMonitoring           *bool             `yaml:"enableMonitoring,omitempty"`
@@ -78,7 +78,7 @@ type terraformLogShipping struct {
 	SqsQueueName               string
 }
 
-// DockerCompose represents a docker-compose.yml file (only used for writing via generate/init)
+// DockerCompose represents a docker-compose.yml file (only used for writing via generate/init/pull)
 type DockerCompose struct {
 	Version  string                           `yaml:"version"`
 	Services map[string]*DockerComposeService `yaml:"services"`

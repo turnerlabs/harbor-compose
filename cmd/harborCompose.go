@@ -20,21 +20,24 @@ func DeserializeHarborCompose(file string) HarborCompose {
 	return unmarshalHarborCompose(string(harborComposeData))
 }
 
+func marshalHarborCompose(o HarborCompose) []byte {
+	//serialize object to yaml
+	data, err := yaml.Marshal(o)
+	check(err)
+	return data
+}
+
 // SerializeHarborCompose serializes an object to a harbor-compose.yml file
 func SerializeHarborCompose(harborCompose HarborCompose, file string) {
 
-	//serialize object to yaml
-	data, err := yaml.Marshal(harborCompose)
-	if err != nil {
-		log.Fatalf("error marshaling yaml: %v", err)
-	}
+	data := marshalHarborCompose(harborCompose)
 
 	if Verbose {
 		log.Printf("writing harbor-compose file to %v", file)
 	}
 
 	//write yaml to harbor-compose.yml
-	err = ioutil.WriteFile(file, data, 0644)
+	err := ioutil.WriteFile(file, data, 0644)
 	if err != nil {
 		log.Fatalf("error writing %v: %v", HarborComposeFile, err)
 	}

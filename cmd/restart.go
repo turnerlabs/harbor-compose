@@ -44,7 +44,7 @@ func restart(cmd *cobra.Command, args []string) {
 		}
 
 		//update env var
-		SaveEnvVar(username, token, shipmentName, shipment, envVar, shipment.Containers[0])
+		SaveEnvVar(username, token, shipmentName, shipment.Env, envVar, shipment.Containers[0])
 
 		//trigger
 		Trigger(shipmentName, shipment.Env)

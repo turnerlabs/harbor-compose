@@ -136,7 +136,7 @@ func generate(cmd *cobra.Command, args []string) {
 			yes = askForConfirmation()
 		}
 		if yes {
-			writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+			writeEnvFile(hiddenEnvVars, hiddenEnvFileName)
 			fmt.Println("wrote " + hiddenEnvFileName)
 		}
 
@@ -154,7 +154,10 @@ func generate(cmd *cobra.Command, args []string) {
 	fmt.Println("done")
 }
 
-func writeHiddenEnvFile(envvars map[string]string, file string) {
+func writeEnvFile(envvars map[string]string, file string) {
+	if Verbose {
+		fmt.Printf("writing %v env vars to %v \n", len(envvars), file)
+	}
 	contents := ""
 	for name, value := range envvars {
 		contents += fmt.Sprintf("%s=%s\n", name, value)
@@ -222,6 +225,12 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) Harbo
 //transforms a ShipmentEnvironment object to its DockerCompose representation
 //(along with hidden env vars)
 func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) (DockerCompose, map[string]string) {
+	return transformShipmentToDockerComposeWithEnvFile(shipmentObject, hiddenEnvFileName)
+}
+
+//transforms a ShipmentEnvironment object to its DockerCompose representation
+//(along with hidden env vars)
+func transformShipmentToDockerComposeWithEnvFile(shipmentObject *ShipmentEnvironment, hiddenEnvFile string) (DockerCompose, map[string]string) {
 
 	hiddenEnvVars := map[string]string{}
 
@@ -270,7 +279,7 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) (Dock
 
 		//write hidden env vars to file specified in env_file
 		if len(hiddenEnvVars) > 0 {
-			service.EnvFile = []string{hiddenEnvFileName}
+			service.EnvFile = []string{hiddenEnvFile}
 		}
 
 		//add service to list

@@ -28,21 +28,23 @@ func DeserializeDockerCompose(file string) project.APIProject {
 	return dockerCompose
 }
 
+func marshalDockerCompose(o DockerCompose) []byte {
+	//serialize object to yaml
+	data, err := yaml.Marshal(o)
+	check(err)
+	return data
+}
+
 // SerializeDockerCompose serializes an object to a docker-compose.yml file
 func SerializeDockerCompose(dockerCompose DockerCompose, file string) {
-
-	//serialize object to yaml
-	data, err := yaml.Marshal(dockerCompose)
-	if err != nil {
-		log.Fatalf("error marshaling yaml: %v", err)
-	}
+	data := marshalDockerCompose(dockerCompose)
 
 	if Verbose {
 		log.Printf("writing docker-compose file to %v", file)
 	}
 
 	//write yaml to docker-compose.yml
-	err = ioutil.WriteFile(file, data, 0644)
+	err := ioutil.WriteFile(file, data, 0644)
 	if err != nil {
 		log.Fatalf("error writing %v: %v", DockerComposeFile, err)
 	}

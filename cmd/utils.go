@@ -95,8 +95,9 @@ func findEnvVar(name string, envVars []EnvVarPayload) EnvVarPayload {
 }
 
 //returns a tuple slice containing shipment/environments from user input (cli flags or compose file)
-func getShipmentEnvironmentsFromInput(shipmentFlag string, envFlag string) []tuple {
+func getShipmentEnvironmentsFromInput(shipmentFlag string, envFlag string) ([]tuple, *HarborCompose) {
 	result := []tuple{}
+	var hc *HarborCompose
 
 	//either use the shipment/environment flags or the yaml file
 	if shipmentFlag != "" && envFlag != "" {
@@ -107,11 +108,12 @@ func getShipmentEnvironmentsFromInput(shipmentFlag string, envFlag string) []tup
 		check(errors.New(messageShipmentEnvironmentFlagsRequired))
 	} else {
 		//read the compose file to get the shipment/environment list
-		hc := DeserializeHarborCompose(HarborComposeFile)
+		harborComposeConfig := DeserializeHarborCompose(HarborComposeFile)
+		hc = &harborComposeConfig
 		for shipmentName, shipment := range hc.Shipments {
 			result = append(result, tuple{Item1: shipmentName, Item2: shipment.Env})
 		}
 	}
 
-	return result
+	return result, hc
 }
