@@ -242,14 +242,6 @@ resource "harbor_shipment_env" "{{ .Env }}" {
 output "dns_name" {
   value = "${harbor_shipment_env.{{ .Env }}.dns_name}"
 }
-
-output "lb_name" {
-  value = "${harbor_shipment_env.{{ .Env }}.lb_name}"
-}
-
-output "lb_dns_name" {
-  value = "${harbor_shipment_env.{{ .Env }}.lb_dns_name}"
-}
 `
 
 	//create a formatted template
