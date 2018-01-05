@@ -221,6 +221,15 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	//add single shipment to list
 	harborCompose.Shipments[name] = composeShipment
 
+	//transform compose yaml into a ShipmentEnvironment object
+	shipmentEnvironment := transformComposeToShipmentEnvironment(name, composeShipment, dockerComposeProj)
+
+	//generate a main.tf and write it to disk
+	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false)
+
+	// remove duplicate properties (already in main.tf)
+	harborCompose = minimalHarborCompose(harborCompose)
+
 	//if harbor-compose.yml exists, ask to overwrite
 	write = true
 	if _, err := os.Stat(HarborComposeFile); err == nil {
@@ -230,12 +239,6 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if write {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
 	}
-
-	//transform compose yaml into a ShipmentEnvironment object
-	shipmentEnvironment := transformComposeToShipmentEnvironment(name, composeShipment, dockerComposeProj)
-
-	//generate a main.tf and write it to disk
-	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false)
 
 	fmt.Println("done")
 	fmt.Println()

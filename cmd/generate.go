@@ -107,6 +107,15 @@ func generate(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	//if the --terraform flag is specified, output a main.tf file
+	//and output a simplified harbor-compose.yml
+	if generateTerraform {
+		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
+
+		// reset duplicate properties (already in main.tf)
+		harborCompose = minimalHarborCompose(harborCompose)
+	}
+
 	//prompt if the file already exists
 	yes := true
 	if _, err := os.Stat(DockerComposeFile); err == nil {
@@ -146,12 +155,25 @@ func generate(cmd *cobra.Command, args []string) {
 		appendToFile(".dockerignore", sensitiveFiles)
 	}
 
-	//if the --terraform flag is specified, output a main.tf file
-	if generateTerraform {
-		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
-	}
-
 	fmt.Println("done")
+}
+
+//reset extraneous properties so they don't get serialized
+func minimalHarborCompose(harborCompose HarborCompose) HarborCompose {
+	for name, shipment := range harborCompose.Shipments {
+		shipment.Barge = ""
+		shipment.EnableMonitoring = nil
+		shipment.Group = ""
+		shipment.HealthcheckIntervalSeconds = nil
+		shipment.HealthcheckTimeoutSeconds = nil
+		shipment.IgnoreImageVersion = false
+		shipment.Product = ""
+		shipment.Project = ""
+		shipment.Property = ""
+		shipment.Replicas = 0
+		harborCompose.Shipments[name] = shipment
+	}
+	return harborCompose
 }
 
 func writeEnvFile(envvars map[string]string, file string) {
