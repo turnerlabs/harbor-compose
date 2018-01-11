@@ -49,6 +49,10 @@ func ps(cmd *cobra.Command, args []string) {
 
 		//lookup the shipment environment
 		shipmentEnvironment := GetShipmentEnvironment(username, token, shipment, env)
+		if shipmentEnvironment == nil {
+			fmt.Println(messageShipmentEnvironmentNotFound)
+			return
+		}		
 
 		//lookup the provider
 		provider := ec2Provider(shipmentEnvironment.Providers)
