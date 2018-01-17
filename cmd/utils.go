@@ -1,15 +1,21 @@
 package cmd
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jtacoma/uritemplates"
 )
 
 func check(e error) {
 	if e != nil {
+		writeMetricError(currentCommand, e)
+		//pause here to allow async telemetry call to go through
+		time.Sleep(2 * time.Second)
+
 		log.Fatal("ERROR: ", e)
 	}
 }
@@ -86,4 +92,28 @@ func findEnvVar(name string, envVars []EnvVarPayload) EnvVarPayload {
 		}
 	}
 	return EnvVarPayload{}
+}
+
+//returns a tuple slice containing shipment/environments from user input (cli flags or compose file)
+func getShipmentEnvironmentsFromInput(shipmentFlag string, envFlag string) ([]tuple, *HarborCompose) {
+	result := []tuple{}
+	var hc *HarborCompose
+
+	//either use the shipment/environment flags or the yaml file
+	if shipmentFlag != "" && envFlag != "" {
+		result = append(result, tuple{Item1: shipmentFlag, Item2: envFlag})
+	} else if psShipment != "" && psEnvironment == "" {
+		check(errors.New(messageShipmentEnvironmentFlagsRequired))
+	} else if shipmentFlag == "" && envFlag != "" {
+		check(errors.New(messageShipmentEnvironmentFlagsRequired))
+	} else {
+		//read the compose file to get the shipment/environment list
+		harborComposeConfig := DeserializeHarborCompose(HarborComposeFile)
+		hc = &harborComposeConfig
+		for shipmentName, shipment := range hc.Shipments {
+			result = append(result, tuple{Item1: shipmentName, Item2: shipment.Env})
+		}
+	}
+
+	return result, hc
 }

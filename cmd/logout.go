@@ -13,10 +13,11 @@ import (
 
 // logoutCmd represents the login command
 var logoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "Logout of harbor",
-	Long:  `The logout command expires a temporary authentication token and removes it from your machine.`,
-	Run:   logout,
+	Use:    "logout",
+	Short:  "Logout of harbor",
+	Long:   "The logout command expires a temporary authentication token and removes it from your machine.",
+	Run:    logout,
+	PreRun: preRunHook,
 }
 
 func init() {

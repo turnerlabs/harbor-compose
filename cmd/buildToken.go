@@ -28,6 +28,8 @@ func init() {
 
 	listBuildTokensCmd.PersistentFlags().StringVarP(&listEnvironmentOverride, "env", "e", "", "list build tokens for an alternative environment.")
 	buildTokenCmd.AddCommand(listBuildTokensCmd)
+	
+	buildTokenCmd.AddCommand(envBuildTokenCmd)
 }
 
 // buildTokenCmd represents the buildtoken command
@@ -35,18 +37,21 @@ var buildTokenCmd = &cobra.Command{
 	Use:   "buildtoken",
 	Short: "manage harbor build tokens",
 	Long:  `manage harbor build tokens`,
+	Example: `harbor-compose buildtoken ls
+harbor-compose buildtoken get my-shipment dev
+harbor-compose buildtoken env`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
+	PreRun: preRunHook,
 }
 
 // listBuildTokensCmd represents the buildtoken command
 var listBuildTokensCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list harbor build tokens for shipments in harbor-compose.yml",
-	Long:  `list harbor build tokens for shipments in harbor-compose.yml`,
-	Example: `
-harbor-compose buildtoken ls
+	Short: "list harbor build tokens for shipment environments",
+	Long:  `list harbor build tokens for shipment environments`,
+	Example: `harbor-compose buildtoken ls
 
 SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
 mss-poc-sqs-web      dev           MSS_POC_SQS_WEB_DEV_TOKEN      3xFVlltLZ7JwPH20Km75DrpMwOk2a4yq
@@ -61,10 +66,12 @@ mss-poc-sqs-web      qa            MSS_POC_SQS_WEB_QA_TOKEN       ihtvPrAH84ULVm
 mss-poc-sqs-worker   qa            MSS_POC_SQS_WORKER_QA_TOKEN    Y3Jk0DmMaUsoWO8mbI2Edn9Ixhwj14Vd
 	`,
 	Run:     listBuildTokens,
-	Aliases: []string{"ls"}}
+	Aliases: []string{"ls"},
+	PreRun: preRunHook,
+}
 
 var getBuildTokenCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "get [shipment] [environment]",
 	Short: "displays a build token for the requested shipment and environment",
 	Long: `
 displays a build token for the requested shipment and environment
@@ -88,17 +95,55 @@ SHIPMENT             ENVIRONMENT   CICD_ENVAR                     TOKEN
 mss-poc-sqs-worker   dev           MSS_POC_SQS_WORKER_DEV_TOKEN   2N3QFkQkdilwj34ezS2JTxwt6Fn3yuA8
 `,
 	Run: getBuildToken,
+	PreRun: preRunHook,
+}
+
+var envBuildTokenCmd = &cobra.Command{
+	Use:   "env",
+	Short: "display the commands to set up the environment for the deploy command",
+	Long: "",
+	Example: `
+harbor-compose buildtoken env
+
+export MY_APP_DEV_TOKEN=xyz
+# Run this command to configure your shell:
+# eval "$(harbor-compose buildtoken env)"
+`,
+	Run: envBuildTokens,
+	PreRun: preRunHook,
+}
+
+
+func envBuildTokens(cmd *cobra.Command, args []string) {
+	//ensure user is logged in
+	username, authToken, err := Login()
+	check(err)
+	harborCompose := DeserializeHarborCompose(HarborComposeFile)
+	if harborCompose.Shipments == nil || len(harborCompose.Shipments) == 0 {
+		fmt.Println("no shipments found")
+		return
+	}
+
+	for name, shipment := range harborCompose.Shipments {
+		
+		//fetch build token
+		shipmentObject := GetShipmentEnvironment(username, authToken, name, shipment.Env)
+		if shipmentObject == nil {
+			continue
+		}
+
+	  fmt.Printf("export %v=%v\n", getBuildTokenName(name, shipment.Env), shipmentObject.BuildToken)	
+	}
+
+	fmt.Println(`# Run this command to configure your shell:
+# eval "$(harbor-compose buildtoken env)"`)
 }
 
 func listBuildTokens(cmd *cobra.Command, args []string) {
 
 	//ensure user is logged in
 	username, authToken, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//read the harbor compose file
+	check(err)
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
 	if harborCompose.Shipments == nil || len(harborCompose.Shipments) == 0 {
 		fmt.Println("no shipments found")
@@ -119,9 +164,7 @@ func internalListBuildTokens(shipmentMap map[string]ComposeShipment, username st
 
 	//create a formatted template
 	tmpl, err := template.New("shipment-token").Parse("{{.Shipment}}\t{{.Environment}}\t{{.CiCdEnvVar}}\t{{.Token}}")
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	//iterate shipments
 	for shipmentName, shipment := range shipmentMap {
@@ -148,9 +191,7 @@ func internalListBuildTokens(shipmentMap map[string]ComposeShipment, username st
 
 		//execute the template with the data
 		err = tmpl.Execute(w, output)
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 		fmt.Fprintln(w)
 	}
 
@@ -163,9 +204,7 @@ func getBuildToken(cmd *cobra.Command, args []string) {
 
 	//ensure user is logged in
 	username, authToken, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	var shipment string
 	var env string
@@ -204,7 +243,7 @@ func getBuildTokenEnvVar(shipment string, environment string) string {
 
 	//validate build token
 	if len(buildTokenEnvVar) == 0 {
-		log.Fatalf("A shipment/environment build token is required. Please specify an environment variable named, %v", envvar)
+		check(fmt.Errorf("A shipment/environment build token is required. Please specify an environment variable named, %v", envvar))
 	}
 
 	return buildTokenEnvVar

@@ -1,3 +1,29 @@
+## 0.16.0 (2018-01-17)
+
+Features:
+
+- Adds new `env` command (ls, push, pull) ([#165](https://github.com/turnerlabs/harbor-compose/issues/165), [#137](https://github.com/turnerlabs/harbor-compose/issues/137), [#121](https://github.com/turnerlabs/harbor-compose/issues/121))
+
+- `ps` and `logs` commands now work without yaml files ([#163](https://github.com/turnerlabs/harbor-compose/issues/163), [#150](https://github.com/turnerlabs/harbor-compose/issues/150))
+
+- Adds `buildtoken env` command ([#164](https://github.com/turnerlabs/harbor-compose/issues/164))
+
+- commands that output terraform should omit duplicate config in harbor-compose.yml ([#167](https://github.com/turnerlabs/harbor-compose/issues/167))
+
+- telemetry integration ([#151](https://github.com/turnerlabs/harbor-compose/issues/151))
+
+
+Bug fixes:
+
+- `generate` should write log shipping env vars to harbor-compose.yml ([#141](https://github.com/turnerlabs/harbor-compose/issues/141))
+
+- The `up` command should require and validate that env vars are not empty ([#138](https://github.com/turnerlabs/harbor-compose/issues/138))
+
+- The `generate` command should properly escape env vars with $ characters ([#153](https://github.com/turnerlabs/harbor-compose/issues/153))
+
+- healthcheckIntervalSeconds must be > healthcheckTimeoutSeconds ([#140](https://github.com/turnerlabs/harbor-compose/issues/140))
+
+
 ## 0.15.0 (2017-11-10)
 
 Features:

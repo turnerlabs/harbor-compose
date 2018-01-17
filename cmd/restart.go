@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -10,10 +9,11 @@ import (
 
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart your application",
-	Long:  `Adds a dummy variable to the shipment and triggers it.`,
-	Run:   restart,
+	Use:    "restart",
+	Short:  "Restart your application",
+	Long:   "Forces a new deployment, even if nothing has changed",
+	Run:    restart,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -25,9 +25,7 @@ func restart(cmd *cobra.Command, args []string) {
 
 	//make sure user is authenticated
 	username, token, err := Login()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	//read the harbor compose file
 	harborCompose := DeserializeHarborCompose(HarborComposeFile)
@@ -46,7 +44,7 @@ func restart(cmd *cobra.Command, args []string) {
 		}
 
 		//update env var
-		SaveEnvVar(username, token, shipmentName, shipment, envVar, shipment.Containers[0])
+		SaveEnvVar(username, token, shipmentName, shipment.Env, envVar, shipment.Containers[0])
 
 		//trigger
 		Trigger(shipmentName, shipment.Env)

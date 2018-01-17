@@ -20,6 +20,13 @@ And then simply run the following to deploy all containers in all shipments spec
 harbor-compose deploy
 ```
 
+A shortcut for this is to use the `env` command.
+
+```
+eval "$(harbor-compose buildtoken env)"
+harbor-compose deploy
+```
+
 If you wanted to conditionally deploy to a different environment (e.g., QA) in your build (maybe based on branch) using the same set of compose files, you could add another set of environment variables to your build.
 
 ```
@@ -205,11 +212,21 @@ Other files that are outputted:
 
 #### The buildtoken command
 
-The `buildtoken` command has two sub commands.
+The `buildtoken` command has three sub commands.
 ```
 Available Commands:
+  env         display the commands to set up the environment for the deploy command
   get         displays a build token for the requested shipment and environment
-  list        list harbor build tokens for shipments in harbor-compose.yml
+  list        list harbor build tokens for shipment environments
+```
+
+The `env` command configures your shell for deployment.
+```
+$ eval "$(harbor-compose buildtoken env)"
+
+export MSS_POC_SQS_WORKER_DEV_TOKEN=2N3QFkQkdilwj34ezS2JTxwt6Fn3asdf
+# Run this command to configure your shell:
+# eval "$(harbor-compose buildtoken env)"
 ```
 
 The `get` command prompts you for a shipment and environment.

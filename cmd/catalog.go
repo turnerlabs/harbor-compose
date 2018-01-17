@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -12,17 +13,16 @@ import (
 var catalogCmd = &cobra.Command{
 	Use:   "catalog",
 	Short: "Add container images defined in compose files to the Harbor catalog",
-	Long: `Add container images defined in compose files to the Harbor catalog.
-	
+	Long: `Add container images defined in compose files to the Harbor catalog
+
 This command is safe to run multiple times.  In other words, the command will not fail if the specified name/version has already been cataloged.
 
-Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.
-
-Example (shipment = mss-app-web):
-
+Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.`,
+	Example: `(shipment = mss-app-web):
 MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose catalog
-`,
-	Run: catalog,
+	`,
+	Run:    catalog,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -40,7 +40,7 @@ func catalog(cmd *cobra.Command, args []string) {
 	//validate the compose file
 	_, err := dockerCompose.Config()
 	if err != nil {
-		log.Fatal("error parsing compose file" + err.Error())
+		check(errors.New("error parsing compose file" + err.Error()))
 	}
 
 	//iterate shipments
@@ -53,7 +53,7 @@ func catalog(cmd *cobra.Command, args []string) {
 			//lookup the container in the list of services in the docker-compose file
 			serviceConfig, found := dockerCompose.GetServiceConfig(containerName)
 			if !found {
-				log.Fatal("could not find service in docker compose file")
+				check(errors.New("could not find service in docker compose file"))
 			}
 
 			//parse image:tag

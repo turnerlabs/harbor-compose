@@ -19,11 +19,20 @@ var yesUseDefaults bool
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Interactively create main.tf, docker-compose.yml, and harbor-compose.yml files",
-	Long: `This will ask you a bunch of questions, and then write a main.tf, docker-compose.yml, and harbor-compose.yml for you.
+	Short: "Interactively create docker-compose.yml, harbor-compose.yml, and main.tf files",
+	Long: `This will ask you a bunch of questions, and then write a bunch of useful files for you.
 
-If you invoke it with -y or --yes it will use only defaults and not prompt you for any options.`,
-	Run: initHarborCompose,
+docker-compose.yml = used to run locally in docker
+hidden.env = used to store hidden environment variables that works in docker and in harbor
+harbor-compose.yml = used to run remotely in harbor
+main.tf = used to manage harbor infrastructure
+
+If you invoke init with -y or --yes it will use only defaults and not prompt you for any options.`,
+	Example: `harbor-compose init
+harbor-compose init --yes
+harbor-compose init -y`,
+	Run:    initHarborCompose,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -149,27 +158,27 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 		replicas = promptAndGetResponse("how many container instances: (e.g., 4) ", replicas)
 		intReplicas, err = strconv.Atoi(replicas)
 		if err != nil {
-			log.Fatalln("replicas must be a number")
+			check(errors.New(messageReplicasMustBeNumber))
 		}
 		group = promptAndGetResponse("group (mss, news, nba, ams, etc.): ", group)
 		enableMonitoring = promptAndGetResponse("enable monitoring (true|false): ", enableMonitoring)
 		monitoring, err = strconv.ParseBool(enableMonitoring)
 		if err != nil {
-			check(errors.New("please enter true or false for enableMonitoring"))
+			check(errors.New(messageEnableMonitoringTrueFalse))
 		}
 		hcTimeout = promptAndGetResponse("healthcheck timeout seconds (1): ", hcTimeout)
 		healthcheckTimeoutSeconds, err = strconv.Atoi(hcTimeout)
 		if err != nil {
-			check(errors.New("please enter a valid number for healthcheckTimeoutSeconds"))
+			check(errors.New(messageTimeoutValidNumber))
 		}
 		hcInterval = promptAndGetResponse("healthcheck interval seconds (10): ", hcInterval)
 		healthcheckIntervalSeconds, err = strconv.Atoi(hcInterval)
 		if err != nil {
-			check(errors.New("please enter a valid number for healthcheckIntervalSeconds"))
+			check(errors.New(messageIntervalValidNumber))
 		}
-		//healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds
-		if !(healthcheckIntervalSeconds >= healthcheckTimeoutSeconds) {
-			check(errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds"))
+		//healthcheckIntervalSeconds must be > healthcheckTimeoutSeconds
+		if !(healthcheckIntervalSeconds > healthcheckTimeoutSeconds) {
+			check(errors.New(messageIntervalGreaterThanTimeout))
 		}
 		property = promptAndGetResponse("property (turner.com, cnn.com, etc.): ", property)
 		project = promptAndGetResponse("project: ", project)
@@ -183,7 +192,7 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 
 	monitoring, err = strconv.ParseBool(enableMonitoring)
 	if err != nil {
-		check(errors.New("please enter true or false for enableMonitoring"))
+		check(errors.New(messageEnableMonitoringTrueFalse))
 	}
 
 	composeShipment := ComposeShipment{
@@ -212,6 +221,15 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	//add single shipment to list
 	harborCompose.Shipments[name] = composeShipment
 
+	//transform compose yaml into a ShipmentEnvironment object
+	shipmentEnvironment := transformComposeToShipmentEnvironment(name, composeShipment, dockerComposeProj)
+
+	//generate a main.tf and write it to disk
+	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false)
+
+	// remove duplicate properties (already in main.tf)
+	harborCompose = minimalHarborCompose(harborCompose)
+
 	//if harbor-compose.yml exists, ask to overwrite
 	write = true
 	if _, err := os.Stat(HarborComposeFile); err == nil {
@@ -221,12 +239,6 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	if write {
 		SerializeHarborCompose(harborCompose, HarborComposeFile)
 	}
-
-	//transform compose yaml into a ShipmentEnvironment object
-	shipmentEnvironment := transformComposeToShipmentEnvironment(name, composeShipment, dockerComposeProj)
-
-	//generate a main.tf and write it to disk
-	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false)
 
 	fmt.Println("done")
 	fmt.Println()

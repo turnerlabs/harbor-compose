@@ -19,29 +19,17 @@ var terraformCmd = &cobra.Command{
 	Long: `generates terraform source code from an existing shipment
 
 The terraform command outputs terraform files (main.tf) from an existing shipment environment.
-After you have a main.tf, you can use terraform to import the existing state.
-
-Example:
-harbor-compose terraform my-shipment dev
+After you have a main.tf, you can use terraform to import the existing state in order to start managing it with terraform.`,
+	Example: `harbor-compose terraform
 terraform import harbor_shipment.app my-app
 terraform import harbor_shipment_env.dev my-app::dev
 `,
-	Run: terraform,
+	Run:    terraform,
+	PreRun: preRunHook,
 }
 
 const (
 	tfFile = "main.tf"
-)
-
-//log shipping env vars
-const (
-	envVarNameShipLogs     = "SHIP_LOGS"
-	envVarNameLogsEndpoint = "LOGS_ENDPOINT"
-	envVarNameAccessKey    = "LOGS_ACCESS_KEY"
-	envVarNameSecretKey    = "LOGS_SECRET_KEY"
-	envVarNameDomainName   = "LOGS_DOMAIN_NAME"
-	envVarNameRegion       = "LOGS_REGION"
-	envVarNameQueueName    = "LOGS_QUEUE_NAME"
 )
 
 func init() {
@@ -64,12 +52,12 @@ func terraform(cmd *cobra.Command, args []string) {
 	}
 	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
 	if shipmentObject == nil {
-		fmt.Println("shipment not found")
+		fmt.Println(messageShipmentEnvironmentNotFound)
 		return
 	}
 
 	//convert a Shipment object into a HarborCompose object
-	harborCompose, _ := transformShipmentToHarborCompose(shipmentObject)
+	harborCompose := transformShipmentToHarborCompose(shipmentObject)
 
 	//generate a main.tf and write it to disk
 	generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
@@ -253,14 +241,6 @@ resource "harbor_shipment_env" "{{ .Env }}" {
 
 output "dns_name" {
   value = "${harbor_shipment_env.{{ .Env }}.dns_name}"
-}
-
-output "lb_name" {
-  value = "${harbor_shipment_env.{{ .Env }}.lb_name}"
-}
-
-output "lb_dns_name" {
-  value = "${harbor_shipment_env.{{ .Env }}.lb_dns_name}"
 }
 `
 

@@ -52,9 +52,8 @@ func GetShipmentEnvironment(username string, token string, shipment string, env 
 	}
 
 	resp, body, err := request.EndBytes()
-
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	//return nil if the shipment/env isn't found
@@ -69,9 +68,7 @@ func GetShipmentEnvironment(username string, token string, shipment string, env 
 	//deserialize json into object
 	var result ShipmentEnvironment
 	unmarshalErr := json.Unmarshal(body, &result)
-	if unmarshalErr != nil {
-		log.Fatal(unmarshalErr)
-	}
+	check(unmarshalErr)
 
 	return &result
 }
@@ -90,7 +87,7 @@ func UpdateProvider(username string, token string, shipment string, env string, 
 	//call the API
 	r, _, e := update(username, token, uri, provider)
 	if e != nil {
-		log.Fatal(e)
+		check(e[0])
 	}
 	if r.StatusCode != http.StatusOK {
 		check(errors.New("update provider failed"))
@@ -116,7 +113,7 @@ func UpdateShipmentEnvironment(username string, token string, shipment string, c
 	//call the API
 	r, _, e := update(username, token, uri, request)
 	if e != nil {
-		log.Fatal(e)
+		check(e[0])
 	}
 	if r.StatusCode != http.StatusOK {
 		check(errors.New("update provider failed"))
@@ -137,7 +134,7 @@ func create(username string, token string, url string, data interface{}) (*http.
 		End()
 
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	if Verbose {
@@ -165,7 +162,7 @@ func update(username string, token string, url string, data interface{}) (*http.
 		End()
 
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	if Verbose {
@@ -189,7 +186,7 @@ func deleteHTTP(username string, token string, url string) (*http.Response, stri
 		End()
 
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	if Verbose {
@@ -213,7 +210,7 @@ func GetLogs(barge string, shipment string, env string) string {
 		End()
 
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	if Verbose {
@@ -253,7 +250,7 @@ func GetShipmentStatus(barge string, shipment string, env string) *ShipmentStatu
 		EndBytes()
 
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -263,9 +260,7 @@ func GetShipmentStatus(barge string, shipment string, env string) *ShipmentStatu
 	//deserialize json into object
 	var result ShipmentStatus
 	unmarshalErr := json.Unmarshal(body, &result)
-	if unmarshalErr != nil {
-		log.Fatal(unmarshalErr)
-	}
+	check(unmarshalErr)
 
 	return &result
 }
@@ -290,7 +285,7 @@ func Trigger(shipment string, env string) (bool, []string) {
 	//handle errors
 	if err != nil {
 		log.Println("an error occurred calling trigger api")
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	//if verbose or non-OK, log status code and message body
@@ -314,17 +309,13 @@ func Trigger(shipment string, env string) (bool, []string) {
 			//convert single message into an array for consistency
 			var response TriggerResponseSingle
 			unmarshalErr := json.Unmarshal(body, &response)
-			if unmarshalErr != nil {
-				log.Fatal(unmarshalErr)
-			}
+			check(unmarshalErr)
 			result = append(result, response.Message)
 		} else if strings.Contains(string(body), "message\":[") {
 			//multiple messages
 			var response TriggerResponseMultiple
 			unmarshalErr := json.Unmarshal(body, &response)
-			if unmarshalErr != nil {
-				log.Fatal(unmarshalErr)
-			}
+			check(unmarshalErr)
 			result = response.Messages
 		}
 	}
@@ -334,7 +325,7 @@ func Trigger(shipment string, env string) (bool, []string) {
 }
 
 // SaveEnvVar updates an environment variable in harbor (supports both environment and container levels)
-func SaveEnvVar(username string, token string, shipment string, composeShipment ComposeShipment, envVarPayload EnvVarPayload, container string) {
+func SaveEnvVar(username string, token string, shipment string, environment string, envVarPayload EnvVarPayload, container string) {
 	var config = GetConfig()
 
 	//first, issue a GET to check if the var exists
@@ -349,7 +340,7 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 
 	values := make(map[string]interface{})
 	values["shipment"] = shipment
-	values["env"] = composeShipment.Env
+	values["env"] = environment
 	values["envvar"] = envVarPayload.Name
 	values["container"] = container
 
@@ -371,7 +362,7 @@ func SaveEnvVar(username string, token string, shipment string, composeShipment 
 	}
 	res, body, err := request.EndBytes()
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	//exist?
@@ -452,7 +443,7 @@ func UpdateContainerImage(username string, token string, shipment string, env st
 	//call api
 	r, _, err := update(username, token, uri, container)
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 	if r.StatusCode != http.StatusOK {
 		check(errors.New("update failed"))
@@ -539,9 +530,8 @@ func IsContainerVersionCataloged(name string, version string) bool {
 
 	//issue request
 	res, _, err := gorequest.New().Get(uri).EndBytes()
-
 	if err != nil {
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	//not found
@@ -582,7 +572,7 @@ func Deploy(shipment string, env string, buildToken string, deployRequest Deploy
 	//handle errors
 	if err != nil {
 		log.Println("an error occurred calling customs api")
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	//logging
@@ -592,7 +582,7 @@ func Deploy(shipment string, env string, buildToken string, deployRequest Deploy
 	}
 
 	if res.StatusCode != http.StatusOK {
-		log.Fatal("customs/deploy failed")
+		check(errors.New("customs/deploy failed"))
 	}
 }
 
@@ -620,7 +610,7 @@ func CatalogCustoms(shipment string, env string, buildToken string, catalogReque
 	//handle errors
 	if err != nil {
 		log.Println("an error occurred calling customs api")
-		log.Fatal(err)
+		check(err[0])
 	}
 
 	//logging
@@ -630,7 +620,7 @@ func CatalogCustoms(shipment string, env string, buildToken string, catalogReque
 	}
 
 	if res.StatusCode != http.StatusOK {
-		log.Fatal("customs/catalog failed")
+		check(errors.New("customs/catalog failed"))
 	}
 }
 
@@ -647,7 +637,7 @@ func updatePort(username string, token string, shipment string, env string, cont
 	//make the api call
 	r, _, e := update(username, token, uri, port)
 	if e != nil {
-		log.Fatal(e)
+		check(e[0])
 	}
 	if r.StatusCode != http.StatusOK {
 		check(errors.New("update port failed"))

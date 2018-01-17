@@ -118,7 +118,7 @@ func TestTransformShipmentToDockerCompose(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -264,7 +264,7 @@ func TestTransformShipmentToDockerComposeMultiContainer(t *testing.T) {
 	}
 
 	//test
-	dockerCompose := transformShipmentToDockerCompose(&shipment, nil)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -334,10 +334,10 @@ func TestTransformShipmentToHarborCompose(t *testing.T) {
 	}
 
 	//convert shipit model to harbor-compose
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+	harborCompose := transformShipmentToHarborCompose(&shipment)
 
 	//convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -674,10 +674,10 @@ func TestTransformShipmentToHarborComposeRestartEnv(t *testing.T) {
 	}
 
 	//convert shipit model to harbor-compose
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(&shipment)
+	harborCompose := transformShipmentToHarborCompose(&shipment)
 
 	//convert shipit model to docker-compose
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -823,8 +823,7 @@ func TestTransformShipmentToDockerComposeWithHiddenEnvVar(t *testing.T) {
 	}
 
 	//test
-	hiddenEnvVars := map[string]string{}
-	dockerCompose := transformShipmentToDockerCompose(&shipment, hiddenEnvVars)
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
 
 	//debug
 	data, _ := yaml.Marshal(dockerCompose)
@@ -839,4 +838,309 @@ func TestTransformShipmentToDockerComposeWithHiddenEnvVar(t *testing.T) {
 	}
 	envFileName := composeService.EnvFile[0]
 	assert.Equal(t, "hidden.env", envFileName, "env_file should contain hidden.env")
+}
+
+//tests generating a docker-compose.yml with envvars containing $
+func TestGenerateWithDollarSigns(t *testing.T) {
+
+	//define a ShipmentEnvironment
+	shipmentJSON := `
+  {  
+    "name": "dev",
+    "enableMonitoring": true,
+    "parentShipment": {
+      "name": "mss-poc-app",
+      "group": "mss",
+      "envVars": [
+        {
+          "type": "basic",
+          "value": "adds",
+          "name": "CUSTOMER"
+        },
+        {
+          "type": "basic",
+          "value": "mss-poc-app",
+          "name": "PRODUCT"
+        },
+        {
+          "type": "basic",
+          "value": "mss-poc-app",
+          "name": "PROJECT"
+        },
+        {
+          "type": "basic",
+          "value": "mss",
+          "name": "PROPERTY"
+        }
+      ]
+    },
+    "envVars": [
+      {
+        "type": "basic",
+        "value": "bar$",
+        "name": "FOO_ENV"
+      }
+    ],
+    "providers": [
+      {
+        "replicas": 2,
+        "barge": "corp-sandbox",
+        "name": "ec2",
+        "envVars": []
+      }
+    ],
+    "containers": [
+      {
+        "image": "${image}",
+        "name": "${service}",
+        "envVars": [
+          {
+            "type": "basic",
+            "value": "${healthCheck}",
+            "name": "HEALTHCHECK"
+          },
+          {
+            "type": "basic",
+            "value": "$bar",
+            "name": "FOO_CONTAINER"
+          }
+        ],
+        "ports": [
+          {
+            "protocol": "http",
+            "healthcheck": "${healthCheck}",
+            "external": true,
+            "primary": true,
+            "public_vip": false,
+            "enable_proxy_protocol": false,
+            "ssl_arn": "",
+            "ssl_management_type": "iam",
+            "healthcheck_timeout": 1,
+            "public_port": ${publicPort},
+            "value": ${containerPort},
+            "name": "PORT",
+            "healthcheck_timeout": 1,
+            "healthcheck_interval": 10
+          }
+        ]
+      }
+    ]
+  }	
+  `
+
+	//update json with test values
+	service := "mss-poc-app"
+	image := "quay.io/turner/mss-poc-app:1.0.0"
+	publicPort := "80"
+	containerPort := "3000"
+	healthCheck := "/hc"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${service}", service, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${image}", image, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${publicPort}", publicPort, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${containerPort}", containerPort, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${healthCheck}", healthCheck, 1)
+
+	//deserialize json
+	var shipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//test
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
+
+	//debug
+	data, _ := yaml.Marshal(dockerCompose)
+	t.Log(string(data))
+
+	//assertions
+	assert.Equal(t, 1, len(dockerCompose.Services))
+	composeService := dockerCompose.Services[service]
+	assert.NotNil(t, composeService)
+
+	//test that $ are properly escaped
+	assert.Equal(t, "bar$$", composeService.Environment["FOO_ENV"])
+	assert.Equal(t, "$$bar", composeService.Environment["FOO_CONTAINER"])
+}
+
+func getSampleShipmentLogShippingJSON() string {
+	return `
+{
+  "name": "${env}",
+  "parentShipment": {
+    "name": "${name}",
+    "group": "${group}",
+    "envVars": [
+      {
+        "type": "basic",
+        "value": "customer",
+        "name": "CUSTOMER"
+      },
+      {
+        "type": "basic",
+        "value": "${product}",
+        "name": "PRODUCT"
+      },
+      {
+        "type": "basic",
+        "value": "${project}",
+        "name": "PROJECT"
+      },
+      {
+        "type": "basic",
+        "value": "${property}",
+        "name": "PROPERTY"
+      }
+    ]
+  },
+  "envVars": [
+    {
+      "type": "basic",
+      "value": "${envLevel}",
+      "name": "ENV_LEVEL"
+		},
+    {
+      "type": "basic",
+      "name": "SHIP_LOGS",
+      "value": "${shipLogs}"
+    },
+    {
+      "type": "basic",
+      "name": "LOGS_ENDPOINT",
+      "value": "${logsEndpoint}"
+    }		
+ ],
+  "providers": [
+    {
+      "replicas": ${replicas},
+      "barge": "${barge}",
+      "name": "ec2",
+      "envVars": []
+    }
+  ],
+  "containers": [
+    {
+      "image": "quay.io/turner/web:1.0",
+      "name": "${container}",
+      "envVars": [
+        {
+          "type": "basic",
+          "value": "/hc",
+          "name": "HEALTHCHECK"
+        },
+        {
+          "type": "basic",
+          "value": "${containerLevel}",
+          "name": "CONTAINER_LEVEL"
+				}
+      ],
+      "ports": [
+        {
+          "protocol": "http",
+          "healthcheck": "/hc",
+          "external": true,
+          "primary": true,
+          "public_vip": false,
+          "enable_proxy_protocol": false,
+          "ssl_arn": "",
+          "ssl_management_type": "iam",
+          "healthcheck_timeout": 1,
+          "public_port": 80,
+          "value": 5000,
+          "name": "PORT"
+        }
+      ]
+    }
+  ]
+}	
+`
+}
+
+//tests proper generation of log shipping envvars
+func TestTransformShipmentToHarborComposeLogShipping(t *testing.T) {
+	shipmentJSON := getSampleShipmentLogShippingJSON()
+
+	//update json with test values
+	name := "mss-poc-app"
+	env := "dev"
+	barge := "digital-sandbox"
+	replicas := 2
+	group := "mss"
+	foo := "bar"
+	project := "project"
+	property := "property"
+	product := "product"
+	envLevel := "ENV_LEVEL"
+	containerLevel := "CONTAINER_LEVEL"
+	container := "web"
+	shipLogs := "true"
+	logsEndpoint := "https://listener.logz.io:8071/?token=xyz"
+
+	shipmentJSON = strings.Replace(shipmentJSON, "${name}", name, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${env}", env, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${barge}", barge, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${replicas}", strconv.Itoa(replicas), 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${group}", group, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${foo}", foo, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${property}", property, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${product}", product, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${project}", project, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${envLevel}", envLevel, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${containerLevel}", containerLevel, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${container}", container, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${shipLogs}", shipLogs, 1)
+	shipmentJSON = strings.Replace(shipmentJSON, "${logsEndpoint}", logsEndpoint, 1)
+	t.Log(shipmentJSON)
+
+	//deserialize shipit json
+	var shipment ShipmentEnvironment
+	err := json.Unmarshal([]byte(shipmentJSON), &shipment)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//convert shipit model to harbor-compose
+	harborCompose := transformShipmentToHarborCompose(&shipment)
+
+	//convert shipit model to docker-compose
+	dockerCompose, _ := transformShipmentToDockerCompose(&shipment)
+
+	//debug
+	data, _ := yaml.Marshal(dockerCompose)
+	t.Log(string(data))
+
+	//debug
+	data, _ = yaml.Marshal(harborCompose)
+	t.Log(string(data))
+
+	//assertions
+	assert.Equal(t, 1, len(harborCompose.Shipments))
+	composeShipment := harborCompose.Shipments[name]
+	assert.NotNil(t, composeShipment)
+	assert.Equal(t, group, composeShipment.Group)
+	assert.Equal(t, barge, composeShipment.Barge)
+	assert.Equal(t, env, composeShipment.Env)
+	assert.Equal(t, replicas, composeShipment.Replicas)
+	assert.Equal(t, project, composeShipment.Project)
+	assert.Equal(t, property, composeShipment.Property)
+	assert.Equal(t, product, composeShipment.Product)
+	assert.Equal(t, 1, len(composeShipment.Containers))
+
+	//IgnoreImageVersion should default to false
+	assert.Equal(t, false, composeShipment.IgnoreImageVersion)
+
+	//both container-level and env-level shipit envvars should get added to docker-compose and not harbor-compose
+	assert.Equal(t, containerLevel, dockerCompose.Services[container].Environment[containerLevel])
+	assert.Equal(t, envLevel, dockerCompose.Services[container].Environment[envLevel])
+	assert.NotEqual(t, envLevel, composeShipment.Environment[envLevel])
+
+	//SHIP_LOGS should get added to harbor-compose.yml, not docker-compose.yml
+	assert.Equal(t, shipLogs, composeShipment.Environment[envVarNameShipLogs], "expecting %v to be added to harbor-compose.yml", envVarNameShipLogs)
+	assert.NotEqual(t, shipLogs, dockerCompose.Services[container].Environment[envVarNameShipLogs], "expecting %v to not be added to docker-compose.yml", envVarNameShipLogs)
+
+	//LOGS_ENDPOINT should get added to harbor-compose.yml, not docker-compose.yml
+	assert.Equal(t, logsEndpoint, composeShipment.Environment[envVarNameLogsEndpoint], "expecting %v to be added to harbor-compose.yml", envVarNameLogsEndpoint)
+	assert.NotEqual(t, logsEndpoint, dockerCompose.Services[container].Environment[envVarNameLogsEndpoint], "expecting %v to not be added to docker-compose.yml", envVarNameLogsEndpoint)
 }

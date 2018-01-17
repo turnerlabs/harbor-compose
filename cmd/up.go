@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/docker/libcompose/config"
 	"github.com/docker/libcompose/project"
 	"github.com/spf13/cobra"
 
@@ -23,6 +22,7 @@ var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start your application",
 	Long: `Start your application
+
 The up command applies changes from your docker/harbor compose files and brings your application up on Harbor.  The up command:
 
 - Creates Harbor shipments if needed
@@ -31,7 +31,8 @@ The up command applies changes from your docker/harbor compose files and brings 
 - Updates container replicas
 - Triggers your shipments
 	`,
-	Run: up,
+	Run:    up,
+	PreRun: preRunHook,
 }
 
 func init() {
@@ -75,7 +76,7 @@ func up(cmd *cobra.Command, args []string) {
 		//creating a shipment is a different workflow than updating
 		if existingShipment == nil {
 			if Verbose {
-				log.Println("shipment environment not found")
+				log.Println(messageShipmentEnvironmentNotFound)
 			}
 			createShipment(username, token, shipmentName, shipment, dockerCompose, desiredShipment)
 
@@ -109,14 +110,14 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 		if Verbose {
 			fmt.Println(desired.Name)
 		}
-		return errors.New("environment can not contain underscores ('_')")
+		return errors.New(messageEnvironmentUnderscores)
 	}
 
 	provider := ec2Provider(desired.Providers)
 
 	//barge
 	if provider.Barge == "" {
-		return errors.New("barge is required for a shipment")
+		return errors.New(messageBargeRequired)
 	}
 
 	//replicas
@@ -124,25 +125,25 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 		fmt.Println(provider.Replicas)
 	}
 	if !(provider.Replicas >= 0 && provider.Replicas <= 1000) {
-		return errors.New("replicas must be between 1 and 1000")
+		return errors.New(messageReplicaValidation)
 	}
 
 	//containers
 	if len(desired.Containers) == 0 {
-		return errors.New("at least 1 container is required")
+		return errors.New(messageContainerRequired)
 	}
 
 	for _, container := range desired.Containers {
 
 		//ports
 		if len(container.Ports) == 0 {
-			return errors.New("At least one port is required.")
+			return errors.New(messagePortRequired)
 		}
 
 		for _, port := range container.Ports {
 			if port.HealthcheckInterval != nil && port.HealthcheckTimeout != nil {
-				if !(*port.HealthcheckInterval >= *port.HealthcheckTimeout) {
-					return errors.New("healthcheckIntervalSeconds must be >= healthcheckTimeoutSeconds")
+				if !(*port.HealthcheckInterval > *port.HealthcheckTimeout) {
+					return errors.New(messageIntervalGreaterThanTimeout)
 				}
 			}
 		}
@@ -156,7 +157,14 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			}
 		}
 		if !foundHealthCheck {
-			return errors.New("A container-level 'HEALTHCHECK' environment variable is required")
+			return errors.New(messageHealthCheckRequired)
+		}
+
+		//envvars
+		for _, envvar := range container.EnvVars {
+			if envvar.Name == "" || envvar.Value == "" {
+				return errors.New(messageEnvvarsCannotBeEmpty)
+			}
 		}
 	}
 
@@ -170,7 +178,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 			fmt.Println("desired barge: " + provider.Barge)
 		}
 		if provider.Barge != existingProvider.Barge {
-			return errors.New("Changing barges involves downtime. Please run the 'down' command first, then change barge and then run 'up' again.")
+			return errors.New(messageChangeBarge)
 		}
 
 		//don't allow container name changes
@@ -184,12 +192,12 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 					existingPort := getPrimaryPort(existingContainer.Ports)
 					desiredPort := getPrimaryPort(desiredContainer.Ports)
 					if !(existingPort.Value == desiredPort.Value && existingPort.PublicPort == desiredPort.PublicPort) {
-						return errors.New("Port changes involve downtime.  Please run the 'down --delete' command first.")
+						return errors.New(messageChangePort)
 					}
 
 					//don't allow health check changes
 					if existingPort.Healthcheck != desiredPort.Healthcheck {
-						return errors.New("Healthcheck changes involve downtime.  Please run the 'down --delete' command first.")
+						return errors.New(messageChangeHealthCheck)
 					}
 
 					//return container match
@@ -198,7 +206,7 @@ func validateUp(desired *ShipmentEnvironment, existing *ShipmentEnvironment) err
 				}
 			}
 			if !found {
-				return errors.New("Container changes involve downtime.  Please run the 'down --delete' command first.")
+				return errors.New(messageChangeContainer)
 			}
 		}
 	}
@@ -261,7 +269,7 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 		image := serviceConfig.Image
 		if image == "" {
-			log.Fatalln("'image' is required in docker compose file")
+			check(errors.New("'image' is required in docker compose file"))
 		}
 
 		newContainer := ContainerPayload{
@@ -276,7 +284,7 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 		//map the docker compose service ports to harbor ports
 		if len(serviceConfig.Ports) == 0 {
-			log.Fatalln("At least one port mapping is required in docker compose file.")
+			check(errors.New("at least one port mapping is required in docker compose file"))
 		}
 
 		//map first port in docker compose to default primary HTTP "PORT"
@@ -284,7 +292,7 @@ func transformComposeToShipmentEnvironment(shipmentName string, shipment Compose
 
 		external, err := strconv.Atoi(parsedPort[0])
 		if err != nil {
-			log.Fatalln("invalid port")
+			check(errors.New("invalid port"))
 		}
 		internal, err := strconv.Atoi(parsedPort[1])
 		if err != nil {
@@ -433,7 +441,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 				//rather than doing additional GETs
 
 				//save the envvar
-				SaveEnvVar(username, token, shipmentName, shipment, envvar, container)
+				SaveEnvVar(username, token, shipmentName, shipment.Env, envvar, container)
 			}
 		}
 	}
@@ -460,7 +468,7 @@ func updateShipment(username string, token string, currentShipment *ShipmentEnvi
 		envVarPayload := envVar(evName, evValue)
 
 		//save the envvar
-		SaveEnvVar(username, token, shipmentName, shipment, envVarPayload, "")
+		SaveEnvVar(username, token, shipmentName, shipment.Env, envVarPayload, "")
 
 	} //envvars
 
@@ -558,7 +566,7 @@ func catalogContainer(name string, image string) {
 			fmt.Println(message)
 		}
 		if err != nil {
-			log.Fatal(err)
+			check(err[0])
 		}
 
 	} else {
@@ -566,58 +574,4 @@ func catalogContainer(name string, image string) {
 			log.Printf("container %v already cataloged", name)
 		}
 	}
-}
-
-//transform a docker service's environment variables into harbor-specific env var objects
-func transformDockerServiceEnvVarsToHarborEnvVars(dockerService *config.ServiceConfig) []EnvVarPayload {
-
-	//docker-compose.yml
-	//env_file:
-	//- hidden.env
-	//
-	//gets mapped to type=hidden
-	//everything else type=basic
-
-	harborEnvVars := []EnvVarPayload{}
-
-	//container-level env vars (note that these are parsed by libcompose which supports:
-	//environment, env_file, and variable substitution with .env)
-	containerEnvVars := dockerService.Environment.ToMap()
-
-	//has the user specified hidden env vars in a hidden.env?
-	hiddenEnvVars := false
-	hiddenEnvVarFile := ""
-	for _, envFileName := range dockerService.EnvFile {
-		if strings.HasSuffix(envFileName, hiddenEnvFileName) {
-			hiddenEnvVars = true
-			hiddenEnvVarFile = envFileName
-			break
-		}
-	}
-
-	//iterate/process hidden envvars and remove them from the list
-	if hiddenEnvVars {
-		if Verbose {
-			log.Println("found hidden env vars")
-		}
-		for _, name := range parseEnvVarNames(hiddenEnvVarFile) {
-			if Verbose {
-				log.Println("processing " + name)
-			}
-			harborEnvVars = append(harborEnvVars, envVarHidden(name, containerEnvVars[name]))
-			delete(containerEnvVars, name)
-		}
-	}
-
-	//iterate/process envvars (hidden have already filtered out)
-	for name, value := range containerEnvVars {
-		if name != "" {
-			if Verbose {
-				log.Println("processing " + name)
-			}
-			harborEnvVars = append(harborEnvVars, envVar(name, value))
-		}
-	}
-
-	return harborEnvVars
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -16,13 +17,11 @@ var deployCmd = &cobra.Command{
 	
 Note that the deploy command is a subset of the up command without updates for environment variables, replicas, barge info, etc.
 
-Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.
-
-Example (shipment = mss-app-web):
-
-MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose deploy
-`,
-	Run: deploy,
+Also note that a shipment build token is required to be specified as an environment variable using the specific naming convention below.  Shipment build tokens are generated at the environment level so you can use any environment you wish.`,
+	Example: `(shipment = mss-app-web):
+MSS_APP_WEB_DEV_TOKEN=xyz harbor-compose deploy`,
+	Run:    deploy,
+	PreRun: preRunHook,
 }
 
 var environmentOverride string
@@ -41,7 +40,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	//validate the compose file
 	_, err := dockerCompose.Config()
 	if err != nil {
-		log.Fatal("error parsing compose file" + err.Error())
+		check(errors.New("error parsing compose file" + err.Error()))
 	}
 
 	//iterate shipments
@@ -54,7 +53,7 @@ func deploy(cmd *cobra.Command, args []string) {
 			//lookup the container in the list of services in the docker-compose file
 			serviceConfig, found := dockerCompose.GetServiceConfig(containerName)
 			if !found {
-				log.Fatal("could not find service in docker compose file")
+				check(errors.New("could not find service in docker compose file"))
 			}
 
 			//parse image:tag and map to name/version

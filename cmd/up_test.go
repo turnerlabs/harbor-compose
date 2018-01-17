@@ -407,6 +407,7 @@ shipments:
 	//test func
 	err := validateUp(&newShipment, nil)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), messageEnvironmentUnderscores)
 }
 
 //tests new shipment container count validation
@@ -426,7 +427,7 @@ services:
 	harborComposeYaml := `
 shipments:
   ${shipmentName}:
-    env: dev_1
+    env: dev
     barge: sandbox
     containers:
     replicas: 2
@@ -450,6 +451,7 @@ shipments:
 	//test func
 	err := validateUp(&newShipment, nil)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), messageContainerRequired)
 }
 
 //tests up (happy path)
@@ -596,7 +598,7 @@ shipments:
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Container changes")
+	assert.Contains(t, err.Error(), messageChangeContainer)
 }
 
 //tests up with port change
@@ -672,7 +674,7 @@ shipments:
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Port changes")
+	assert.Contains(t, err.Error(), messageChangePort)
 }
 
 //tests up with adding a port
@@ -749,7 +751,7 @@ shipments:
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Port changes")
+	assert.Contains(t, err.Error(), messageChangePort)
 }
 
 //tests up with health check change
@@ -825,7 +827,156 @@ func TestUpValidateHealthCheckChange(t *testing.T) {
 	//look for error
 	t.Log(err)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Healthcheck changes")
+	assert.Contains(t, err.Error(), messageChangeHealthCheck)
+}
+
+//tests up with health check interval == timeout
+func TestUpValidateHealthCheckIntervalEqualToTimeout(t *testing.T) {
+
+	//update json with test values
+	name := "mss-poc-app"
+	container := "web"
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:5000
+    environment:
+      HEALTHCHECK: hc
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: digital-sandbox
+    containers:
+    - ${composeServiceName}
+    replicas: 2
+    group: mss
+    healthcheckIntervalSeconds: 10
+    healthcheckTimeoutSeconds: 10`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//test validate
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
+	err := validateUp(&desiredShipment, nil)
+
+	//expect to fail (interval == timeout)
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), messageIntervalGreaterThanTimeout)
+}
+
+//tests up with health check interval > timeout
+func TestUpValidateHealthCheckIntervalGreaterThanTimeout(t *testing.T) {
+
+	//update json with test values
+	name := "mss-poc-app"
+	container := "web"
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:5000
+    environment:
+      HEALTHCHECK: hc
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: digital-sandbox
+    containers:
+    - ${composeServiceName}
+    replicas: 2
+    group: mss
+    healthcheckIntervalSeconds: 11
+    healthcheckTimeoutSeconds: 10`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//test validate
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
+	err := validateUp(&desiredShipment, nil)
+
+	//expect to pass (interval > timeout)
+	t.Log(err)
+	assert.Nil(t, err)
+}
+
+//tests up with health check interval < timeout
+func TestUpValidateHealthCheckIntervalLessThanTimeout(t *testing.T) {
+
+	//update json with test values
+	name := "mss-poc-app"
+	container := "web"
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:5000
+    environment:
+      HEALTHCHECK: hc
+      FOO: bar`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: digital-sandbox
+    containers:
+      - ${composeServiceName}
+    replicas: 2
+    group: mss
+    healthcheckIntervalSeconds: 9
+    healthcheckTimeoutSeconds: 10`
+
+	//parse the compose yaml into objects that we can work with
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", name, 1)
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${composeServiceName}", container, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", container, 1)
+
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[name]
+	t.Log(dockerComposeYaml)
+	t.Log(harborComposeYaml)
+
+	//test validate
+	desiredShipment := transformComposeToShipmentEnvironment(name, composeShipment, dockerCompose)
+	err := validateUp(&desiredShipment, nil)
+
+	//expect to fail (interval < timeout)
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), messageIntervalGreaterThanTimeout)
 }
 
 func TestTransformComposeToShipmentEnvironmentHiddenEnvFile(t *testing.T) {
@@ -1174,4 +1325,66 @@ shipments:
 
 	t.Log(err)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), messageIntervalGreaterThanTimeout)
+}
+
+func TestEmptyEnvVar(t *testing.T) {
+
+	dockerComposeYaml := `
+version: "2"
+services:
+  ${composeServiceName}:
+    image: registry/app:1.0
+    ports:
+    - 80:3000
+    environment:
+      HEALTHCHECK: /health
+      FOO: bar
+    env_file: 
+    - ${envFileName}
+`
+
+	harborComposeYaml := `
+shipments:
+  ${shipmentName}:
+    env: dev
+    barge: corp-sandbox
+    containers:
+    - app
+    replicas: 2
+    group: mss
+    property: turner
+    project: project
+    product: product
+`
+
+	//write hidden.env file containing empty env vars
+	envFileName := "/tmp/hidden.env"
+	err := ioutil.WriteFile(envFileName, []byte("HIDDEN="), 0644)
+	if err != nil {
+		t.Fail()
+	}
+
+	shipmentName := "mss-test-shipment"
+	harborComposeYaml = strings.Replace(harborComposeYaml, "${shipmentName}", shipmentName, 1)
+	composeServiceName := "app"
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${composeServiceName}", composeServiceName, 1)
+	dockerComposeYaml = strings.Replace(dockerComposeYaml, "${envFileName}", envFileName, 1)
+	dockerCompose, harborCompose := unmarshalCompose(dockerComposeYaml, harborComposeYaml)
+	composeShipment := harborCompose.Shipments[shipmentName]
+
+	//test validate
+	desiredShipment := transformComposeToShipmentEnvironment(shipmentName, composeShipment, dockerCompose)
+	err = validateUp(&desiredShipment, nil)
+
+	//expect to fail since env var is empty
+	t.Log(err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), messageEnvvarsCannotBeEmpty)
+
+	//clean up
+	err = os.Remove(envFileName)
+	if err != nil {
+		t.Fail()
+	}
 }

@@ -13,26 +13,24 @@ import (
 
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
-	Use:   "generate",
+	Use:   "generate [shipment] [environment]",
 	Short: "Generate compose files, build artifacts, and terraform source from an existing shipment",
 	Long: `Generate compose files, build artifacts, and terraform source from an existing shipment
 
-The generate command outputs compose files, build artifacts, and terraform source that allow you to build and run your app locally in Docker, manage your Harbor infrastructure using Terraform, do CI/CD, and deploy images and environment variables.
+The generate command outputs compose files, build artifacts, and terraform source that allow you to build and run your app locally in Docker, manage your Harbor infrastructure using Terraform, do CI/CD, and deploy images and environment variables.`,
+	Example: `harbor-compose generate my-shipment dev
 
-Example:
-harbor-compose generate my-shipment dev
-
-The generate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD with Harbor.
+The generate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD with Harbor.  The --terraform flag outputs a .tf file that represents the shipment/environment.
 
 Examples:
-harbor-compose generate my-shipment dev
 harbor-compose generate my-shipment dev --build-provider local
 harbor-compose generate my-shipment dev -b circleciv1
 harbor-compose generate my-shipment dev -b circleciv2
 harbor-compose generate my-shipment dev -b codeship
 harbor-compose generate my-shipment dev --terraform
 `,
-	Run: generate,
+	Run:    generate,
+	PreRun: preRunHook,
 }
 
 var buildProvider string
@@ -67,15 +65,15 @@ func generate(cmd *cobra.Command, args []string) {
 	}
 	shipmentObject := GetShipmentEnvironment(username, token, shipment, env)
 	if shipmentObject == nil {
-		fmt.Println("shipment not found")
+		fmt.Println(messageShipmentEnvironmentNotFound)
 		return
 	}
 
 	//convert a Shipment object into a HarborCompose object
-	harborCompose, hiddenEnvVars := transformShipmentToHarborCompose(shipmentObject)
+	harborCompose := transformShipmentToHarborCompose(shipmentObject)
 
 	//convert a Shipment object into a DockerCompose object, with hidden envvars
-	dockerCompose := transformShipmentToDockerCompose(shipmentObject, hiddenEnvVars)
+	dockerCompose, hiddenEnvVars := transformShipmentToDockerCompose(shipmentObject)
 
 	//if build provider is specified, allow it modify the compose objects and do its thing
 	if len(buildProvider) > 0 {
@@ -109,6 +107,15 @@ func generate(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	//if the --terraform flag is specified, output a main.tf file
+	//and output a simplified harbor-compose.yml
+	if generateTerraform {
+		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
+
+		// reset duplicate properties (already in main.tf)
+		harborCompose = minimalHarborCompose(harborCompose)
+	}
+
 	//prompt if the file already exists
 	yes := true
 	if _, err := os.Stat(DockerComposeFile); err == nil {
@@ -138,7 +145,7 @@ func generate(cmd *cobra.Command, args []string) {
 			yes = askForConfirmation()
 		}
 		if yes {
-			writeHiddenEnvFile(hiddenEnvVars, hiddenEnvFileName)
+			writeEnvFile(hiddenEnvVars, hiddenEnvFileName)
 			fmt.Println("wrote " + hiddenEnvFileName)
 		}
 
@@ -148,15 +155,31 @@ func generate(cmd *cobra.Command, args []string) {
 		appendToFile(".dockerignore", sensitiveFiles)
 	}
 
-	//if the --terraform flag is specified, output a main.tf file
-	if generateTerraform {
-		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
-	}
-
 	fmt.Println("done")
 }
 
-func writeHiddenEnvFile(envvars map[string]string, file string) {
+//reset extraneous properties so they don't get serialized
+func minimalHarborCompose(harborCompose HarborCompose) HarborCompose {
+	for name, shipment := range harborCompose.Shipments {
+		shipment.Barge = ""
+		shipment.EnableMonitoring = nil
+		shipment.Group = ""
+		shipment.HealthcheckIntervalSeconds = nil
+		shipment.HealthcheckTimeoutSeconds = nil
+		shipment.IgnoreImageVersion = false
+		shipment.Product = ""
+		shipment.Project = ""
+		shipment.Property = ""
+		shipment.Replicas = 0
+		harborCompose.Shipments[name] = shipment
+	}
+	return harborCompose
+}
+
+func writeEnvFile(envvars map[string]string, file string) {
+	if Verbose {
+		fmt.Printf("writing %v env vars to %v \n", len(envvars), file)
+	}
 	contents := ""
 	for name, value := range envvars {
 		contents += fmt.Sprintf("%s=%s\n", name, value)
@@ -165,7 +188,7 @@ func writeHiddenEnvFile(envvars map[string]string, file string) {
 	check(err)
 }
 
-func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (HarborCompose, map[string]string) {
+func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) HarborCompose {
 
 	//convert a Shipment object into a HarborCompose object with a single shipment
 	harborCompose := HarborCompose{
@@ -184,26 +207,24 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (Harb
 		HealthcheckIntervalSeconds: primaryPort.HealthcheckInterval,
 	}
 
-	//track special envvars
+	//extract special envvars (for product/project/property and log shipping)
 	special := map[string]string{}
-
-	//track hidden envvars
-	hiddenEnvVars := map[string]string{}
-
-	//shipment
-	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, hiddenEnvVars)
-
-	//environment
-	copyEnvVars(shipmentObject.EnvVars, nil, special, hiddenEnvVars)
-
-	provider := ec2Provider(shipmentObject.Providers)
+	logShipping := map[string]string{}
+	copyEnvVars(shipmentObject.ParentShipment.EnvVars, nil, special, nil, logShipping)
+	copyEnvVars(shipmentObject.EnvVars, nil, special, nil, logShipping)
 
 	//now populate other harbor-compose metadata
 	composeShipment.Product = special["PRODUCT"]
 	composeShipment.Project = special["PROJECT"]
 	composeShipment.Property = special["PROPERTY"]
 
+	//log shipping
+	if logShipping != nil {
+		composeShipment.Environment = logShipping
+	}
+
 	//use the barge setting on the provider, otherwise use the envvar
+	provider := ec2Provider(shipmentObject.Providers)
 	composeShipment.Barge = provider.Barge
 	if composeShipment.Barge == "" {
 		composeShipment.Barge = special["BARGE"]
@@ -220,12 +241,20 @@ func transformShipmentToHarborCompose(shipmentObject *ShipmentEnvironment) (Harb
 	//add single shipment to list
 	harborCompose.Shipments[shipmentObject.ParentShipment.Name] = composeShipment
 
-	return harborCompose, hiddenEnvVars
+	return harborCompose
 }
 
 //transforms a ShipmentEnvironment object to its DockerCompose representation
 //(along with hidden env vars)
-func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hiddenEnvVars map[string]string) DockerCompose {
+func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment) (DockerCompose, map[string]string) {
+	return transformShipmentToDockerComposeWithEnvFile(shipmentObject, hiddenEnvFileName)
+}
+
+//transforms a ShipmentEnvironment object to its DockerCompose representation
+//(along with hidden env vars)
+func transformShipmentToDockerComposeWithEnvFile(shipmentObject *ShipmentEnvironment, hiddenEnvFile string) (DockerCompose, map[string]string) {
+
+	hiddenEnvVars := map[string]string{}
 
 	dockerCompose := DockerCompose{
 		Version:  "2",
@@ -262,22 +291,22 @@ func transformShipmentToDockerCompose(shipmentObject *ShipmentEnvironment, hidde
 		//container level so that they can be used in docker-compose
 
 		//shipment
-		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(shipmentObject.ParentShipment.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//environment
-		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(shipmentObject.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//container
-		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars)
+		copyEnvVars(container.EnvVars, service.Environment, nil, hiddenEnvVars, nil)
 
 		//write hidden env vars to file specified in env_file
 		if len(hiddenEnvVars) > 0 {
-			service.EnvFile = []string{hiddenEnvFileName}
+			service.EnvFile = []string{hiddenEnvFile}
 		}
 
 		//add service to list
 		dockerCompose.Services[container.Name] = &service
 	}
 
-	return dockerCompose
+	return dockerCompose, hiddenEnvVars
 }
