@@ -11,12 +11,13 @@ import (
 )
 
 type metric struct {
-	Source string `json:"source,omitempty"`
-	Action string `json:"action,omitempty"`
-	Error  string `json:"error,omitempty"`
-	OS     string `json:"os,omitempty"`
-	Arch   string `json:"arch,omitempty"`
-	User   string `json:"user,omitempty"`
+	Source  string `json:"source,omitempty"`
+	Action  string `json:"action,omitempty"`
+	Error   string `json:"error,omitempty"`
+	OS      string `json:"os,omitempty"`
+	Arch    string `json:"arch,omitempty"`
+	User    string `json:"user,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 const (
@@ -52,12 +53,13 @@ func writeMetricErrorString(action string, err string) {
 		check(e)
 
 		m := metric{
-			Source: "harbor-compose",
-			Action: action,
-			Error:  err,
-			OS:     runtime.GOOS,
-			Arch:   runtime.GOARCH,
-			User:   user.Username,
+			Source:  "harbor-compose",
+			Action:  action,
+			Error:   err,
+			OS:      runtime.GOOS,
+			Arch:    runtime.GOARCH,
+			User:    user.Username,
+			Version: Version,
 		}
 
 		if Verbose {
