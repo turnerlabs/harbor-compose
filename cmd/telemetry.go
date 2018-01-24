@@ -6,15 +6,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/user"
 	"runtime"
 )
 
 type metric struct {
-	Source string `json:"source,omitempty"`
-	Action string `json:"action,omitempty"`
-	Error  string `json:"error,omitempty"`
-	OS     string `json:"os,omitempty"`
-	Arch   string `json:"arch,omitempty"`
+	Source  string `json:"source,omitempty"`
+	Action  string `json:"action,omitempty"`
+	Error   string `json:"error,omitempty"`
+	OS      string `json:"os,omitempty"`
+	Arch    string `json:"arch,omitempty"`
+	User    string `json:"user,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 const (
@@ -46,12 +49,17 @@ func writeMetricErrorString(action string, err string) {
 	// HARBOR_TELEMETRY=0 disables telemetry
 	if setting := os.Getenv("HARBOR_TELEMETRY"); setting != "0" {
 
+		user, e := user.Current()
+		check(e)
+
 		m := metric{
-			Source: "harbor-compose",
-			Action: action,
-			Error:  err,
-			OS:     runtime.GOOS,
-			Arch:   runtime.GOARCH,
+			Source:  "harbor-compose",
+			Action:  action,
+			Error:   err,
+			OS:      runtime.GOOS,
+			Arch:    runtime.GOARCH,
+			User:    user.Username,
+			Version: Version,
 		}
 
 		if Verbose {
