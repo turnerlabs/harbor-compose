@@ -149,12 +149,21 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	healthcheckTimeoutSeconds, _ := strconv.Atoi(hcTimeout)
 	healthcheckIntervalSeconds, _ := strconv.Atoi(hcInterval)
 	var err error
+	useRole := ""
+	samlUser := ""
 
 	//ask questions for harbor-compose.yml
 	if !yesUseDefaults {
 		name = promptAndGetResponse("shipment name: (e.g., mss-harbor-app) ", randomName)
 		env = promptAndGetResponse("shipment environment: (dev, qa, prod, etc.) ", env)
 		barge = promptAndGetResponse("barge: (digital-sandbox, ent-prod, corp-sandbox, corp-prod, news, nba) ", barge)
+		useRole = promptAndGetResponse("would like you to use an AWS IAM Role? (y|n) ", "n")
+		if useRole == "y" || useRole == "Y" {
+			samlUser = promptAndGetResponse("which SAML user would you like to grant role access to? (e.g., aws-digital-sandbox-devops/First.Last@turner.com) ", "")
+			if samlUser == "" {
+				check(errors.New(messageSamlUserRequired))
+			}
+		}
 		replicas = promptAndGetResponse("how many container instances: (e.g., 4) ", replicas)
 		intReplicas, err = strconv.Atoi(replicas)
 		if err != nil {
@@ -225,7 +234,8 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	shipmentEnvironment := transformComposeToShipmentEnvironment(name, composeShipment, dockerComposeProj)
 
 	//generate a main.tf and write it to disk
-	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false)
+	role := (useRole == "y" || useRole == "Y")
+	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false, role, samlUser)
 
 	// remove duplicate properties (already in main.tf)
 	harborCompose = minimalHarborCompose(harborCompose)

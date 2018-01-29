@@ -40,3 +40,8 @@ node_modules
 .glide
 build-debug.sh
 package-lock.json
+hidden.env
+main.tf
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
