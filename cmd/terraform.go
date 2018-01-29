@@ -68,7 +68,7 @@ func terraform(cmd *cobra.Command, args []string) {
 func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, printUsage bool, outputRole bool, samlUser string) {
 
 	//package the data to make it easy for rendering
-	data := getTerraformData(shipmentEnvironment, harborCompose, outputRole, samlUser)
+	data := getTerraformDataWithRole(shipmentEnvironment, harborCompose, outputRole, samlUser)
 
 	//translate a shipit shipment environment into terraform source
 	tfCode := generateTerraformSourceCode(data)
@@ -95,7 +95,11 @@ func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, h
 	}
 }
 
-func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, role bool, samlUser string) *terraformShipmentEnvironment {
+func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose) *terraformShipmentEnvironment {
+  return getTerraformDataWithRole(shipmentEnvironment, harborCompose, false, "")
+}
+
+func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, role bool, samlUser string) *terraformShipmentEnvironment {
 
 	composeShipment := harborCompose.Shipments[shipmentEnvironment.ParentShipment.Name]
 	monitored := true

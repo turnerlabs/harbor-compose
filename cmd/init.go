@@ -237,6 +237,11 @@ func initHarborCompose(cmd *cobra.Command, args []string) {
 	role := (useRole == "y" || useRole == "Y")
 	generateAndWriteTerraformSource(&shipmentEnvironment, &harborCompose, false, role, samlUser)
 
+	//add local dev role support to docker-compose.yml
+	if role {
+		addAwsRoleSupportToDockerComposeFile()
+	}
+
 	// remove duplicate properties (already in main.tf)
 	harborCompose = minimalHarborCompose(harborCompose)
 
@@ -267,4 +272,47 @@ func promptAndGetResponse(question string, defaultResponse string) string {
 		response = defaultResponse
 	}
 	return response
+}
+
+func addAwsRoleSupportToDockerComposeFile() {
+	roleYaml := getDockerComposeAwsRoleSupportYaml()
+
+	//append to docker-compose.yml
+	f, err := os.OpenFile(DockerComposeFile, os.O_APPEND|os.O_WRONLY, 0600)
+	check(err)
+	defer f.Close()
+	_, err = f.WriteString(roleYaml)
+	check(err)
+}
+
+func getDockerComposeAwsRoleSupportYaml() string {
+	return `
+# aws role support 
+
+  role:
+    image: quay.io/turner/ectou-metadata
+    ports:
+    - 9000:80
+    environment:
+
+      # the role you want your container to assume
+      ROLE: arn:aws:iam::123456789:role/my-role
+
+      # the local profile you want to use to assume the role
+      AWS_PROFILE: ${AWS_PROFILE}
+
+    volumes:
+    - $HOME/.aws/credentials:/root/.aws/credentials:ro
+    networks:
+      default:
+        ipv4_address: 169.254.169.254
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+     config:
+     - subnet: 169.254.169.0/16
+       gateway: 169.254.169.1
+`
 }
