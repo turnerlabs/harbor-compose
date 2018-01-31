@@ -44,6 +44,9 @@ type terraformShipmentEnvironment struct {
 	Monitored   bool
 	Containers  []terraformContainer
 	LogShipping terraformLogShipping
+	Role        bool
+	AwsProfile  string
+	SamlUser    string
 }
 
 type terraformContainer struct {

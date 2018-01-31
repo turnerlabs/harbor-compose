@@ -110,7 +110,7 @@ func generate(cmd *cobra.Command, args []string) {
 	//if the --terraform flag is specified, output a main.tf file
 	//and output a simplified harbor-compose.yml
 	if generateTerraform {
-		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
+		generateAndWriteTerraformSource(shipmentObject, &harborCompose, true, false, "")
 
 		// reset duplicate properties (already in main.tf)
 		harborCompose = minimalHarborCompose(harborCompose)
