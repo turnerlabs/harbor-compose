@@ -189,9 +189,9 @@ func TestGenerateTerraformSourceCodeBasic(t *testing.T) {
 
 	//shipment_env
 	assert.Contains(t, tf, fmt.Sprintf("resource \"harbor_shipment_env\" \"%v\" {", env))
-	assert.Contains(t, tf, fmt.Sprintf("environment = \"%v\"", env))
-	assert.Contains(t, tf, fmt.Sprintf("barge       = \"%v\"", barge))
-	assert.Contains(t, tf, fmt.Sprintf("replicas    = %v", replicas))
+	assert.Contains(t, tf, fmt.Sprintf("environment  = \"%v\"", env))
+	assert.Contains(t, tf, fmt.Sprintf("barge        = \"%v\"", barge))
+	assert.Contains(t, tf, fmt.Sprintf("replicas     = %v", replicas))
 
 	//shouldn't contain "primary" since there's only 1 container
 	assert.NotContains(t, tf, "primary")
