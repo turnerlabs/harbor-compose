@@ -114,18 +114,19 @@ func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCo
 	}
 
 	result := terraformShipmentEnvironment{
-		Shipment:    shipmentEnvironment.ParentShipment.Name,
-		Env:         shipmentEnvironment.Name,
-		Group:       composeShipment.Group,
-		Barge:       composeShipment.Barge,
-		Replicas:    composeShipment.Replicas,
-		Monitored:   monitored,
-		Containers:  []terraformContainer{},
-		LogShipping: terraformLogShipping{},
-		IamRole:     shipmentEnvironment.IamRole,
-		Role:        role,
-		AwsProfile:  awsProfile,
-		SamlUser:    samlUser,
+		Shipment:          shipmentEnvironment.ParentShipment.Name,
+		Env:               shipmentEnvironment.Name,
+		Group:             composeShipment.Group,
+		Barge:             composeShipment.Barge,
+		Replicas:          composeShipment.Replicas,
+		Monitored:         monitored,
+		Containers:        []terraformContainer{},
+		LogShipping:       terraformLogShipping{},
+		IamRole:           shipmentEnvironment.IamRole,
+		Role:              role,
+		AwsProfile:        awsProfile,
+		SamlUser:          samlUser,
+		LBTypeIsSpecified: false,
 	}
 
 	result.IamRoleIsSpecified = (result.IamRole != "")
@@ -163,7 +164,7 @@ func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCo
 			if p.Primary {
 				container.Primary = true
 				result.LBType = p.LBType
-				result.LBTypeIsSpecified = (result.LBType != "default")
+				result.LBTypeIsSpecified = !(result.LBType == "default" || result.LBType == "")
 			}
 
 			container.Ports = append(container.Ports, port)
