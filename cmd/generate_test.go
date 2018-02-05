@@ -377,6 +377,7 @@ func getSampleShipmentJSON() string {
 {
   "name": "${env}",
   "enableMonitoring": true,
+  "iamRole": "",
   "parentShipment": {
     "name": "${name}",
     "group": "${group}",
@@ -449,7 +450,8 @@ func getSampleShipmentJSON() string {
           "value": 5000,
           "name": "PORT",
           "healthcheck_timeout": ${healthcheckTimeout},
-          "healthcheck_interval": ${healthcheckInterval}
+          "healthcheck_interval": ${healthcheckInterval},
+          "lbtype": "default"
         }
       ]
     }

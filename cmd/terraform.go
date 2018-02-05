@@ -96,7 +96,7 @@ func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, h
 }
 
 func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose) *terraformShipmentEnvironment {
-  return getTerraformDataWithRole(shipmentEnvironment, harborCompose, false, "")
+	return getTerraformDataWithRole(shipmentEnvironment, harborCompose, false, "")
 }
 
 func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, role bool, samlUser string) *terraformShipmentEnvironment {
@@ -114,18 +114,22 @@ func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCo
 	}
 
 	result := terraformShipmentEnvironment{
-		Shipment:    shipmentEnvironment.ParentShipment.Name,
-		Env:         shipmentEnvironment.Name,
-		Group:       composeShipment.Group,
-		Barge:       composeShipment.Barge,
-		Replicas:    composeShipment.Replicas,
-		Monitored:   monitored,
-		Containers:  []terraformContainer{},
-		LogShipping: terraformLogShipping{},
-		Role:        role,
-		AwsProfile:  awsProfile,
-		SamlUser:    samlUser,
+		Shipment:          shipmentEnvironment.ParentShipment.Name,
+		Env:               shipmentEnvironment.Name,
+		Group:             composeShipment.Group,
+		Barge:             composeShipment.Barge,
+		Replicas:          composeShipment.Replicas,
+		Monitored:         monitored,
+		Containers:        []terraformContainer{},
+		LogShipping:       terraformLogShipping{},
+		IamRole:           shipmentEnvironment.IamRole,
+		Role:              role,
+		AwsProfile:        awsProfile,
+		SamlUser:          samlUser,
+		LBTypeIsSpecified: false,
 	}
+
+	result.IamRoleIsSpecified = (result.IamRole != "")
 
 	for _, c := range shipmentEnvironment.Containers {
 		container := terraformContainer{
@@ -159,6 +163,8 @@ func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCo
 			//and there can only be 1 per shipment/env
 			if p.Primary {
 				container.Primary = true
+				result.LBType = p.LBType
+				result.LBTypeIsSpecified = !(result.LBType == "default" || result.LBType == "")
 			}
 
 			container.Ports = append(container.Ports, port)
@@ -213,12 +219,12 @@ resource "harbor_shipment" "app" {
 }
 
 resource "harbor_shipment_env" "{{ .Env }}" {
-  shipment    = "${harbor_shipment.app.shipment}"
-  environment = "{{ .Env }}"
-	barge       = "{{ .Barge }}"
-  replicas    = {{ .Replicas }}
-	monitored   = {{ .Monitored }}
-	{{ if .Role }}iam_role    = "${aws_iam_role.app_role.arn}"{{ end }}	
+  shipment     = "${harbor_shipment.app.shipment}"
+  environment  = "{{ .Env }}"
+	barge        = "{{ .Barge }}"
+  replicas     = {{ .Replicas }}
+	monitored    = {{ .Monitored }}
+	{{ if .LBTypeIsSpecified }}loadbalancer = "{{ .LBType }}"{{ end }}{{ if .Role }}iam_role     = "${aws_iam_role.app_role.arn}"{{ else if .IamRoleIsSpecified }}iam_role     = "{{ .IamRole }}"{{ end }}	
 	{{ range .Containers }}
 	container {
 		{{ if .Primary }}name = "{{ .Name }}"{{ else }}
