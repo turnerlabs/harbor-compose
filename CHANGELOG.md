@@ -1,3 +1,22 @@
+## 0.17.0 (2018-02-07)
+
+Features:
+
+- Add support for `roles` to `init` command ([#174](https://github.com/turnerlabs/harbor-compose/issues/174))
+
+- adds `loadbalancer` and `iam_role` to terraform output ([#177](https://github.com/turnerlabs/harbor-compose/issues/177))
+
+- Add an `events` command to surface the k8s events in the helmit api ([#118](https://github.com/turnerlabs/harbor-compose/issues/118))
+
+- adds fields to telemetry payload ([#173](https://github.com/turnerlabs/harbor-compose/issues/173))
+
+
+Bug fixes:
+
+- fixes file permissions with circle ci build provider ([#178](https://github.com/turnerlabs/harbor-compose/issues/178))
+
+
+
 ## 0.16.0 (2018-01-17)
 
 Features:

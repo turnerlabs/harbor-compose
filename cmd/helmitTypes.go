@@ -1,6 +1,8 @@
 package cmd
 
-import "time"
+import (
+	"time"
+)
 
 // HelmitContainer represents a single container instance in harbor
 type HelmitContainer struct {
@@ -41,6 +43,27 @@ type ShipmentStatus struct {
 		} `json:"containers"`
 	} `json:"status"`
 	AverageRestarts float32 `json:"averageRestarts"`
+}
+
+//ShipmentEventResult represents system events for a shipment/environment
+type ShipmentEventResult struct {
+	Namespace string          `json:"namespace"`
+	Version   string          `json:"version"`
+	Events    []ShipmentEvent `json:"events"`
+}
+
+//ShipmentEvent represents a shipment event
+type ShipmentEvent struct {
+	Type    string `json:"type"`
+	Count   int    `json:"count"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+	Source  struct {
+		Component string `json:"component"`
+	} `json:"source"`
+	FirstTimestamp time.Time `json:"firstTimestamp"`
+	LastTimestamp  time.Time `json:"lastTimestamp"`
+	StartTime      string
 }
 
 // ContainerState represents a particular state of a container

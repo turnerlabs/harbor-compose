@@ -27,10 +27,7 @@ func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 
 	//output circle.yml
 	artifacts := []*BuildArtifact{}
-	artifacts = append(artifacts, &BuildArtifact{
-		FilePath:     ".circleci/config.yml",
-		FileContents: getCircleCIv2YAML(),
-	})
+	artifacts = append(artifacts, createArtifact(".circleci/config.yml", getCircleCIv2YAML()))
 
 	fmt.Println()
 	fmt.Println("Be sure to supply the following environment variables in your Circle CI build:\nDOCKER_USER (quay.io registry user, e.g., turner+my_team)\nDOCKER_PASS (quay.io registry password)")

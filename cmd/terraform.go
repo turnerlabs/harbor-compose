@@ -60,15 +60,15 @@ func terraform(cmd *cobra.Command, args []string) {
 	harborCompose := transformShipmentToHarborCompose(shipmentObject)
 
 	//generate a main.tf and write it to disk
-	generateAndWriteTerraformSource(shipmentObject, &harborCompose, true)
+	generateAndWriteTerraformSource(shipmentObject, &harborCompose, true, false, "")
 
 	fmt.Println("done")
 }
 
-func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, printUsage bool) {
+func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, printUsage bool, outputRole bool, samlUser string) {
 
 	//package the data to make it easy for rendering
-	data := getTerraformData(shipmentEnvironment, harborCompose)
+	data := getTerraformDataWithRole(shipmentEnvironment, harborCompose, outputRole, samlUser)
 
 	//translate a shipit shipment environment into terraform source
 	tfCode := generateTerraformSourceCode(data)
@@ -96,6 +96,10 @@ func generateAndWriteTerraformSource(shipmentEnvironment *ShipmentEnvironment, h
 }
 
 func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose) *terraformShipmentEnvironment {
+	return getTerraformDataWithRole(shipmentEnvironment, harborCompose, false, "")
+}
+
+func getTerraformDataWithRole(shipmentEnvironment *ShipmentEnvironment, harborCompose *HarborCompose, role bool, samlUser string) *terraformShipmentEnvironment {
 
 	composeShipment := harborCompose.Shipments[shipmentEnvironment.ParentShipment.Name]
 	monitored := true
@@ -103,16 +107,29 @@ func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *H
 		monitored = *composeShipment.EnableMonitoring
 	}
 
-	result := terraformShipmentEnvironment{
-		Shipment:    shipmentEnvironment.ParentShipment.Name,
-		Env:         shipmentEnvironment.Name,
-		Group:       composeShipment.Group,
-		Barge:       composeShipment.Barge,
-		Replicas:    composeShipment.Replicas,
-		Monitored:   monitored,
-		Containers:  []terraformContainer{},
-		LogShipping: terraformLogShipping{},
+	awsProfile := "default"
+	awsProfileEnv := os.Getenv("AWS_PROFILE")
+	if awsProfileEnv != "" {
+		awsProfile = awsProfileEnv
 	}
+
+	result := terraformShipmentEnvironment{
+		Shipment:          shipmentEnvironment.ParentShipment.Name,
+		Env:               shipmentEnvironment.Name,
+		Group:             composeShipment.Group,
+		Barge:             composeShipment.Barge,
+		Replicas:          composeShipment.Replicas,
+		Monitored:         monitored,
+		Containers:        []terraformContainer{},
+		LogShipping:       terraformLogShipping{},
+		IamRole:           shipmentEnvironment.IamRole,
+		Role:              role,
+		AwsProfile:        awsProfile,
+		SamlUser:          samlUser,
+		LBTypeIsSpecified: false,
+	}
+
+	result.IamRoleIsSpecified = (result.IamRole != "")
 
 	for _, c := range shipmentEnvironment.Containers {
 		container := terraformContainer{
@@ -146,6 +163,8 @@ func getTerraformData(shipmentEnvironment *ShipmentEnvironment, harborCompose *H
 			//and there can only be 1 per shipment/env
 			if p.Primary {
 				container.Primary = true
+				result.LBType = p.LBType
+				result.LBTypeIsSpecified = !(result.LBType == "default" || result.LBType == "")
 			}
 
 			container.Ports = append(container.Ports, port)
@@ -200,19 +219,19 @@ resource "harbor_shipment" "app" {
 }
 
 resource "harbor_shipment_env" "{{ .Env }}" {
-  shipment    = "${harbor_shipment.app.id}"
-  environment = "{{ .Env }}"
-  barge       = "{{ .Barge }}"
-  replicas    = {{ .Replicas }}
-	monitored   = {{ .Monitored }}
+  shipment     = "${harbor_shipment.app.shipment}"
+  environment  = "{{ .Env }}"
+	barge        = "{{ .Barge }}"
+  replicas     = {{ .Replicas }}
+	monitored    = {{ .Monitored }}
+	{{ if .LBTypeIsSpecified }}loadbalancer = "{{ .LBType }}"{{ end }}{{ if .Role }}iam_role     = "${aws_iam_role.app_role.arn}"{{ else if .IamRoleIsSpecified }}iam_role     = "{{ .IamRole }}"{{ end }}	
 	{{ range .Containers }}
 	container {
-		{{ if .Primary }}
-		name = "{{ .Name }}"
-		{{ else }}
+		{{ if .Primary }}name = "{{ .Name }}"{{ else }}
 		name    = "{{ .Name }}"
 		primary = false		
-		{{ end }}{{ range .Ports }}
+		{{ end }}
+		{{ range .Ports }}
     port {
 			protocol              = "{{ .Protocol }}"
 			public_port           = {{ .PublicPort }}
@@ -242,6 +261,63 @@ resource "harbor_shipment_env" "{{ .Env }}" {
 output "dns_name" {
   value = "${harbor_shipment_env.{{ .Env }}.dns_name}"
 }
+{{ if .Role }}
+provider "aws" {
+  profile = "{{ .AwsProfile }}"
+}
+
+# todo: fill out custom aws role policy
+resource "aws_iam_role_policy" "aws_access" {
+  name = "{{ .Shipment }}-{{ .Env }}"
+  role = "${aws_iam_role.app_role.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [],
+      "Resource": []
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role" "app_role" {
+  name               = "{{ .Shipment }}-{{ .Env }}"
+  assume_role_policy = "${data.aws_iam_policy_document.harbor_policy.json}"
+}
+
+module "harbor" {
+  source = "git::ssh://git@github.com/turnercode/harbor-terraform?ref=v1.6"
+  barge  = "{{ .Barge }}"
+}
+
+data "aws_caller_identity" "current" {}
+
+# allow role to be assumed by harbor and saml user (for local dev)
+data "aws_iam_policy_document" "harbor_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+
+    principals {
+      type = "AWS"
+
+      identifiers = [
+        "${module.harbor.iam_role}",
+        "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/{{ .SamlUser }}",
+      ]
+    }
+  }
+}
+{{ end }}
 `
 
 	//create a formatted template

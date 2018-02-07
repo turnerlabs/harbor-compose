@@ -233,6 +233,38 @@ func GetLogStreamer(streamer string) (reader *bufio.Reader, err error) {
 	return
 }
 
+// GetShipmentEvents returns a ShipmentEventResult for a given shipment/environment
+func GetShipmentEvents(barge string, shipment string, env string) *ShipmentEventResult {
+
+	uri := helmitURI("/shipment/events/{barge}/{shipment}/{env}",
+		param("barge", barge),
+		param("shipment", shipment),
+		param("env", env))
+
+	if Verbose {
+		fmt.Println("fetching: " + uri)
+	}
+
+	res, body, err := gorequest.New().
+		Get(uri).
+		EndBytes()
+
+	if err != nil {
+		check(err[0])
+	}
+
+	if res.StatusCode != http.StatusOK {
+		log.Fatal("GetShipmentEvents returned ", res.StatusCode)
+	}
+
+	//deserialize json into object
+	var result ShipmentEventResult
+	unmarshalErr := json.Unmarshal(body, &result)
+	check(unmarshalErr)
+
+	return &result
+}
+
 // GetShipmentStatus returns the running status of a shipment
 func GetShipmentStatus(barge string, shipment string, env string) *ShipmentStatus {
 

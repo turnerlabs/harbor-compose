@@ -36,14 +36,21 @@ type ComposeShipment struct {
 
 // data used for rendering terraform source
 type terraformShipmentEnvironment struct {
-	Shipment    string
-	Env         string
-	Group       string
-	Barge       string
-	Replicas    int
-	Monitored   bool
-	Containers  []terraformContainer
-	LogShipping terraformLogShipping
+	Shipment           string
+	Env                string
+	Group              string
+	Barge              string
+	Replicas           int
+	Monitored          bool
+	Containers         []terraformContainer
+	LogShipping        terraformLogShipping
+	LBType             string
+	LBTypeIsSpecified  bool
+	IamRole            string
+	IamRoleIsSpecified bool
+	Role               bool
+	AwsProfile         string
+	SamlUser           string
 }
 
 type terraformContainer struct {
@@ -104,6 +111,7 @@ type ShipmentEnvironment struct {
 	ParentShipment   ParentShipment     `json:"parentShipment"`
 	BuildToken       string             `json:"buildToken,omitempty"`
 	EnableMonitoring bool               `json:"enableMonitoring"`
+	IamRole          string             `json:"iamRole"`
 }
 
 // The ParentShipment of the shipmentModel
@@ -135,6 +143,7 @@ type PortPayload struct {
 	SslManagementType   string `json:"ssl_management_type,omitempty"`
 	HealthcheckTimeout  *int   `json:"healthcheck_timeout,omitempty"`
 	HealthcheckInterval *int   `json:"healthcheck_interval,omitempty"`
+	LBType              string `json:"lbtype,omitempty"`
 }
 
 // ContainerPayload represents a container payload

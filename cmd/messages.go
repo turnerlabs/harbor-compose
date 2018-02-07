@@ -19,4 +19,5 @@ const (
 	messageChangeHealthCheck                = "healthcheck changes involve downtime.  Please run the 'down --delete' command first"
 	messageChangeContainer                  = "container changes involve downtime.  Please run the 'down --delete' command first"
 	messageShipmentEnvironmentFlagsRequired = "both --shipment and --environment flags are required"
+	messageSamlUserRequired                 = "Please specify a federated SAML user in the form role/email (e.g.; aws-digital-sandbox-devops/First.Last@turner.com)"
 )
