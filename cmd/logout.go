@@ -25,7 +25,7 @@ func init() {
 }
 
 func logout(cmd *cobra.Command, args []string) {
-	serializedAuth, err := readFile()
+	serializedAuth, err := readAuthFile()
 	if err != nil {
 		log.Fatalf(err.Error())
 		return

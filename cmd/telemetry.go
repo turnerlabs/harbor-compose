@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/user"
 	"runtime"
 )
 
@@ -36,21 +35,18 @@ const (
 	metricTerraform  = "terraform"
 )
 
-func writeMetric(action string) {
-	writeMetricErrorString(action, "")
+func writeMetric(action string, user string) {
+	writeMetricErrorString(action, user, "")
 }
 
-func writeMetricError(action string, err error) {
-	writeMetricErrorString(action, err.Error())
+func writeMetricError(action string, user string, err error) {
+	writeMetricErrorString(action, user, err.Error())
 }
 
-func writeMetricErrorString(action string, err string) {
+func writeMetricErrorString(action string, user string, err string) {
 
 	// HARBOR_TELEMETRY=0 disables telemetry
 	if setting := os.Getenv("HARBOR_TELEMETRY"); setting != "0" {
-
-		user, e := user.Current()
-		check(e)
 
 		m := metric{
 			Source:  "harbor-compose",
@@ -58,7 +54,7 @@ func writeMetricErrorString(action string, err string) {
 			Error:   err,
 			OS:      runtime.GOOS,
 			Arch:    runtime.GOARCH,
-			User:    user.Username,
+			User:    user,
 			Version: Version,
 		}
 

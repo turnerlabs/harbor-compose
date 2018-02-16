@@ -17,7 +17,6 @@ var RootCmd = &cobra.Command{
 
 func preRunHook(cmd *cobra.Command, args []string) {
 	currentCommand = cmd.Name()
-	writeMetric(currentCommand)
 }
 
 // Version is the version of this app
@@ -37,6 +36,13 @@ var HarborComposeFile string
 
 //currently executing command
 var currentCommand string
+
+//current user
+var currentUser string
+
+func setCurrentUser(user string) {
+	currentUser = user
+}
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
