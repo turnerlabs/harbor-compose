@@ -16,7 +16,22 @@ var RootCmd = &cobra.Command{
 }
 
 func preRunHook(cmd *cobra.Command, args []string) {
-	currentCommand = cmd.Name()
+	currentCommand = getCommandPath(cmd)
+}
+
+// CommandPath returns the full path to this command.
+func getCommandPath(c *cobra.Command) string {
+	str := c.Name()
+	x := c
+	for x.HasParent() {
+		//exit when you get to top-level
+		if !x.Parent().HasParent() {
+			break
+		}
+		str = x.Parent().Name() + " " + str
+		x = x.Parent()
+	}
+	return str
 }
 
 // Version is the version of this app
