@@ -16,8 +16,22 @@ var RootCmd = &cobra.Command{
 }
 
 func preRunHook(cmd *cobra.Command, args []string) {
-	currentCommand = cmd.Name()
-	writeMetric(currentCommand)
+	currentCommand = getCommandPath(cmd)
+}
+
+// CommandPath returns the full path to this command.
+func getCommandPath(c *cobra.Command) string {
+	str := c.Name()
+	x := c
+	for x.HasParent() {
+		//exit when you get to top-level
+		if !x.Parent().HasParent() {
+			break
+		}
+		str = x.Parent().Name() + " " + str
+		x = x.Parent()
+	}
+	return str
 }
 
 // Version is the version of this app
@@ -37,6 +51,13 @@ var HarborComposeFile string
 
 //currently executing command
 var currentCommand string
+
+//current user
+var currentUser string
+
+func setCurrentUser(user string) {
+	currentUser = user
+}
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.

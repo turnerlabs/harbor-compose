@@ -12,7 +12,7 @@ import (
 
 func check(e error) {
 	if e != nil {
-		writeMetricError(currentCommand, e)
+		writeMetricError(currentCommand, currentUser, e)
 		//pause here to allow async telemetry call to go through
 		time.Sleep(2 * time.Second)
 
