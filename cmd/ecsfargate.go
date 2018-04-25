@@ -101,7 +101,7 @@ func updateTerraformBackend(maintf string, data *ecsTerraformShipmentEnvironment
 	for _, line := range tmp {
 		updatedLine := line
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, `profile = "aws`) {
+		if strings.HasPrefix(trimmed, `profile = ""`) {
 			updatedLine = fmt.Sprintf(`    profile = "%s:%s-%s"`, data.AwsAccountName, data.AwsAccountName, data.AwsRole)
 		}
 		if strings.HasPrefix(trimmed, "bucket") {
@@ -121,8 +121,7 @@ func downloadTerraformTemplate() string {
 
 	// org := "turnerlabs"
 	org := "turnercode"
-	// repo := "terraform-ecs-fargate-web"
-	repo := "fargate-poc"
+	repo := "terraform-ecs-fargate"
 	// version := "v0.1.0-alpha.0"
 	// url := fmt.Sprintf("https://github.com/%s/%s/archive/%s.zip", org, repo, version)
 	url := fmt.Sprintf("git@github.com:%s/%s.git", org, repo)
@@ -170,7 +169,7 @@ func installTerraformTemplate(repoDir string, environment string) (string, strin
 	}
 
 	//if environment directory exists, prompt to override, if no, then exit
-	sourceEnvDir := filepath.Join(repoDir, "environments", "dev")
+	sourceEnvDir := filepath.Join(repoDir, "env", "dev")
 	destEnvDir := filepath.Join(infraDir, "env", environment)
 	if _, err := os.Stat(destEnvDir); err == nil {
 		//exists

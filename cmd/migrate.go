@@ -173,6 +173,7 @@ func migrate(cmd *cobra.Command, args []string) {
 	fmt.Println("Then run the following command to deploy your application image and environment variables:")
 	fmt.Printf("fargate --cluster %s-%s service deploy -f docker-compose.yml %s-%s", shipment, env, shipment, env)
 	fmt.Println()
+	fmt.Println()
 	fmt.Println("To integrate with DOC monitoring:")
 	fmt.Println("./doc-monitoring.sh on")
 	fmt.Println()
