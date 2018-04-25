@@ -29,6 +29,10 @@ func customsURI(template string, params ...tuple) string {
 	return buildURI(GetConfig().CustomsURI, template, params...)
 }
 
+func bargesURI(template string, params ...tuple) string {
+	return buildURI(GetConfig().BargesURI, template, params...)
+}
+
 // GetShipmentEnvironment returns a harbor shipment from the API
 func GetShipmentEnvironment(username string, token string, shipment string, env string) *ShipmentEnvironment {
 
@@ -674,4 +678,29 @@ func updatePort(username string, token string, shipment string, env string, cont
 	if r.StatusCode != http.StatusOK {
 		check(errors.New("update port failed"))
 	}
+}
+
+// GetBarges returns a list of harbor barges
+func GetBarges() *BargeResults {
+
+	uri := bargesURI("/barges")
+	if Verbose {
+		fmt.Println("fetching: " + uri)
+	}
+
+	res, body, err := gorequest.New().Get(uri).EndBytes()
+	if err != nil {
+		check(err[0])
+	}
+
+	if res.StatusCode != http.StatusOK {
+		log.Fatal("GetBarges returned ", res.StatusCode)
+	}
+
+	//deserialize json into object
+	var result BargeResults
+	unmarshalErr := json.Unmarshal(body, &result)
+	check(unmarshalErr)
+
+	return &result
 }

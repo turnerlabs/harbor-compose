@@ -53,6 +53,36 @@ type terraformShipmentEnvironment struct {
 	SamlUser           string
 }
 
+type ecsTerraformShipmentEnvironment struct {
+	Shipment           string
+	Env                string
+	Group              string
+	Replicas           int
+	Monitored          bool
+	LogShipping        terraformLogShipping
+	IamRole            string
+	IamRoleIsSpecified bool
+	AwsRegion          string
+	AwsAccountName     string
+	AwsAccountID       string
+	AwsRole            string
+	AwsVpc             string
+	AwsPrivateSubnets  string
+	AwsPublicSubnets   string
+	GeneratedDate      string
+	Product            string
+	Project            string
+	Property           string
+	ContainerName      string
+	PrimaryPort        *terraformPort
+	HTTPPort           *terraformPort
+	HTTPSPort          *terraformPort
+	PublicLB           bool
+	LogzToken          string
+	OldImage           string
+	NewImage           string
+}
+
 type terraformContainer struct {
 	Name    string
 	Primary bool
@@ -218,4 +248,19 @@ type UpdatePortRequest struct {
 	Name                string `json:"name"`
 	HealthcheckTimeout  *int   `json:"healthcheck_timeout,omitempty"`
 	HealthcheckInterval *int   `json:"healthcheck_interval,omitempty"`
+}
+
+// BargeResults represents a barge payload
+type BargeResults struct {
+	Barges []Barge `json:"barges"`
+}
+
+// Barge represents a harbor barge
+type Barge struct {
+	Name           string   `json:"name"`
+	AccountID      string   `json:"accountId"`
+	AccountName    string   `json:"accountName"`
+	Vpc            string   `json:"vpc"`
+	PrivateSubnets []string `json:"privateSubnets"`
+	PublicSubnets  []string `json:"publicSubnets"`
 }
