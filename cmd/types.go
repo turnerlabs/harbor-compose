@@ -81,6 +81,7 @@ type ecsTerraformShipmentEnvironment struct {
 	LogzToken          string
 	OldImage           string
 	NewImage           string
+	ContactEmail       string
 }
 
 type terraformContainer struct {
@@ -263,4 +264,11 @@ type Barge struct {
 	Vpc            string   `json:"vpc"`
 	PrivateSubnets []string `json:"privateSubnets"`
 	PublicSubnets  []string `json:"publicSubnets"`
+}
+
+// Group represents a harbor group
+type Group struct {
+	ID     string   `json:"id"`
+	Users  []string `json:"users"`
+	Admins []string `json:"admins"`
 }

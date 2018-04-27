@@ -704,3 +704,29 @@ func GetBarges() *BargeResults {
 
 	return &result
 }
+
+// GetGroup returns the members of a harbor group
+func GetGroup(id string) *Group {
+
+	uri := bargesURI("/harbor/groups/{id}", param("id", id))
+
+	if Verbose {
+		fmt.Println("fetching: " + uri)
+	}
+
+	res, body, err := gorequest.New().Get(uri).EndBytes()
+	if err != nil {
+		check(err[0])
+	}
+
+	if res.StatusCode != http.StatusOK {
+		log.Fatal("GetBarges returned ", res.StatusCode)
+	}
+
+	//deserialize json into object
+	var result Group
+	unmarshalErr := json.Unmarshal(body, &result)
+	check(unmarshalErr)
+
+	return &result
+}

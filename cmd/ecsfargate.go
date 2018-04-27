@@ -188,7 +188,7 @@ func installTerraformTemplate(repoDir string, environment string) (string, strin
 	}
 
 	//env directory either doesn't exist or user wants to overwrite
-	//copy repo/environments/${env} -> ./infrastructure/env/${env}
+	//copy repo/env/${env} -> ./infrastructure/env/${env}
 	debug(fmt.Sprintf("copying %s to %s", sourceEnvDir, destEnvDir))
 	err := copyDir(sourceEnvDir, destEnvDir)
 	check(err)
@@ -209,6 +209,22 @@ func getBargeData(barge string) *Barge {
 		}
 	}
 	return nil
+}
+
+func getContactEmailFromGroup(group string) string {
+	result := ""
+	groupData := GetGroup(group)
+
+	//take the first admin
+	if len(groupData.Admins) > 0 {
+		result = groupData.Admins[0]
+	} else if len(groupData.Users) > 0 {
+		result = groupData.Users[0]
+	} else if Verbose {
+		fmt.Println("could not find user for group: " + group)
+	}
+
+	return result
 }
 
 func downloadFileFromBargeEndpoint(dir string, file string) {
@@ -264,6 +280,9 @@ func translateShipmentEnvironmentToEcsTerraform(shipmentEnvironment *ShipmentEnv
 	if barge == nil {
 		check(fmt.Errorf("barge %s not found", composeShipment.Barge))
 	}
+
+	//call groups api to get contact-email address
+	result.ContactEmail = getContactEmailFromGroup(composeShipment.Group)
 
 	result.AwsAccountID = barge.AccountID
 	result.AwsAccountName = barge.AccountName
@@ -396,7 +415,7 @@ tags = {
 	environment   = "prod"
 	team          = "{{ .Group }}"
 	customer      = "{{ .Property }}"
-	contact-email = ""	
+	contact-email = "{{ .ContactEmail }}"
 	product       = "{{ .Product }}"
 	project       = "{{ .Project }}"
 }
@@ -434,7 +453,7 @@ tags = {
 	environment   = "{{ .Env }}"	
 	team          = "{{ .Group }}"
 	customer      = "{{ .Property }}"
-	contact-email = ""
+	contact-email = "{{ .ContactEmail }}"
 	product       = "{{ .Product }}"
 	project       = "{{ .Project }}"
 }
