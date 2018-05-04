@@ -91,7 +91,20 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 		check(err)
 	}
 
+	//write a fargate.yml for the cli
+	fargateYml := getFargateYaml(data.Shipment, data.Env)
+	fargateYmlFile := filepath.Join(envDir, "fargate.yml")
+	debug("writing " + fargateYmlFile)
+	err = ioutil.WriteFile(fargateYmlFile, []byte(fargateYml), 0644)
+	check(err)
+
 	return envDir, data
+}
+
+func getFargateYaml(shipment string, env string) string {
+	return fmt.Sprintf(`cluster: %s-%s
+service: %s-%s
+`, shipment, env, shipment, env)
 }
 
 func updateTerraformBackend(maintf string, data *ecsTerraformShipmentEnvironment) string {
