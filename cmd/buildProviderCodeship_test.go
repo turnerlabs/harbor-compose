@@ -75,7 +75,7 @@ func TestBuildProviderCodeship(t *testing.T) {
 	}
 
 	//run the build provider
-	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
+	artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token", "harbor")
 	if err != nil {
 		t.Fail()
 	}

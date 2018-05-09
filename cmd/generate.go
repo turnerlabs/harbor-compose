@@ -80,7 +80,7 @@ func generate(cmd *cobra.Command, args []string) {
 		provider, err := getBuildProvider(buildProvider)
 		check(err)
 
-		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken)
+		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken, "harbor")
 		check(err)
 
 		//write artifacts to file system

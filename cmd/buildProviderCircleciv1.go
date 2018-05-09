@@ -9,7 +9,11 @@ import (
 type CircleCIv1 struct{}
 
 //ProvideArtifacts -
-func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string) ([]*BuildArtifact, error) {
+func (provider CircleCIv1) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string, platform string) ([]*BuildArtifact, error) {
+
+	if platform != "harbor" {
+    return nil, fmt.Errorf("build provider doesn't support platform %s", platform)
+	}
 
 	//iterate containers
 	for _, svc := range dockerCompose.Services {

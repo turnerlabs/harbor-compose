@@ -57,6 +57,14 @@ func migrate(cmd *cobra.Command, args []string) {
 	shipment := args[0]
 	env := args[1]
 
+	//instantiate a build provider if specified
+	var provider *BuildProvider
+	if len(migrateBuildProvider) > 0 {
+		temp, err := getBuildProvider(migrateBuildProvider)
+		provider = &temp
+		check(err)	
+	}
+
 	if Verbose {
 		log.Printf("fetching shipment...")
 	}
@@ -82,38 +90,6 @@ func migrate(cmd *cobra.Command, args []string) {
 	//update image in docker-compose.yml
 	for _, v := range dockerCompose.Services {
 		v.Image = migrationData.NewImage
-	}
-
-	//if build provider is specified, allow it modify the compose objects and do its thing
-	if len(buildProvider) > 0 {
-		provider, err := getBuildProvider(buildProvider)
-		check(err)
-
-		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken)
-		check(err)
-
-		//write artifacts to file system
-		if artifacts != nil {
-			for _, artifact := range artifacts {
-				//create directories if needed
-				dirs := filepath.Dir(artifact.FilePath)
-				err = os.MkdirAll(dirs, os.ModePerm)
-				check(err)
-
-				if _, err := os.Stat(artifact.FilePath); err == nil {
-					//exists
-					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")
-					if askForConfirmation() {
-						err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), artifact.FileMode)
-						check(err)
-					}
-				} else {
-					//doesn't exist
-					err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), artifact.FileMode)
-					check(err)
-				}
-			}
-		}
 	}
 
 	//prompt if the file already exists
@@ -158,6 +134,38 @@ func migrate(cmd *cobra.Command, args []string) {
 		appendToFile(".dockerignore", sensitiveFiles)
 	}
 
+	//if build provider is specified, allow it modify the compose objects and do its thing
+	if provider != nil {
+		provider, err := getBuildProvider(migrateBuildProvider)
+		check(err)
+
+		artifacts, err := provider.ProvideArtifacts(&dockerCompose, &harborCompose, shipmentObject.BuildToken, migratePlatform)
+		check(err)
+
+		//write artifacts to file system
+		if artifacts != nil {
+			for _, artifact := range artifacts {
+				//create directories if needed
+				dirs := filepath.Dir(artifact.FilePath)
+				err = os.MkdirAll(dirs, os.ModePerm)
+				check(err)
+
+				if _, err := os.Stat(artifact.FilePath); err == nil {
+					//exists
+					fmt.Print(artifact.FilePath + " already exists. Overwrite? ")
+					if askForConfirmation() {
+						err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), artifact.FileMode)
+						check(err)
+					}
+				} else {
+					//doesn't exist
+					err = ioutil.WriteFile(artifact.FilePath, []byte(artifact.FileContents), artifact.FileMode)
+					check(err)
+				}
+			}
+		}
+	}	
+
 	fmt.Println()
 	fmt.Println("Run the following commands to provision an matching infrastructure stack on the target platform:")
 	fmt.Println("cd infrastructure/base")
@@ -176,7 +184,7 @@ func migrate(cmd *cobra.Command, args []string) {
 	fmt.Println("To integrate with DOC monitoring:")
 	fmt.Println("./doc-monitoring.sh on")
 	fmt.Println()
-	fmt.Println("Once you're comfortable with your new enviornment, run the following command to delete your harbor environment:")
-	fmt.Println("harbor-compose down --delete")
+	fmt.Println("Once you're comfortable with your new environment, run the following command to turn off your harbor environment:")
+	fmt.Println("harbor-compose down")
 	fmt.Println()
 }
