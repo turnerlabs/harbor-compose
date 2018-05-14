@@ -206,17 +206,13 @@ func TestBuildProviderCircleCIv2_EcsFargate(t *testing.T) {
 
 	//the provider should output a .circle/config.yml
 	assert.NotNil(t, artifacts)
-	assert.True(t, len(artifacts) == 3, "expecting 3 artifacts")
+	assert.True(t, len(artifacts) == 2, "expecting 2 artifacts")
 
 	artifact := findBuildArtifact("config.yml", artifacts)
 	assert.NotNil(t, artifact)
 	t.Log(artifact.FileContents)
 
-	artifact = findBuildArtifact("docker-compose.yml", artifacts)
-	assert.NotNil(t, artifact)
-	t.Log(artifact.FileContents)
-
-	artifact = findBuildArtifact("fargate.yml", artifacts)
+	artifact = findBuildArtifact("config.env", artifacts)
 	assert.NotNil(t, artifact)
 	t.Log(artifact.FileContents)
 }
@@ -228,4 +224,43 @@ func findBuildArtifact(name string, artifacts []*BuildArtifact) *BuildArtifact {
 		}
 	}
 	return nil
+}
+
+func TestParseDockerImage(t *testing.T) {
+	image := "12345678912.dkr.ecr.us-east-1.amazonaws.com/my-service:0.1.0"
+	repo, version, pre := parseDockerImage(image)
+	t.Log("image = ", image)
+	t.Log("repo = ", repo)
+	t.Log("version = ", version)
+	t.Log("pre = ", pre)
+
+	assert.Equal(t, "12345678912.dkr.ecr.us-east-1.amazonaws.com/my-service", repo)
+	assert.Equal(t, "0.1.0", version)
+	assert.Equal(t, "", pre)
+}
+
+func TestParseDockerImage_PreRelease(t *testing.T) {
+	image := "12345678912.dkr.ecr.us-east-1.amazonaws.com/my-service:0.1.0-pre-develop.42"
+	repo, version, pre := parseDockerImage(image)
+	t.Log("image = ", image)
+	t.Log("repo = ", repo)
+	t.Log("version = ", version)
+	t.Log("pre = ", pre)
+
+	assert.Equal(t, "12345678912.dkr.ecr.us-east-1.amazonaws.com/my-service", repo)
+	assert.Equal(t, "0.1.0", version)
+	assert.Equal(t, "pre-develop.42", pre)
+}
+
+func TestParseDockerImage_Latest(t *testing.T) {
+	image := "12345678912.dkr.ecr.us-east-1.amazonaws.com/my-service"
+	repo, version, pre := parseDockerImage(image)
+	t.Log("image = ", image)
+	t.Log("repo = ", repo)
+	t.Log("version = ", version)
+	t.Log("pre = ", pre)
+
+	assert.Equal(t, "12345678912.dkr.ecr.us-east-1.amazonaws.com/my-service", repo)
+	assert.Equal(t, "latest", version)
+	assert.Equal(t, "", pre)
 }
