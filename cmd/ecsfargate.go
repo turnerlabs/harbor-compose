@@ -22,26 +22,28 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 	repoDir := downloadTerraformTemplate()
 	debug("downloaded to: " + repoDir)
 
-	baseDir, envDir := installTerraformTemplate(repoDir, shipmentEnv.Name)
+	baseDir, envDir, baseDirInstalled := installTerraformTemplate(repoDir, shipmentEnv.Name)
 	debug("environment installed to: " + envDir)
 
 	//translate harbor data into aws ecs fargate data
 	data := translateShipmentEnvironmentToEcsTerraform(shipmentEnv, harborCompose)
 
-	//generate terraform.tfvars for base
-	baseTfVars := getTfVarsForBase(data)
-	debug(baseTfVars)
-	baseTfVarsFile := filepath.Join(baseDir, "terraform.tfvars")
-	debug("writing " + baseTfVarsFile)
-	err := ioutil.WriteFile(baseTfVarsFile, []byte(baseTfVars), 0644)
-	check(err)
+	//generate terraform.tfvars for base (if installed)
+	if baseDirInstalled {
+		baseTfVars := getTfVarsForBase(data)
+		debug(baseTfVars)
+		baseTfVarsFile := filepath.Join(baseDir, "terraform.tfvars")
+		debug("writing " + baseTfVarsFile)
+		err := ioutil.WriteFile(baseTfVarsFile, []byte(baseTfVars), 0644)
+		check(err)
+	}
 
 	//generate terraform.tfvars for env
 	envTfVars := getTfVarsForEnv(data)
 	debug(envTfVars)
 	envTfVarsFile := filepath.Join(envDir, "terraform.tfvars")
-	debug("writing " + baseTfVarsFile)
-	err = ioutil.WriteFile(envTfVarsFile, []byte(envTfVars), 0644)
+	debug("writing " + envTfVarsFile)
+	err := ioutil.WriteFile(envTfVarsFile, []byte(envTfVars), 0644)
 	check(err)
 
 	//update tf backend in main.tf
@@ -152,7 +154,9 @@ func downloadTerraformTemplate() string {
 	return repoDir
 }
 
-func installTerraformTemplate(repoDir string, environment string) (string, string) {
+//installs a template for the specified environment,
+//indicating whether or not the base directory was installed
+func installTerraformTemplate(repoDir string, environment string) (string, string, bool) {
 
 	//create infrastructure directory (if not already there)
 	infraDir := "infrastructure"
@@ -169,10 +173,12 @@ func installTerraformTemplate(repoDir string, environment string) (string, strin
 	baseDir := "base"
 	sourceBaseDir := filepath.Join(repoDir, baseDir)
 	destBaseDir := filepath.Join(infraDir, baseDir)
+	createdBaseDir := false
 	if _, err := os.Stat(destBaseDir); os.IsNotExist(err) {
 		debug(fmt.Sprintf("copying %s to %s", sourceBaseDir, destBaseDir))
 		err = copyDir(sourceBaseDir, destBaseDir)
 		check(err)
+		createdBaseDir = true
 	} else {
 		fmt.Println(destBaseDir + " already exists, ignoring")
 	}
@@ -207,7 +213,7 @@ func installTerraformTemplate(repoDir string, environment string) (string, strin
 	err = os.RemoveAll(repoDir)
 	check(err)
 
-	return destBaseDir, destEnvDir
+	return destBaseDir, destEnvDir, createdBaseDir
 }
 
 func getBargeData(barge string) *Barge {
