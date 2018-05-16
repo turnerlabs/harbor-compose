@@ -424,13 +424,14 @@ aws_profile = "{{ .AwsAccountName }}:{{ .AwsAccountName }}-{{ .AwsRole }}"
 saml_role = "{{ .AwsAccountName }}-{{ .AwsRole }}"
 	
 tags = {
-	application   = "{{ .Shipment }}"
-	environment   = "prod"
-	team          = "{{ .Group }}"
-	customer      = "{{ .Property }}"
-	contact-email = "{{ .ContactEmail }}"
-	product       = "{{ .Product }}"
-	project       = "{{ .Project }}"
+	application      = "{{ .Shipment }}"
+	environment      = "prod"
+	team             = "{{ .Group }}"
+	customer         = "{{ .Property }}"
+	contact-email    = "{{ .ContactEmail }}"
+	product          = "{{ .Product }}"
+	project          = "{{ .Project }}"
+	harbor_migration = "true"
 }
 
 app = "{{ .Shipment }}"
@@ -462,13 +463,14 @@ aws_profile = "{{ .AwsAccountName }}:{{ .AwsAccountName }}-{{ .AwsRole }}"
 saml_role = "{{ .AwsAccountName }}-{{ .AwsRole }}"
 
 tags = {
-	application   = "{{ .Shipment }}"
-	environment   = "{{ .Env }}"	
-	team          = "{{ .Group }}"
-	customer      = "{{ .Property }}"
-	contact-email = "{{ .ContactEmail }}"
-	product       = "{{ .Product }}"
-	project       = "{{ .Project }}"
+	application      = "{{ .Shipment }}"
+	environment      = "{{ .Env }}"
+	team             = "{{ .Group }}"
+	customer         = "{{ .Property }}"
+	contact-email    = "{{ .ContactEmail }}"
+	product          = "{{ .Product }}"
+	project          = "{{ .Project }}"
+	harbor_migration = "true"
 }
 
 app = "{{ .Shipment }}"
