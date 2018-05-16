@@ -132,16 +132,12 @@ func updateTerraformBackend(maintf string, data *ecsTerraformShipmentEnvironment
 //fetches and installs the tf template and returns the output directory
 func downloadTerraformTemplate() string {
 
-	// org := "turnerlabs"
-	org := "turnercode"
+	org := "turnerlabs"
 	repo := "terraform-ecs-fargate"
-	// version := "v0.1.0-alpha.0"
-	// url := fmt.Sprintf("https://github.com/%s/%s/archive/%s.zip", org, repo, version)
-	url := fmt.Sprintf("git@github.com:%s/%s.git", org, repo)
+	url := fmt.Sprintf("https://github.com/%s/%s/archive/%s.zip", org, repo, migrateTemplateTag)
 	client := getter.Client{
-		Src: url,
-		// Dst:  "./",
-		Dst:  "./" + repo,
+		Src:  url,
+		Dst:  "./",
 		Mode: getter.ClientModeDir,
 	}
 

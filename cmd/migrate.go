@@ -26,6 +26,7 @@ The migrate command's --build-provider flag allows you to generate build provide
 harbor-compose migrate my-shipment dev --platform ecsfargate --build-provider circleciv2
 harbor-compose migrate my-shipment prod --platform ecsfargate	
 harbor-compose migrate my-shipment prod --platform ecsfargate --role admin
+harbor-compose migrate my-shipment prod --template-tag v0.1.0
 `,
 	Run:    migrate,
 	PreRun: preRunHook,
@@ -34,6 +35,7 @@ harbor-compose migrate my-shipment prod --platform ecsfargate --role admin
 var migrateBuildProvider string
 var migratePlatform string
 var migrateRole string
+var migrateTemplateTag string
 
 func init() {
 	migrateCmd.PersistentFlags().StringVarP(&migratePlatform, "platform", "p", "ecsfargate", "target migration platform")
@@ -41,6 +43,8 @@ func init() {
 	migrateCmd.PersistentFlags().StringVarP(&migrateBuildProvider, "build-provider", "b", "", "migrate build provider-specific files that allow you to build Docker images do CI/CD")
 
 	migrateCmd.PersistentFlags().StringVarP(&migrateRole, "role", "r", "devops", "migrate using specified aws role")
+
+	migrateCmd.PersistentFlags().StringVarP(&migrateTemplateTag, "template-tag", "t", "v0.1.0", "migrate using specified template")
 
 	RootCmd.AddCommand(migrateCmd)
 }
