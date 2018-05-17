@@ -9,7 +9,11 @@ import (
 type Codeship struct{}
 
 //ProvideArtifacts -
-func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string) ([]*BuildArtifact, error) {
+func (provider Codeship) ProvideArtifacts(dockerCompose *DockerCompose, harborCompose *HarborCompose, token string, platform string) ([]*BuildArtifact, error) {
+
+	if platform != "harbor" {
+    return nil, fmt.Errorf("build provider doesn't support platform %s", platform)
+	}	
 
 	//iterate containers
 	for _, svc := range dockerCompose.Services {

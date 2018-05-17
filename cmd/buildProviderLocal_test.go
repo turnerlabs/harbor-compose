@@ -75,7 +75,7 @@ func TestTransformShipmentToDockerComposeBuildProviderLocal(t *testing.T) {
 	}
 
 	//run the build provider
-	_, err = provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token")
+	_, err = provider.ProvideArtifacts(&dockerCompose, &harborCompose, "token", "harbor")
 	if err != nil {
 		t.Fail()
 	}

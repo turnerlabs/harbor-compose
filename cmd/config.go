@@ -18,6 +18,7 @@ type Config struct {
 	HelmitURI    string `json:"helmit"`
 	CustomsURI   string `json:"customs"`
 	TelemetryURI string `json:"telemetry"`
+	BargesURI    string `json:"barges"`
 }
 
 func readConfig() (*Config, error) {
@@ -106,6 +107,10 @@ func GetConfig() *Config {
 
 	if config.TelemetryURI == "" {
 		config.TelemetryURI = "https://telemetry.harbor.turnerlabs.io"
+	}
+
+	if config.BargesURI == "" {
+		config.BargesURI = "https://aws.turnerlabs.io"
 	}
 
 	return config
