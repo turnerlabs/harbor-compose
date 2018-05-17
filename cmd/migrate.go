@@ -66,7 +66,7 @@ func migrate(cmd *cobra.Command, args []string) {
 	if len(migrateBuildProvider) > 0 {
 		temp, err := getBuildProvider(migrateBuildProvider)
 		provider = &temp
-		check(err)	
+		check(err)
 	}
 
 	if Verbose {
@@ -76,6 +76,15 @@ func migrate(cmd *cobra.Command, args []string) {
 	if shipmentObject == nil {
 		fmt.Println(messageShipmentEnvironmentNotFound)
 		return
+	}
+
+	//make all envvars hidden so they get written to hidden.env
+	//instead of docker-compose.yml (just to make sure folks don't
+	//accidentally check in their secrets)
+	hideEnvVars(shipmentObject.ParentShipment.EnvVars)
+	hideEnvVars(shipmentObject.EnvVars)
+	for _, c := range shipmentObject.Containers {
+		hideEnvVars(c.EnvVars)
 	}
 
 	//convert a Shipment object into a HarborCompose object
@@ -168,7 +177,7 @@ func migrate(cmd *cobra.Command, args []string) {
 				}
 			}
 		}
-	}	
+	}
 
 	fmt.Println()
 	fmt.Println("Run the following commands to provision an matching infrastructure stack on the target platform:")
