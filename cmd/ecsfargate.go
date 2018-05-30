@@ -117,7 +117,7 @@ func updateTerraformBackend(maintf string, data *ecsTerraformShipmentEnvironment
 		updatedLine := line
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, `profile = ""`) {
-			updatedLine = fmt.Sprintf(`    profile = "%s:%s-%s"`, data.AwsAccountName, data.AwsAccountName, data.AwsRole)
+			updatedLine = fmt.Sprintf(`    profile = "%s"`, data.AwsProfile)
 		}
 		if strings.HasPrefix(trimmed, "bucket") {
 			updatedLine = fmt.Sprintf(`    bucket  = "tf-state-%s"`, data.Shipment)
@@ -290,23 +290,41 @@ func translateShipmentEnvironmentToEcsTerraform(shipmentEnvironment *ShipmentEnv
 		GeneratedDate: generationTime,
 	}
 
-	//call barge api to get aws account/networking info
-	barge := getBargeData(composeShipment.Barge)
-	if barge == nil {
-		check(fmt.Errorf("barge %s not found", composeShipment.Barge))
-	}
-
 	//call groups api to get contact-email address
 	result.ContactEmail = getContactEmailFromGroup(composeShipment.Group)
-
-	result.AwsAccountID = barge.AccountID
-	result.AwsAccountName = barge.AccountName
-	result.AwsVpc = barge.Vpc
-	result.AwsPrivateSubnets = strings.Join(barge.PrivateSubnets, ",")
-	result.AwsPublicSubnets = strings.Join(barge.PublicSubnets, ",")
-	result.AwsRegion = "us-east-1"
 	result.AwsRole = migrateRole
 	result.IamRoleIsSpecified = (result.IamRole != "")
+
+	//set aws info based on barge or cli args
+	if migrateAccountName != "" {
+		result.AwsAccountName = migrateAccountName
+		result.AwsAccountID = migrateAccountID
+		result.AwsVpc = migrateVPC
+		result.AwsPrivateSubnets = migratePrivateSubnets
+		result.AwsPublicSubnets = migratePublicSubnets
+		result.AwsRegion = "us-east-1"
+	} else {
+
+		//call barge api to get aws account/networking info
+		barge := getBargeData(composeShipment.Barge)
+		if barge == nil {
+			check(fmt.Errorf("barge %s not found", composeShipment.Barge))
+		}
+
+		result.AwsAccountID = barge.AccountID
+		result.AwsAccountName = barge.AccountName
+		result.AwsVpc = barge.Vpc
+		result.AwsPrivateSubnets = strings.Join(barge.PrivateSubnets, ",")
+		result.AwsPublicSubnets = strings.Join(barge.PublicSubnets, ",")
+		result.AwsRegion = "us-east-1"
+	}
+
+	//use default profile name if profile arg not specified
+	if migrateProfile != "" {
+		result.AwsProfile = migrateProfile
+	} else {
+		result.AwsProfile = fmt.Sprintf("%s:%s-%s", result.AwsAccountName, result.AwsAccountName, result.AwsRole)
+	}
 
 	//convert current image to ecr image
 	result.NewImage = migrateImage(shipmentEnvironment.Containers[0].Image, result.AwsAccountID, result.AwsRegion, result.Shipment)
@@ -421,7 +439,7 @@ func getTfVarsForBase(data *ecsTerraformShipmentEnvironment) string {
 
 region = "{{ .AwsRegion }}"
 
-aws_profile = "{{ .AwsAccountName }}:{{ .AwsAccountName }}-{{ .AwsRole }}"
+aws_profile = "{{ .AwsProfile }}"
 	
 saml_role = "{{ .AwsAccountName }}-{{ .AwsRole }}"
 	
@@ -460,7 +478,7 @@ func getTfVarsForEnv(data *ecsTerraformShipmentEnvironment) string {
 
 region = "{{ .AwsRegion }}"
 
-aws_profile = "{{ .AwsAccountName }}:{{ .AwsAccountName }}-{{ .AwsRole }}"
+aws_profile = "{{ .AwsProfile }}"
 	
 saml_role = "{{ .AwsAccountName }}-{{ .AwsRole }}"
 
