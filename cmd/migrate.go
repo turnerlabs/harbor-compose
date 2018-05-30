@@ -27,6 +27,14 @@ harbor-compose migrate my-shipment dev --platform ecsfargate --build-provider ci
 harbor-compose migrate my-shipment prod --platform ecsfargate	
 harbor-compose migrate my-shipment prod --platform ecsfargate --role admin
 harbor-compose migrate my-shipment prod --template-tag v0.1.0
+
+# migrate to the specified account
+harbor-compose migrate my-shipment prod \
+	--account-name my-aws-account \
+	--account-id 123456789012 \
+	--vpc vpc-123 \
+	--private-subnets subnet-123,subnet-456 \ 
+	--public-subnets subnet-789,subnet-012 
 `,
 	Run:    migrate,
 	PreRun: preRunHook,
@@ -36,15 +44,25 @@ var migrateBuildProvider string
 var migratePlatform string
 var migrateRole string
 var migrateTemplateTag string
+var migrateProfile string
+var migrateAccountID string
+var migrateAccountName string
+var migrateVPC string
+var migratePrivateSubnets string
+var migratePublicSubnets string
 
 func init() {
 	migrateCmd.PersistentFlags().StringVarP(&migratePlatform, "platform", "p", "ecsfargate", "target migration platform")
-
 	migrateCmd.PersistentFlags().StringVarP(&migrateBuildProvider, "build-provider", "b", "", "migrate build provider-specific files that allow you to build Docker images do CI/CD")
-
-	migrateCmd.PersistentFlags().StringVarP(&migrateRole, "role", "r", "devops", "migrate using specified aws role")
-
 	migrateCmd.PersistentFlags().StringVarP(&migrateTemplateTag, "template-tag", "t", "v0.1.0", "migrate using specified template")
+	migrateCmd.PersistentFlags().StringVarP(&migrateRole, "role", "r", "devops", "migrate using specified aws role")
+	migrateCmd.PersistentFlags().StringVar(&migrateProfile, "profile", "", "migrate using specified aws profile")
+
+	migrateCmd.PersistentFlags().StringVarP(&migrateAccountName, "account-name", "n", "", "migrate to the specified Account Name")
+	migrateCmd.PersistentFlags().StringVarP(&migrateAccountID, "account-id", "i", "", "migrate to the specified Account ID")
+	migrateCmd.PersistentFlags().StringVar(&migrateVPC, "vpc", "", "migrate to the specified VPC ID")
+	migrateCmd.PersistentFlags().StringVar(&migratePrivateSubnets, "private-subnets", "", "migrate using the specified private subnets (comma-delimited)")
+	migrateCmd.PersistentFlags().StringVar(&migratePublicSubnets, "public-subnets", "", "migrate using the specified public subnets (comma-delimited)")
 
 	RootCmd.AddCommand(migrateCmd)
 }
@@ -53,6 +71,26 @@ func migrate(cmd *cobra.Command, args []string) {
 	if len(args) < 2 {
 		cmd.Help()
 		os.Exit(-1)
+	}
+
+	//if account-name is specified, then a number of other args are required
+	if migrateAccountName != "" {
+		if migrateAccountID == "" {
+			fmt.Println("--account-id is required if using --account-name")
+			os.Exit(-1)
+		}
+		if migrateVPC == "" {
+			fmt.Println("--vpc is required if using --account-name")
+			os.Exit(-1)
+		}
+		if migratePrivateSubnets == "" {
+			fmt.Println("--private-subnets is required if using --account-name")
+			os.Exit(-1)
+		}
+		if migratePublicSubnets == "" {
+			fmt.Println("--public-subnets is required if using --account-name")
+			os.Exit(-1)
+		}
 	}
 
 	username, token, err := Login()

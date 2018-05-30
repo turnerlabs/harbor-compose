@@ -22,27 +22,16 @@ provider "aws" {
 	region  = "${var.region}"
 	profile = "${var.aws_profile}"
 }
-
-# output
-
-output "lb_dns" {
-	value = "${aws_alb.main.dns_name}"
-}
-
-output "status" {
-	value = "fargate --cluster ${var.app}-${var.environment} service info ${var.app}-${var.environment}"
-}	
 `
 
 	data := ecsTerraformShipmentEnvironment{
-		Shipment:       "my-shipment",
-		Env:            "dev",
-		AwsAccountName: "my-account",
-		AwsRole:        "devops",
+		Shipment:   "my-shipment",
+		Env:        "dev",
+		AwsProfile: "my-profile",
 	}
 
 	result := updateTerraformBackend(tf, &data)
 	t.Log(result)
-	assert.Contains(t, result, `profile = "my-account:my-account-devops"`)
+	assert.Contains(t, result, `profile = "my-profile"`)
 	assert.Contains(t, result, `bucket  = "tf-state-my-shipment"`)
 }
