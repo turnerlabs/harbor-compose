@@ -730,3 +730,37 @@ func GetGroup(id string) *Group {
 
 	return &result
 }
+
+func getLoadBalancerStatus(shipment string, env string) (*LoadBalancer, error) {
+
+	uri := triggerURI("/v2/loadbalancer/status/{shipment}/{env}/{provider}",
+		param("shipment", shipment),
+		param("env", env),
+		param("provider", providerEc2))
+
+	if Verbose {
+		log.Printf("getting lb status: " + uri)
+	}
+
+	//issue request
+	res, body, err := gorequest.New().Get(uri).EndBytes()
+	if err != nil {
+		return nil, err[0]
+	}
+
+	var result LoadBalancer
+	if res.StatusCode == http.StatusOK {
+		if Verbose {
+			log.Println(string(body))
+		}
+
+		unmarshalErr := json.Unmarshal(body, &result)
+		if unmarshalErr != nil {
+			return nil, unmarshalErr
+		}
+	} else {
+		return nil, fmt.Errorf("get lb status returned: %v; %v", res.StatusCode, string(body))
+	}
+
+	return &result, nil
+}
