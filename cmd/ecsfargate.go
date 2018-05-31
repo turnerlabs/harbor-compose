@@ -601,10 +601,10 @@ new_image = "{{ .NewImage }}"
 
 {{ if .HTTPSPort }}
 https_port = "{{ .HTTPSPort.PublicPort }}"
-{{ end }}
 
 {{ if eq .HTTPSPort.SslManagementType "acm" }}
 certificate_arn = "{{ .HTTPSPort.SslArn }}"
+{{ end }}
 {{ end }}
 
 # https://aws.amazon.com/fargate/pricing/
