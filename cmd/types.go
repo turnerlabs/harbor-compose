@@ -273,3 +273,15 @@ type Group struct {
 	Users  []string `json:"users"`
 	Admins []string `json:"admins"`
 }
+
+// LoadBalancer represents a harbor load balancer
+type LoadBalancer struct {
+	Name                  string `json:"name"`
+	Type                  string `json:"type"`
+	Public                bool   `json:"public"`
+	ARN                   string `json:"arn"`
+	DNSName               string `json:"dnsName"`
+	CanonicalHostedZoneID string `json:"canonicalHostedZoneId"`
+	VpcID                 string `json:"vpcId"`
+	State                 string `json:"state"`
+}

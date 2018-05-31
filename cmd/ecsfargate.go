@@ -67,6 +67,29 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 		debug("deleting lb-http.tf")
 		err = os.Remove(filepath.Join(envDir, "lb-http.tf"))
 		check(err)
+
+		//update listener dependency in ecs.tf
+		tfFile := filepath.Join(envDir, "ecs.tf")
+		fileBits, err := ioutil.ReadFile(tfFile)
+		check(err)
+		fileContents := updateEcsListenerDep(string(fileBits))
+		err = ioutil.WriteFile(tfFile, []byte(fileContents), 0644)
+		check(err)		
+	}
+
+	//update lb-https.tf with support for iam server certificates
+	if data.HTTPSPort != nil && data.HTTPSPort.SslManagementType == "iam" {
+
+		//lookup cert name prefix from harbor
+		certNamePrefix := getSslCertNamePrefix(data.Shipment, data.Env)
+
+		//re-write lb-https.tf
+		tfFile := filepath.Join(envDir, "lb-https.tf")
+		fileBits, err := ioutil.ReadFile(tfFile)
+		check(err)
+		fileContents := updateHTTPSForIam(string(fileBits), certNamePrefix)
+		err = ioutil.WriteFile(tfFile, []byte(fileContents), 0644)
+		check(err)
 	}
 
 	//write doc-monitoring files
@@ -103,6 +126,41 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 	return envDir, data
 }
 
+func getSslCertNamePrefix(shipment string, env string) string {
+	lb, err := getLoadBalancerStatus(shipment, env)
+	check(err)
+	return lb.Name
+}
+
+func updateHTTPSForIam(tf string, certNamePrefix string) string {
+	//replace `certificate_arn   = "${var.certificate_arn}"`
+	//with `certificate_arn = "${data.aws_iam_server_certificate.app.arn}"`
+	tmp := strings.Split(tf, "\n")
+	newTf := ""
+	for _, line := range tmp {
+		updatedLine := line
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, `certificate_arn`) {
+			updatedLine = `  certificate_arn   = "${data.aws_iam_server_certificate.app.arn}"`
+		}
+		newTf += updatedLine + "\n"
+	}
+
+	//add aws_iam_server_certificate data source
+	newTf += fmt.Sprintf(`
+data "aws_iam_server_certificate" "app" {
+  name_prefix = "%s"
+  latest      = true
+}
+	`, certNamePrefix)
+
+	//delete variable "certificate_arn"
+	newTf = strings.Replace(newTf, `# The ARN for the SSL certificate`, "", -1)
+	newTf = strings.Replace(newTf, `variable "certificate_arn" {}`, "", -1)
+
+	return newTf
+}
+
 func getFargateYaml(shipment string, env string) string {
 	return fmt.Sprintf(`cluster: %s-%s
 service: %s-%s
@@ -126,6 +184,21 @@ func updateTerraformBackend(maintf string, data *ecsTerraformShipmentEnvironment
 			updatedLine = fmt.Sprintf(`    key     = "%s.terraform.tfstate"`, data.Env)
 		}
 
+		newMaintf += updatedLine + "\n"
+	}
+	return newMaintf
+}
+
+func updateEcsListenerDep(maintf string) string {
+	//replace "aws_alb_listener.http" with "aws_alb_listener.https"
+	tmp := strings.Split(maintf, "\n")
+	newMaintf := ""
+	for _, line := range tmp {
+		updatedLine := line
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, `"aws_alb_listener.http",`) {
+			updatedLine = `    "aws_alb_listener.https"`
+		}
 		newMaintf += updatedLine + "\n"
 	}
 	return newMaintf
@@ -503,7 +576,12 @@ container_name = "{{ .ContainerName }}"
 
 container_port = "{{ .PrimaryPort.Value }}"
 
+{{ if .HTTPPort }}
 lb_port = "{{ .HTTPPort.PublicPort }}"
+{{ end }}
+{{ if .HTTPSPort }}
+lb_port = "{{ .HTTPSPort.PublicPort }}"
+{{ end }}
 
 lb_protocol = "HTTP"
 
@@ -522,10 +600,10 @@ old_image = "{{ .OldImage }}"
 new_image = "{{ .NewImage }}"
 
 {{ if .HTTPSPort }}
-# https
-
 https_port = "{{ .HTTPSPort.PublicPort }}"
+{{ end }}
 
+{{ if eq .HTTPSPort.SslManagementType "acm" }}
 certificate_arn = "{{ .HTTPSPort.SslArn }}"
 {{ end }}
 
