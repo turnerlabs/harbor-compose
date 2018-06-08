@@ -173,7 +173,7 @@ jobs:
             cat ${VAR}
       - run:        
           name: Login to registry
-          command: eval $(aws ecr get-login --no-include-email)
+          command: login=$(aws ecr get-login --no-include-email) && eval "$login"
       - run:
           name: Build app image
           command: . ${VAR}; docker build -t ${IMAGE} .
