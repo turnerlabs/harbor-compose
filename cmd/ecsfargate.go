@@ -74,7 +74,7 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 		check(err)
 		fileContents := updateEcsListenerDep(string(fileBits))
 		err = ioutil.WriteFile(tfFile, []byte(fileContents), 0644)
-		check(err)		
+		check(err)
 	}
 
 	//update lb-https.tf with support for iam server certificates
@@ -578,8 +578,7 @@ container_port = "{{ .PrimaryPort.Value }}"
 
 {{ if .HTTPPort }}
 lb_port = "{{ .HTTPPort.PublicPort }}"
-{{ end }}
-{{ if .HTTPSPort }}
+{{ else }}
 lb_port = "{{ .HTTPSPort.PublicPort }}"
 {{ end }}
 
