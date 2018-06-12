@@ -103,6 +103,15 @@ func migrate(cmd *cobra.Command, args []string) {
 	shipment := args[0]
 	env := args[1]
 
+	//validate that the "app-env" name (used for alb name) is <= 32 characters
+	app := shipment
+	if migrateAppName != "" {
+		app = migrateAppName
+	}
+	if len(app+env) > 32 {
+		check(fmt.Errorf("%s-%s (app-env) must be <= 32 characters", app, env))
+	}
+
 	//instantiate a build provider if specified
 	var provider *BuildProvider
 	if len(migrateBuildProvider) > 0 {
