@@ -363,6 +363,11 @@ func translateShipmentEnvironmentToEcsTerraform(shipmentEnvironment *ShipmentEnv
 		GeneratedDate: generationTime,
 	}
 
+	//override "Shipment" with --app, if specified
+	if migrateAppName != "" {
+		result.Shipment = migrateAppName
+	}
+
 	//call groups api to get contact-email address
 	result.ContactEmail = getContactEmailFromGroup(composeShipment.Group)
 	result.AwsRole = migrateRole

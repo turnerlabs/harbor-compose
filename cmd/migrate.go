@@ -27,6 +27,7 @@ harbor-compose migrate my-shipment dev --platform ecsfargate --build-provider ci
 harbor-compose migrate my-shipment prod --platform ecsfargate	
 harbor-compose migrate my-shipment prod --platform ecsfargate --role admin
 harbor-compose migrate my-shipment prod --template-tag v0.1.0
+harbor-compose migrate my-shipment prod --app my-fargate-app
 
 # migrate to the specified account
 harbor-compose migrate my-shipment prod \
@@ -50,6 +51,7 @@ var migrateAccountName string
 var migrateVPC string
 var migratePrivateSubnets string
 var migratePublicSubnets string
+var migrateAppName string
 
 func init() {
 	migrateCmd.PersistentFlags().StringVarP(&migratePlatform, "platform", "p", "ecsfargate", "target migration platform")
@@ -63,6 +65,8 @@ func init() {
 	migrateCmd.PersistentFlags().StringVar(&migrateVPC, "vpc", "", "migrate to the specified VPC ID")
 	migrateCmd.PersistentFlags().StringVar(&migratePrivateSubnets, "private-subnets", "", "migrate using the specified private subnets (comma-delimited)")
 	migrateCmd.PersistentFlags().StringVar(&migratePublicSubnets, "public-subnets", "", "migrate using the specified public subnets (comma-delimited)")
+
+	migrateCmd.PersistentFlags().StringVarP(&migrateAppName, "app", "a", "", "use this app name instead of shipment name")
 
 	RootCmd.AddCommand(migrateCmd)
 }
@@ -98,6 +102,16 @@ func migrate(cmd *cobra.Command, args []string) {
 
 	shipment := args[0]
 	env := args[1]
+
+	//validate that the "app-env" name (used for alb name) is <= 32 characters
+	app := shipment
+	if migrateAppName != "" {
+		app = migrateAppName
+	}
+	appEnv := fmt.Sprintf("%s-%s", app, env) 
+	if len(appEnv) > 32 {
+		check(fmt.Errorf("%s (app-env) must be <= 32 characters", appEnv))
+	}
 
 	//instantiate a build provider if specified
 	var provider *BuildProvider
