@@ -55,6 +55,7 @@ type terraformShipmentEnvironment struct {
 
 type ecsTerraformShipmentEnvironment struct {
 	Shipment           string
+	App                string
 	Env                string
 	Group              string
 	Replicas           int

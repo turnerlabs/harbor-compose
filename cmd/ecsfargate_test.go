@@ -25,7 +25,7 @@ provider "aws" {
 `
 
 	data := ecsTerraformShipmentEnvironment{
-		Shipment:   "my-shipment",
+		App:        "my-app",
 		Env:        "dev",
 		AwsProfile: "my-profile",
 	}
@@ -33,7 +33,7 @@ provider "aws" {
 	result := updateTerraformBackend(tf, &data)
 	t.Log(result)
 	assert.Contains(t, result, `profile = "my-profile"`)
-	assert.Contains(t, result, `bucket  = "tf-state-my-shipment"`)
+	assert.Contains(t, result, `bucket  = "tf-state-my-app"`)
 }
 
 func TestUpdateHTTPSForIam(t *testing.T) {

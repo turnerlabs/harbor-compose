@@ -117,7 +117,7 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 	}
 
 	//write a fargate.yml for the cli
-	fargateYml := getFargateYaml(data.Shipment, data.Env)
+	fargateYml := getFargateYaml(data.App, data.Env)
 	fargateYmlFile := filepath.Join(envDir, "fargate.yml")
 	debug("writing " + fargateYmlFile)
 	err = ioutil.WriteFile(fargateYmlFile, []byte(fargateYml), 0644)
@@ -178,7 +178,7 @@ func updateTerraformBackend(maintf string, data *ecsTerraformShipmentEnvironment
 			updatedLine = fmt.Sprintf(`    profile = "%s"`, data.AwsProfile)
 		}
 		if strings.HasPrefix(trimmed, "bucket") {
-			updatedLine = fmt.Sprintf(`    bucket  = "tf-state-%s"`, data.Shipment)
+			updatedLine = fmt.Sprintf(`    bucket  = "tf-state-%s"`, data.App)
 		}
 		if strings.HasPrefix(trimmed, "key") {
 			updatedLine = fmt.Sprintf(`    key     = "%s.terraform.tfstate"`, data.Env)
@@ -349,6 +349,7 @@ func translateShipmentEnvironmentToEcsTerraform(shipmentEnvironment *ShipmentEnv
 
 	result := ecsTerraformShipmentEnvironment{
 		Shipment:      shipmentEnvironment.ParentShipment.Name,
+		App:           shipmentEnvironment.ParentShipment.Name,
 		Env:           shipmentEnvironment.Name,
 		Group:         composeShipment.Group,
 		Replicas:      composeShipment.Replicas,
@@ -365,7 +366,7 @@ func translateShipmentEnvironmentToEcsTerraform(shipmentEnvironment *ShipmentEnv
 
 	//override "Shipment" with --app, if specified
 	if migrateAppName != "" {
-		result.Shipment = migrateAppName
+		result.App = migrateAppName
 	}
 
 	//call groups api to get contact-email address
@@ -405,7 +406,7 @@ func translateShipmentEnvironmentToEcsTerraform(shipmentEnvironment *ShipmentEnv
 	}
 
 	//convert current image to ecr image
-	result.NewImage = migrateImage(shipmentEnvironment.Containers[0].Image, result.AwsAccountID, result.AwsRegion, result.Shipment)
+	result.NewImage = migrateImage(shipmentEnvironment.Containers[0].Image, result.AwsAccountID, result.AwsRegion, result.App)
 
 	//use first container
 	container := shipmentEnvironment.Containers[0]
@@ -522,7 +523,7 @@ aws_profile = "{{ .AwsProfile }}"
 saml_role = "{{ .AwsAccountName }}-{{ .AwsRole }}"
 	
 tags = {
-	application      = "{{ .Shipment }}"
+	application      = "{{ .App }}"
 	environment      = "prod"
 	team             = "{{ .Group }}"
 	customer         = "{{ .Property }}"
@@ -532,7 +533,7 @@ tags = {
 	harbor_migration = "true"
 }
 
-app = "{{ .Shipment }}"
+app = "{{ .App }}"
 `
 
 	//create a formatted template
@@ -561,7 +562,7 @@ aws_profile = "{{ .AwsProfile }}"
 saml_role = "{{ .AwsAccountName }}-{{ .AwsRole }}"
 
 tags = {
-	application      = "{{ .Shipment }}"
+	application      = "{{ .App }}"
 	environment      = "{{ .Env }}"
 	team             = "{{ .Group }}"
 	customer         = "{{ .Property }}"
@@ -571,7 +572,7 @@ tags = {
 	harbor_migration = "true"
 }
 
-app = "{{ .Shipment }}"
+app = "{{ .App }}"
 
 environment = "{{ .Env }}"
 
