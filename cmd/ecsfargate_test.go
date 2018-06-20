@@ -78,3 +78,15 @@ resource "aws_security_group_rule" "ingress_lb_https" {
 	assert.Contains(t, result, `name_prefix = "foo"`)
 	assert.Contains(t, result, `certificate_arn   = "${data.aws_iam_server_certificate.app.arn}"`)
 }
+
+func TestGetAwsSamlRoleAndProfile(t *testing.T) {
+	role, profile := getAwsSamlRoleAndProfile("aws-awesome-account", "devops")
+	assert.Equal(t, "aws-awesome-account-devops", role)
+	assert.Equal(t, "aws-awesome-account:aws-awesome-account-devops", profile)
+}
+
+func TestGetAwsSamlRoleAndProfile_Legacy(t *testing.T) {
+	role, profile := getAwsSamlRoleAndProfile("old", "devops")
+	assert.Equal(t, "aws-old-devops", role)
+	assert.Equal(t, "old:aws-old-devops", profile)
+}

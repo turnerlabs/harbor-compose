@@ -68,6 +68,7 @@ type ecsTerraformShipmentEnvironment struct {
 	AwsAccountID       string
 	AwsRole            string
 	AwsProfile         string
+	AwsSamlRole        string
 	AwsVpc             string
 	AwsPrivateSubnets  string
 	AwsPublicSubnets   string
