@@ -631,12 +631,6 @@ certificate_arn = "{{ .HTTPSPort.SslArn }}"
 {{ end }}
 {{ end }}
 
-# https://aws.amazon.com/fargate/pricing/
-
-cpu = "256"
-
-memory = "512"
-
 {{ if ne .LogzToken "" }}
 # logz.io
 

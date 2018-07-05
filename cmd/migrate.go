@@ -22,11 +22,11 @@ Note that the migrate command only outputs files and does not perform an actual 
 
 The migrate command's --build-provider flag allows you to generate build provider-specific files that allow you to build Docker images and do CI/CD.
 `,
-	Example: `harbor-compose migrate my-shipment dev
+	Example: fmt.Sprintf(`harbor-compose migrate my-shipment dev
 harbor-compose migrate my-shipment dev --platform ecsfargate --build-provider circleciv2
 harbor-compose migrate my-shipment prod --platform ecsfargate	
 harbor-compose migrate my-shipment prod --platform ecsfargate --role admin
-harbor-compose migrate my-shipment prod --template-tag v0.1.0
+harbor-compose migrate my-shipment prod --template-tag %s 
 harbor-compose migrate my-shipment prod --app my-fargate-app
 
 # migrate to the specified account
@@ -36,10 +36,14 @@ harbor-compose migrate my-shipment prod \
 	--vpc vpc-123 \
 	--private-subnets subnet-123,subnet-456 \ 
 	--public-subnets subnet-789,subnet-012 
-`,
+`, latestTemplateVersion),
 	Run:    migrate,
 	PreRun: preRunHook,
 }
+
+const (
+	latestTemplateVersion = "v0.2.0"
+)
 
 var migrateBuildProvider string
 var migratePlatform string
@@ -56,7 +60,7 @@ var migrateAppName string
 func init() {
 	migrateCmd.PersistentFlags().StringVarP(&migratePlatform, "platform", "p", "ecsfargate", "target migration platform")
 	migrateCmd.PersistentFlags().StringVarP(&migrateBuildProvider, "build-provider", "b", "", "migrate build provider-specific files that allow you to build Docker images do CI/CD")
-	migrateCmd.PersistentFlags().StringVarP(&migrateTemplateTag, "template-tag", "t", "v0.1.0", "migrate using specified template")
+	migrateCmd.PersistentFlags().StringVarP(&migrateTemplateTag, "template-tag", "t", latestTemplateVersion, "migrate using specified template")
 	migrateCmd.PersistentFlags().StringVarP(&migrateRole, "role", "r", "devops", "migrate using specified aws role")
 	migrateCmd.PersistentFlags().StringVar(&migrateProfile, "profile", "", "migrate using specified aws profile")
 
@@ -108,7 +112,7 @@ func migrate(cmd *cobra.Command, args []string) {
 	if migrateAppName != "" {
 		app = migrateAppName
 	}
-	appEnv := fmt.Sprintf("%s-%s", app, env) 
+	appEnv := fmt.Sprintf("%s-%s", app, env)
 	if len(appEnv) > 32 {
 		check(fmt.Errorf("%s (app-env) must be <= 32 characters", appEnv))
 	}
