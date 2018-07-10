@@ -550,6 +550,7 @@ tags = {
 	product          = "{{ .Product }}"
 	project          = "{{ .Project }}"
 	harbor_migration = "true"
+	shipment         = "{{ .Shipment }}"
 }
 
 app = "{{ .App }}"
@@ -589,6 +590,7 @@ tags = {
 	product          = "{{ .Product }}"
 	project          = "{{ .Project }}"
 	harbor_migration = "true"
+	shipment         = "{{ .Shipment }}"
 }
 
 app = "{{ .App }}"
