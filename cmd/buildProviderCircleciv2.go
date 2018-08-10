@@ -15,18 +15,18 @@ func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 		return nil, fmt.Errorf("build provider doesn't support platform %s", platform)
 	}
 
-  //iterate containers
-  var imageRepo, imageVersion string
+	//iterate containers
+	var imageRepo, imageVersion string
 	for _, svc := range dockerCompose.Services {
 
 		//set build configuration to string containing a path to the build context
 		svc.Build = "."
 		if platform == "ecsfargate" {
 			svc.Build = "../"
-    }
-    
-    //split out parts of docker image for use later
-    imageRepo, imageVersion, _ = parseDockerImage(svc.Image)
+		}
+
+		//split out parts of docker image for use later
+		imageRepo, imageVersion, _ = parseDockerImage(svc.Image)
 
 		//add the circle ci build number to the image tag
 		svc.Image += "-${CIRCLE_BUILD_NUM}"
@@ -57,10 +57,10 @@ func (provider CircleCIv2) ProvideArtifacts(dockerCompose *DockerCompose, harbor
 		fmt.Println(`Be sure to supply the following environment variables in your Circle CI build:
 AWS_ACCESS_KEY_ID (terraform output cicd_keys)
 AWS_SECRET_ACCESS_KEY (terraform output cicd_keys)
-AWS_DEFAULT_REGION=us-east-1
-`)
+AWS_DEFAULT_REGION=us-east-1`)
+		fmt.Println()
 
-    //output a config.env
+		//output a config.env
 		if harborCompose != nil {
 			for name, shipment := range harborCompose.Shipments {
 				artifacts = append(artifacts, createArtifact(".circleci/config.env", getConfigEnv(name, shipment.Env, imageRepo, imageVersion)))
@@ -75,32 +75,32 @@ AWS_DEFAULT_REGION=us-east-1
 
 //parse a docker image into it's constituent parts: ${repo}:${version}-${prerelease}
 func parseDockerImage(image string) (string, string, string) {
-  repoVersion := strings.Split(image, ":")
-  version := "latest"
-  pre := ""
-  if len(repoVersion) > 1 {
-    versionPrerelease := strings.Split(repoVersion[1], "-")
-    version = versionPrerelease[0]
-    if version == "" {
-      version = "latest"
-    }
-    if len(versionPrerelease) > 0 {
-      pre = strings.Join(versionPrerelease[1:], "-")
-    }
-  }
-  return repoVersion[0], version, pre
+	repoVersion := strings.Split(image, ":")
+	version := "latest"
+	pre := ""
+	if len(repoVersion) > 1 {
+		versionPrerelease := strings.Split(repoVersion[1], "-")
+		version = versionPrerelease[0]
+		if version == "" {
+			version = "latest"
+		}
+		if len(versionPrerelease) > 0 {
+			pre = strings.Join(versionPrerelease[1:], "-")
+		}
+	}
+	return repoVersion[0], version, pre
 }
 
 func getConfigEnv(app string, env string, repo string, version string) string {
-  service := fmt.Sprintf("%s-%s", app, env)
-  result := fmt.Sprintf(`
+	service := fmt.Sprintf("%s-%s", app, env)
+	result := fmt.Sprintf(`
 export FARGATE_CLUSTER=%s
 export FARGATE_SERVICE=%s
 export REPO=%s
 export VERSION=%s
  `, service, service, repo, version)
 
-  return result
+	return result
 }
 
 func getCircleCIv2YAML(platform string) string {
@@ -147,7 +147,7 @@ jobs:
 }
 
 func getCircleCIv2YAMLForEcsFargate() string {
-  template := `
+	template := `
 version: 2
 jobs:
   build:
