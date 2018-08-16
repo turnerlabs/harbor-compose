@@ -42,7 +42,7 @@ harbor-compose migrate my-shipment prod \
 }
 
 const (
-	latestTemplateVersion = "v0.4.1"
+	latestTemplateVersion = "v0.4.3"
 )
 
 var migrateBuildProvider string
