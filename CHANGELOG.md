@@ -1,3 +1,10 @@
+## 0.18.0 (2018-09-20)
+
+Features:
+
+- Adds `migrate` command
+
+
 ## 0.17.0 (2018-02-07)
 
 Features:
