@@ -610,3 +610,9 @@ func transformDockerServiceEnvVarsToHarborEnvVarsHidden(dockerService *config.Se
 
 	return harborEnvVars
 }
+
+func hideEnvVars(envVars []EnvVarPayload) {
+	for i := range envVars {
+		envVars[i].Type = "hidden"
+	}
+}

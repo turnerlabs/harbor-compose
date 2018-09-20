@@ -43,7 +43,7 @@ func login(cmd *cobra.Command, args []string) {
 	}
 }
 
-func writeFile(version string, username string, token string) (bool, error) {
+func writeAuthFile(version string, username string, token string) (bool, error) {
 	home, err := homedir.Dir()
 	if err != nil {
 		return false, err
@@ -79,7 +79,7 @@ func writeFile(version string, username string, token string) (bool, error) {
 	return true, nil
 }
 
-func readFile() (*Auth, error) {
+func readAuthFile() (*Auth, error) {
 	home, err := homedir.Dir()
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func readFile() (*Auth, error) {
 
 //Login -
 func Login() (string, string, error) {
-	serializedAuth, _ := readFile()
+	serializedAuth, _ := readAuthFile()
 
 	if serializedAuth != nil {
 		isvalid, errHarborAuth := harborAuthenticated(serializedAuth.Username, serializedAuth.Token)
@@ -121,6 +121,8 @@ func Login() (string, string, error) {
 			fmt.Println("Unable to verify token: " + errHarborAuth.Error())
 		}
 		if isvalid {
+			setCurrentUser(serializedAuth.Username)
+			writeMetric(currentCommand, currentUser)
 			return serializedAuth.Username, serializedAuth.Token, nil
 		}
 	}
@@ -129,7 +131,6 @@ func Login() (string, string, error) {
 	fmt.Print("Username: ")
 	var harborUsername string
 	fmt.Scanln(&harborUsername)
-	//harborUsername, _ := reader.ReadString()
 
 	fmt.Print("Password: ")
 	bytePassword, err := gopass.GetPasswdMasked()
@@ -139,8 +140,10 @@ func Login() (string, string, error) {
 	fmt.Println("")
 	if err == nil && len(harborToken) > 1 {
 		fmt.Println("Login Succeeded")
-		successfullyWritten, errWriteFile := writeFile("v1", harborUsername, harborToken)
+		successfullyWritten, errWriteFile := writeAuthFile("v1", harborUsername, harborToken)
 		if errWriteFile == nil && successfullyWritten == true {
+			setCurrentUser(harborUsername)
+			writeMetric(currentCommand, currentUser)
 			return harborUsername, harborToken, nil
 		}
 	}

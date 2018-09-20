@@ -1,0 +1,50 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: quay.io/turner/harbor-compose-build
+    working_directory: /go/src/github.com/turnerlabs/harbor-compose
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 17.11.0-ce      
+      - run:
+          name: set version
+          command: echo "VERSION=$(git describe --tags)" > .env && cat .env
+      - run:
+          name: vet
+          command: go vet ./cmd
+      - run: 
+          name: run tests
+          command: ./test.sh
+      - run:
+          name: docker login
+          command: docker login -u="${DOCKER_USER}" -p="${DOCKER_PASS}" quay.io
+      - run:
+          name: multi-platform build (for develop and master)
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              ./build.sh
+            fi
+      - run:
+          name: deploy develop to github pre-release
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
+              ghr --prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
+              source .env; docker push quay.io/turner/harbor-compose:${VERSION}
+            fi
+      - run:
+          name: deploy master to github release
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              source .env; docker build -t quay.io/turner/harbor-compose:${VERSION} .
+              ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
+              source .env; docker push quay.io/turner/harbor-compose:${VERSION}
+              source .env; docker tag quay.io/turner/harbor-compose:${VERSION} quay.io/turner/harbor-compose:latest
+              docker push quay.io/turner/harbor-compose:latest
+            fi
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
