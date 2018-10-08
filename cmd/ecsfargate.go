@@ -111,9 +111,7 @@ func migrateToEcsFargate(shipmentEnv *ShipmentEnvironment, harborCompose *Harbor
 	if strings.Contains(data.Env, "prod") {
 		debug("deleting autoscale-time files for prod environment: " + data.Env)
 		err = os.Remove(filepath.Join(envDir, "autoscale-time.tf"))
-		check(err)
 		err = os.Remove(filepath.Join(envDir, "autoscale-time.zip"))
-		check(err)
 	}
 
 	//write a fargate.yml for the cli
@@ -580,6 +578,8 @@ region = "{{ .AwsRegion }}"
 aws_profile = "{{ .AwsProfile }}"
 	
 saml_role = "{{ .AwsSamlRole }}"
+
+secrets_saml_users = []
 
 tags = {
 	application      = "{{ .App }}"
