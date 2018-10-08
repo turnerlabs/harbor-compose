@@ -1,3 +1,10 @@
+## 0.18.1 (2018-10-08)
+
+Features:
+
+- v0.6.1 of the migration template ([#196](https://github.com/turnerlabs/harbor-compose/pull/196))
+
+
 ## 0.18.0 (2018-09-20)
 
 Features:
